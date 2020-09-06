@@ -1,0 +1,48 @@
+language: go
+
+go:
+  - 1.15
+
+services:
+  - docker
+
+env:
+  - DOCKER_COMPOSE_VERSION=1.27.2
+
+before_install:
+  - sudo rm /usr/local/bin/docker-compose
+  - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
+  - chmod +x docker-compose
+  - sudo mv docker-compose /usr/local/bin
+
+# faster builds on new travis setup not using sudo
+sudo: false
+
+cache:
+  directories:
+    - $GOPATH/pkg/mod
+
+restore_cache:
+  keys:
+    - go-modules-v1-{{ checksum "go.sum" }}
+    - go-modules-v1
+    # get dependencies here with `go mod download` or implicitly
+    # with `go build` or `go test`
+
+save_cache:
+  key: go-modules-v1-{{ checksum "go.sum" }}
+  paths:
+    - "/go/pkg/mod"
+
+install:
+  - go mod vendor
+
+before_script:
+  - docker-compose up -d
+
+script:
+  - |
+    docker-compose exec -T app make test
+
+after_script:
+  - docker-compose down

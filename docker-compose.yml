@@ -1,0 +1,15 @@
+version: "3.7"
+
+services:
+  clickhouse:
+    image: yandex/clickhouse-server:20.6.5.8
+    volumes:
+      - "./docker/volume/clickhouse/dump:/docker-entrypoint-initdb.d/"
+
+  app:
+#    image: golang:1.15.1-alpine3.12
+    image: raoptimus/go-magick:latest
+    working_dir: "/usr/src/app"
+    command: "sleep infinity"
+    volumes:
+      - "./:/usr/src/app"

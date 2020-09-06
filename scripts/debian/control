@@ -1,0 +1,8 @@
+Package: <PACKAGE>
+Version: <VERSION>
+Section: base
+Priority: optional
+Description: <PACKAGE>
+Maintainer: Urvantsev Evgenii <resmus@gmail.com>
+Vendor: raoptimus
+Architecture: all
