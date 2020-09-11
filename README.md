@@ -9,7 +9,7 @@ The db migration tool currently supports the following db drivers:
 
 ### Creating Migrations
 To create a new migration, run the following command:  
-`DSN=clickhouse://default:@localhost:9000/docker?sslmode=disable&compress=true DIRECTORY=./migrations db-migrator create <name>`
+`DSN=clickhouse://default:@localhost:9000/docker?sslmode=disable&compress=true MIGRATION_PATH=./migrations db-migrator create <name>`
 
 The required name argument gives a brief description about the new migration.  
 For example, if the migration is about creating a new table named news, you may use the name `create_news_table` and run the following command:  
@@ -87,7 +87,7 @@ The table will be automatically created by the command if it does not exist.
 You may also manually create it using the structure version varchar(255) primary key, apply_time integer.
 - `dsn` or `d`: string (defaults to empty), Database connection strings are specified via URLs. 
 The URL format is driver dependent but generally has the form: driver://username:password@host:port/dbname?option1=true.
-- `compact`: boolean (defaults to false), output in compact mode
+- `compact` or `c`: boolean (defaults to false), output in compact mode
 
 #### You can use each option as env params:
 ```
