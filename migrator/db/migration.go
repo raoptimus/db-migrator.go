@@ -55,8 +55,8 @@ func NewMigration(m MigrationInterface, conn *sql.DB, options MigrationOptions) 
 	}
 }
 
-func (s *Migration) GetNewMigrations() (HistoryItems, error) {
-	hist, err := s.GetMigrationHistory(0)
+func (s *Migration) GetNewMigrations(limit int) (HistoryItems, error) {
+	hist, err := s.GetMigrationHistory(limit)
 	if err != nil {
 		return nil, err
 	}

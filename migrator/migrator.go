@@ -40,10 +40,6 @@ func New(options Options) (*MigrateController, error) {
 	return &controller, nil
 }
 
-func (s *MigrateController) CreateMigration(name string) error {
-	return nil
-}
-
 func (s *MigrateController) init() error {
 	switch {
 	case strings.HasPrefix(s.options.DSN, "clickhouse://"):

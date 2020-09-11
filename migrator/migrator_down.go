@@ -14,7 +14,7 @@ import (
 )
 
 func (s *MigrateController) Down(limit string) error {
-	limitInt, err := parseLimit(limit)
+	limitInt, err := parseLimit(limit, 1)
 	if err != nil {
 		return err
 	}
@@ -31,7 +31,7 @@ func (s *MigrateController) Down(limit string) error {
 	fmt.Printf(console.Yellow("Total %d %s to be reverted: \n"),
 		n, console.NumberPlural(n, "migration", "migrations"))
 
-	printAllMigrations(hist)
+	printAllMigrations(hist, false)
 
 	reverted := 0
 	question := fmt.Sprintf("Revert the above %d %s?",

@@ -14,11 +14,11 @@ import (
 )
 
 func (s *MigrateController) Up(limit string) error {
-	limitInt, err := parseLimit(limit)
+	limitInt, err := parseLimit(limit, 1)
 	if err != nil {
 		return err
 	}
-	hist, err := s.migration.GetNewMigrations()
+	hist, err := s.migration.GetNewMigrations(limitInt)
 	if err != nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func (s *MigrateController) Up(limit string) error {
 			n, total, console.NumberPlural(total, "migration", "migrations"))
 	}
 
-	printAllMigrations(hist)
+	printAllMigrations(hist, false)
 
 	applied := 0
 	question := fmt.Sprintf("Apply the above %s?",

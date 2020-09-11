@@ -91,6 +91,24 @@ func main() {
 				return controller.CreateMigration(c.Args().Get(0))
 			},
 		},
+		{
+			Name: "history",
+			Action: func(c *cli.Context) error {
+				return controller.History(c.Args().Get(0))
+			},
+		},
+		{
+			Name: "new",
+			Action: func(c *cli.Context) error {
+				return controller.HistoryNew(c.Args().Get(0))
+			},
+		},
+		{
+			Name: "to",
+			Action: func(c *cli.Context) error {
+				return controller.To(c.Args().Get(0))
+			},
+		},
 	}
 	app.Before = before
 	app.Action = func(c *cli.Context) error {

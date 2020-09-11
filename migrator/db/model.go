@@ -7,7 +7,10 @@
  */
 package db
 
-import "sort"
+import (
+	"sort"
+	"time"
+)
 
 type (
 	HistoryItem struct {
@@ -46,4 +49,8 @@ func (s HistoryItem) GetDownFileName() string {
 		return s.Version + ".safe.down.sql"
 	}
 	return s.Version + ".down.sql"
+}
+
+func (s HistoryItem) ApplyTimeFormat() string {
+	return time.Unix(int64(s.ApplyTime), 0).Format("2006-01-02 15:04:05")
 }

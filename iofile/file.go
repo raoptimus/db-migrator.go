@@ -15,3 +15,19 @@ func Exists(path string) bool {
 	}
 	return true
 }
+
+func CreateDirectory(path string) error {
+	if Exists(path) {
+		return nil
+	}
+
+	return os.Mkdir(path, 0755)
+}
+
+func CreateFile(filename string) error {
+	f, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	return f.Close()
+}

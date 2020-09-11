@@ -14,10 +14,10 @@ import (
 	"strconv"
 )
 
-func parseLimit(limit string) (int, error) {
+func parseLimit(limit string, defaults int) (int, error) {
 	switch limit {
 	case "":
-		return 1, nil
+		return defaults, nil
 	case "all":
 		return 0, nil
 	default:
@@ -34,10 +34,15 @@ func parseLimit(limit string) (int, error) {
 	}
 }
 
-func printAllMigrations(hist db.HistoryItems) {
+func printAllMigrations(hist db.HistoryItems, withTime bool) {
 	for _, item := range hist {
 		//todo check len of version name
-		fmt.Printf("\t%s", item.Version)
+		if withTime {
+			fmt.Printf("\t(%s) %s", item.ApplyTimeFormat(), item.Version)
+		} else {
+			fmt.Printf("\t%s", item.Version)
+		}
+
 	}
 	fmt.Println("")
 }
