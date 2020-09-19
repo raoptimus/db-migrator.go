@@ -6,10 +6,21 @@ services:
     volumes:
       - "./docker/volume/clickhouse/dump:/docker-entrypoint-initdb.d/"
 
+  postgres:
+    image: postgres:12-alpine
+    env_file:
+      - .env
+
   app:
-#    image: golang:1.15.1-alpine3.12
+    #    image: golang:1.15.1-alpine3.12
     image: raoptimus/go-magick:latest
     working_dir: "/usr/src/app"
     command: "sleep infinity"
+    depends_on:
+      - clickhouse
+      - postgres
+    links:
+      - clickhouse
+      - postgres
     volumes:
       - "./:/usr/src/app"

@@ -31,7 +31,7 @@ type (
 		AddMigrationHistory(version string) error
 		RemoveMigrationHistory(version string) error
 		GetMigrationHistory(limit int) (HistoryItems, error)
-		CatchError(err error) error
+		ConvertError(err error, query string) error
 	}
 	MigrationOptions struct {
 		MaxSqlOutputLength int
@@ -147,19 +147,19 @@ func (s *Migration) ExecuteSafely(sqlQuery string, args ...interface{}) error {
 	start := s.BeginCommand(sqlQuery)
 	tx, err := s.connection.Begin()
 	if err != nil {
-		return s.CatchError(err)
+		return s.ConvertError(err, sqlQuery)
 	}
 	stmt, err := tx.Prepare(sqlQuery)
 	if err != nil {
 		tx.Rollback()
-		return s.CatchError(err)
+		return s.ConvertError(err, sqlQuery)
 	}
 	if _, err := stmt.Exec(args...); err != nil {
 		tx.Rollback()
-		return s.CatchError(err)
+		return s.ConvertError(err, sqlQuery)
 	}
 	if err = tx.Commit(); err != nil {
-		return s.CatchError(err)
+		return s.ConvertError(err, sqlQuery)
 	}
 	s.EndCommand(start)
 
@@ -169,7 +169,7 @@ func (s *Migration) ExecuteSafely(sqlQuery string, args ...interface{}) error {
 func (s *Migration) Execute(sqlQuery string, args ...interface{}) error {
 	start := s.BeginCommand(sqlQuery)
 	if _, err := s.connection.Exec(sqlQuery, args...); err != nil {
-		return s.CatchError(err)
+		return s.ConvertError(err, sqlQuery)
 	}
 	s.EndCommand(start)
 

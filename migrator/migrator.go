@@ -13,11 +13,12 @@ import (
 	"github.com/ClickHouse/clickhouse-go"
 	"github.com/raoptimus/db-migrator/migrator/db"
 	"github.com/raoptimus/db-migrator/migrator/db/clickhouseMigration"
+	"github.com/raoptimus/db-migrator/migrator/db/postgresMigration"
 	"strings"
 )
 
 type (
-	MigrateController struct {
+	Service struct {
 		options   Options
 		db        *sql.DB
 		migration *db.Migration
@@ -32,24 +33,51 @@ type (
 	}
 )
 
-func New(options Options) (*MigrateController, error) {
-	controller := MigrateController{options: options}
+func New(options Options) (*Service, error) {
+	controller := Service{options: options}
 	if err := controller.init(); err != nil {
 		return nil, err
 	}
 	return &controller, nil
 }
 
-func (s *MigrateController) init() error {
+func (s *Service) init() error {
 	switch {
 	case strings.HasPrefix(s.options.DSN, "clickhouse://"):
 		return s.initClickhouse()
+	case strings.HasPrefix(s.options.DSN, "postgres://"):
+		return s.initPostgres()
 	default:
 		return fmt.Errorf("Driver %s doesn't support", s.options.DSN)
 	}
 }
 
-func (s *MigrateController) initClickhouse() error {
+func (s *Service) initPostgres() error {
+	connection, err := sql.Open("postgres", s.options.DSN)
+	if err != nil {
+		return err
+	}
+	if err := connection.Ping(); err != nil {
+		return err
+	}
+
+	s.db = connection
+	s.migration = db.NewMigration(
+		postgresMigration.New(connection, s.options.TableName, s.options.Directory),
+		connection,
+		db.MigrationOptions{
+			MaxSqlOutputLength: s.options.MaxSqlOutputLength,
+			Directory:          s.options.Directory,
+			Compact:            s.options.Compact,
+			MultiSTMT:          true,
+			ForceSafely:        false,
+		},
+	)
+
+	return nil
+}
+
+func (s *Service) initClickhouse() error {
 	dsn := "tcp://" + strings.TrimPrefix(s.options.DSN, "clickhouse://")
 	connection, err := sql.Open("clickhouse", dsn)
 	if err != nil {
