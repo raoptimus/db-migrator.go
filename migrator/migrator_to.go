@@ -9,7 +9,7 @@ package migrator
 
 import "fmt"
 
-func (s *MigrateController) To(version string) error {
+func (s *Service) To(version string) error {
 	fmt.Println("coming soon")
 	return nil
 }

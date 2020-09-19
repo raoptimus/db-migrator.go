@@ -14,7 +14,7 @@ import (
 	"log"
 )
 
-func (s *MigrateController) Redo(limit string) error {
+func (s *Service) Redo(limit string) error {
 	limitInt, err := parseLimit(limit, 1)
 	if err != nil {
 		return err

@@ -13,7 +13,7 @@ import (
 	"log"
 )
 
-func (s *MigrateController) Up(limit string) error {
+func (s *Service) Up(limit string) error {
 	limitInt, err := parseLimit(limit, 1)
 	if err != nil {
 		return err

@@ -20,7 +20,7 @@ import (
 
 var RegexName = regexp.MustCompile(`^[\w\\\\]+$`)
 
-func (s *MigrateController) CreateMigration(name string) error {
+func (s *Service) CreateMigration(name string) error {
 	if !RegexName.MatchString(name) {
 		return errors.New("The migration name should contain letters, digits, underscore and/or backslash characters only.")
 	}

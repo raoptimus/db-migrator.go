@@ -5,17 +5,20 @@
  * @license https://github.com/raoptimus/db-migrator.go/blob/master/LICENSE.md
  * @link https://github.com/raoptimus/db-migrator.go
  */
-package clickhouseMigration
+package postgresMigration
 
 import (
 	"database/sql"
 	"fmt"
-	"github.com/ClickHouse/clickhouse-go"
+	"github.com/lib/pq"
+	_ "github.com/lib/pq"
 	"github.com/raoptimus/db-migrator/console"
 	"github.com/raoptimus/db-migrator/migrator/db"
 	"log"
 	"time"
 )
+
+const defaultSchema = "public"
 
 type (
 	Migration struct {
@@ -33,12 +36,26 @@ func New(connection *sql.DB, tableName, directory string) *Migration {
 	}
 }
 
-func (s *Migration) ConvertError(err error, query string) error {
-	if exception, ok := err.(*clickhouse.Exception); ok {
-		return fmt.Errorf("exception: [%d] %s \n%s\n", exception.Code, exception.Message, exception.StackTrace)
+func (s *Migration) internalConvertError(err error, query string) error {
+	if ex, ok := err.(*pq.Error); ok {
+		q := ex.InternalQuery
+		if q == "" {
+			q = query
+		}
+		return fmt.Errorf("SQLSTATE[%s]: %s: %s\nDETAILS:%s\nThe SQL being executed was: %s\n",
+			ex.Code,
+			ex.Severity,
+			ex.Message,
+			ex.Detail,
+			q,
+		)
 	}
 
-	return fmt.Errorf("exception: %v", err)
+	return err
+}
+
+func (s *Migration) ConvertError(err error, query string) error {
+	return fmt.Errorf("exception: %v", s.internalConvertError(err, query))
 }
 
 func (s *Migration) InitializeTableHistory() error {
@@ -66,9 +83,8 @@ func (s *Migration) GetMigrationHistory(limit int) (db.HistoryItems, error) {
 			`
 			SELECT version, apply_time 
 			FROM %s
-			WHERE is_deleted = 0 
 			ORDER BY apply_time DESC, version DESC
-			LIMIT ?`,
+			LIMIT $1`,
 			s.tableName,
 		)
 		result db.HistoryItems
@@ -79,7 +95,7 @@ func (s *Migration) GetMigrationHistory(limit int) (db.HistoryItems, error) {
 
 	rows, err := s.connection.Query(q, limit)
 	if err != nil {
-		return nil, err
+		return nil, s.internalConvertError(err, q)
 	}
 	for rows.Next() {
 		var (
@@ -108,63 +124,18 @@ func (s *Migration) GetMigrationHistory(limit int) (db.HistoryItems, error) {
 func (s *Migration) AddMigrationHistory(version string) error {
 	now := uint32(time.Now().Unix())
 	q := fmt.Sprintf(`
-		INSERT INTO %s (version, apply_time, is_deleted) 
-		VALUES(?, ?, ?)`,
+		INSERT INTO %s (version, apply_time) 
+		VALUES ($1, $2)`,
 		s.tableName,
 	)
-	tx, err := s.connection.Begin()
-	if err != nil {
-		return err
-	}
+	_, err := s.connection.Exec(q, version, now)
 
-	stmt, err := tx.Prepare(q)
-	if err != nil {
-		return err
-	}
-
-	if _, err := stmt.Exec(version, now, 0); err != nil {
-		tx.Rollback()
-
-		return err
-	}
-	if err := tx.Commit(); err != nil {
-		return err
-	}
-
-	return s.optimizeTable()
+	return s.internalConvertError(err, q)
 }
 
 func (s *Migration) RemoveMigrationHistory(version string) error {
-	now := uint32(time.Now().Unix())
-	q := fmt.Sprintf(`
-		INSERT INTO %s (version, apply_time, is_deleted) 
-		VALUES(?, ?, ?)`,
-		s.tableName,
-	)
-	tx, err := s.connection.Begin()
-	if err != nil {
-		return err
-	}
-
-	stmt, err := tx.Prepare(q)
-	if err != nil {
-		return err
-	}
-
-	if _, err := stmt.Exec(version, now, 1); err != nil {
-		tx.Rollback()
-
-		return err
-	}
-	if err := tx.Commit(); err != nil {
-		return err
-	}
-
-	return s.optimizeTable()
-}
-
-func (s *Migration) optimizeTable() error {
-	_, err := s.connection.Exec(fmt.Sprintf("OPTIMIZE TABLE %s", s.tableName))
+	q := fmt.Sprintf(`DELETE FROM %s WHERE (version) = ($1)`, s.tableName)
+	_, err := s.connection.Exec(q, version)
 
 	return err
 }
@@ -174,22 +145,16 @@ func (s *Migration) createMigrationHistoryTable() error {
 
 	q := fmt.Sprintf(
 		`
-			CREATE TABLE %s (
-				version String, 
-				date Date DEFAULT toDate(apply_time),
-				apply_time UInt32,
-				is_deleted UInt8
-			) ENGINE = ReplacingMergeTree(apply_time)
-			PRIMARY KEY (version)
-			PARTITION BY (toYYYYMM(date))
-			ORDER BY (version)
-			SETTINGS index_granularity=8192
+				CREATE TABLE %s (
+				  version varchar(180) PRIMARY KEY,
+				  apply_time integer
+				)
 			`,
 		s.tableName,
 	)
 
 	if _, err := s.connection.Exec(q); err != nil {
-		return err
+		return s.internalConvertError(err, q)
 	}
 	if err := s.AddMigrationHistory(db.BaseMigration); err != nil {
 		q2 := fmt.Sprintf(`DROP TABLE %s`, s.tableName)
@@ -206,29 +171,32 @@ func (s *Migration) createMigrationHistoryTable() error {
 func (s *Migration) getTableScheme() (exists bool, err error) {
 	var (
 		q = `
-		SELECT database, table 
-		FROM system.columns 
-		WHERE table = ? AND database = currentDatabase()
+			SELECT
+				d.nspname AS table_schema,
+				c.relname AS table_name
+			FROM pg_class c
+			LEFT JOIN pg_namespace d ON d.oid = c.relnamespace
+			WHERE (c.relname, d.nspname) = ($1, $2)
 		`
 		rows *sql.Rows
 	)
 
-	rows, err = s.connection.Query(q, s.tableName)
+	rows, err = s.connection.Query(q, s.tableName, defaultSchema)
 	if err != nil {
-		return false, err
+		return false, s.internalConvertError(err, q)
 	}
 
 	for rows.Next() {
 		var (
-			database string
-			table    string
+			tableName string
+			schema    string
 		)
-		if err := rows.Scan(&database, &table); err != nil {
-			return false, err
+		if err := rows.Scan(&schema, &tableName); err != nil {
+			return false, s.internalConvertError(err, q)
 		}
 
 		//todo scan columns to tableScheme
-		if table == s.tableName {
+		if tableName == s.tableName {
 			return true, nil
 		}
 	}

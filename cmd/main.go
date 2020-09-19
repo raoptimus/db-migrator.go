@@ -9,6 +9,7 @@ package main
 
 import (
 	"fmt"
+	_ "github.com/lib/pq"
 	"github.com/raoptimus/db-migrator/console"
 	"github.com/raoptimus/db-migrator/migrator"
 	"github.com/urfave/cli/v2"
@@ -21,12 +22,12 @@ import (
 var (
 	Version    string
 	GitCommit  string
-	controller *migrator.MigrateController
+	controller *migrator.Service
 )
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "DB MigrateController"
+	app.Name = "DB Service"
 	app.Usage = "up/down/redo command for migrates the different db"
 	app.Version = fmt.Sprintf("v%s.rev[%s]", Version, GitCommit)
 	app.Flags = []cli.Flag{
@@ -34,15 +35,17 @@ func main() {
 			Name:    "dsn",
 			EnvVars: []string{"DSN"},
 			Aliases: []string{"d"},
-			Value:   "clickhouse://default:@localhost:9000/docker?sslmode=disable&compress=true&debug=false",
-			Usage:   "DB connection string",
+			//Value:   "postgres://docker:docker@postgres:5432/docker?sslmode=disable",
+			Value: "clickhouse://default:@clickhouse:9000/docker?sslmode=disable&compress=true&debug=false",
+			Usage: "DB connection string",
 		},
 		&cli.StringFlag{
 			Name:    "migrationPath",
 			EnvVars: []string{"MIGRATION_PATH"},
 			Aliases: []string{"p"},
 			Value:   "./migrator/db/clickhouseMigration/test_migrates",
-			Usage:   "Directory for migrated files",
+			//Value: "./migrator/db/postgresMigration/test_migrates",
+			Usage: "Directory for migrated files",
 		},
 		&cli.StringFlag{
 			Name:    "migrationTable",

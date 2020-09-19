@@ -12,7 +12,7 @@ import (
 	"github.com/raoptimus/db-migrator/console"
 )
 
-func (s *MigrateController) History(limit string) error {
+func (s *Service) History(limit string) error {
 	limitInt, err := parseLimit(limit, 10)
 	if err != nil {
 		return err
