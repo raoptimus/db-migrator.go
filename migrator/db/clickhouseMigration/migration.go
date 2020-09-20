@@ -11,8 +11,8 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/ClickHouse/clickhouse-go"
-	"github.com/raoptimus/db-migrator/console"
-	"github.com/raoptimus/db-migrator/migrator/db"
+	"github.com/raoptimus/db-migrator.go/console"
+	"github.com/raoptimus/db-migrator.go/migrator/db"
 	"log"
 	"time"
 )

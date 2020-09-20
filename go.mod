@@ -1,4 +1,4 @@
-module github.com/raoptimus/db-migrator
+module github.com/raoptimus/db-migrator.go
 
 go 1.15
 

@@ -9,8 +9,8 @@ package migrator
 
 import (
 	"fmt"
-	"github.com/raoptimus/db-migrator/console"
-	"github.com/raoptimus/db-migrator/migrator/db"
+	"github.com/raoptimus/db-migrator.go/console"
+	"github.com/raoptimus/db-migrator.go/migrator/db"
 	"log"
 )
 

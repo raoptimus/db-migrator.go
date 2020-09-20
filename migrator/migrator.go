@@ -11,9 +11,9 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/ClickHouse/clickhouse-go"
-	"github.com/raoptimus/db-migrator/migrator/db"
-	"github.com/raoptimus/db-migrator/migrator/db/clickhouseMigration"
-	"github.com/raoptimus/db-migrator/migrator/db/postgresMigration"
+	"github.com/raoptimus/db-migrator.go/migrator/db"
+	"github.com/raoptimus/db-migrator.go/migrator/db/clickhouseMigration"
+	"github.com/raoptimus/db-migrator.go/migrator/db/postgresMigration"
 	"strings"
 )
 

@@ -9,7 +9,7 @@ package migrator
 
 import (
 	"fmt"
-	"github.com/raoptimus/db-migrator/console"
+	"github.com/raoptimus/db-migrator.go/console"
 )
 
 func (s *Service) HistoryNew(limit string) error {
