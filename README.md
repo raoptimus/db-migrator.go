@@ -103,6 +103,9 @@ You can execute the command in root directory `make build` or `build-docker` int
 If you want build the debian package, then you can run the command 
 `make build-deb` or `build-deb-docker` into docker container.
 
+#### With Go toolchain
+`go get -u -d github.com/raoptimus/db-migrator/cmd/db-migrator@0.0.4`
+
 ### Example
 ```
 DSN=clickhouse://default:@localhost:9000/docker?sslmode=disable&compress=true&debug=false

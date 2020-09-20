@@ -1,9 +1,10 @@
 SHELL = /bin/bash -ex
 BASEDIR=$(shell pwd)
-GIT_BRANCH=$(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
-GIT_COMMIT=$(shell git rev-parse --short HEAD)
-GIT_TAG=$(shell git describe --tags --abbrev=0 --exact-match HEAD 2>/dev/null || false)
+GIT_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
+GIT_COMMIT ?= $(shell git rev-parse --short HEAD)
+GIT_TAG ?= $(shell git describe --tags --abbrev=0 --exact-match HEAD 2>/dev/null || false)
 VERSION ?= $(shell [[ "${GIT_TAG}" == "" ]] && echo 0.0.1 || echo ${GIT_TAG})
+export ${VERSION}
 LDFLAGS=-ldflags "-s -w -X main.Version=${GIT_TAG} -X main.GitCommit=${GIT_COMMIT}"
 COVERAGE_DIR ?= .coverage
 BUILD_DIR ?= .build
@@ -18,15 +19,30 @@ APTLY_REPO ?= xenial
 APTLY_PREFIX ?= $(shell [[ ${GIT_BRANCH} == "master" ]] && echo "stable" || echo "develop")
 PACKAGE_FILE = "$(PKG_NAME)-$(VERSION).deb"
 PKG_WORKDIR = "${BUILD_DIR}/${PKG_NAME}-${VERSION}"
+DOCKER_ID_USER = raoptimus
+DOCKER_IMAGE = "${PKG_NAME}"
 
 help:
 	@echo "VERSION: ${VERSION}"
 
-build: help test
+build-docker-image:
+	@docker build \
+		--build-arg VERSION=${VERSION} \
+		--build-arg GIT_BRANCH=${GIT_BRANCH} \
+		--build-arg GIT_COMMIT=${GIT_COMMIT} \
+		--build-arg GIT_TAG=${GIT_TAG} \
+		-f ./docker/image/build/Dockerfile \
+		-t ${DOCKER_ID_USER}/${DOCKER_IMAGE}:"${VERSION}-alpine" \
+		-t ${DOCKER_ID_USER}/${DOCKER_IMAGE}:latest  ./
+
+	@docker push ${DOCKER_ID_USER}/${DOCKER_IMAGE}:"${VERSION}-alpine"
+	@docker push ${DOCKER_ID_USER}/${DOCKER_IMAGE}:latest
+
+build: help
 	@[ -d ${BUILD_DIR} ] || mkdir -p ${BUILD_DIR}
-	CGO_ENABLED=0 go build ${LDFLAGS} -o ${BUILD_DIR}/db-migrator cmd/main.go
-	@file  ${BUILD_DIR}/db-migrator
-	@du -h ${BUILD_DIR}/db-migrator
+	CGO_ENABLED=0 go build ${LDFLAGS} -o ${BUILD_DIR}/${PKG_NAME} cmd/${PKG_NAME}/main.go
+	@file  ${BUILD_DIR}/${PKG_NAME}
+	@du -h ${BUILD_DIR}/${PKG_NAME}
 
 test:
 	@[ -d ${COVERAGE_DIR} ] || mkdir -p ${COVERAGE_DIR}

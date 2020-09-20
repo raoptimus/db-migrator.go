@@ -1,0 +1,8 @@
+**
+!cmd
+!console
+!iofile
+!migrator
+!go.mod
+!go.sum
+!Makefile
