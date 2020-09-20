@@ -10,9 +10,9 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"github.com/raoptimus/db-migrator/console"
-	"github.com/raoptimus/db-migrator/iofile"
-	"github.com/raoptimus/db-migrator/migrator/multistmt"
+	"github.com/raoptimus/db-migrator.go/console"
+	"github.com/raoptimus/db-migrator.go/iofile"
+	"github.com/raoptimus/db-migrator.go/migrator/multistmt"
 	"io/ioutil"
 	"log"
 	"path/filepath"

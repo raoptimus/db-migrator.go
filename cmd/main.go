@@ -10,8 +10,8 @@ package main
 import (
 	"fmt"
 	_ "github.com/lib/pq"
-	"github.com/raoptimus/db-migrator/console"
-	"github.com/raoptimus/db-migrator/migrator"
+	"github.com/raoptimus/db-migrator.go/console"
+	"github.com/raoptimus/db-migrator.go/migrator"
 	"github.com/urfave/cli/v2"
 	"log"
 	"net/http"

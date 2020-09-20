@@ -12,8 +12,8 @@ import (
 	"fmt"
 	"github.com/lib/pq"
 	_ "github.com/lib/pq"
-	"github.com/raoptimus/db-migrator/console"
-	"github.com/raoptimus/db-migrator/migrator/db"
+	"github.com/raoptimus/db-migrator.go/console"
+	"github.com/raoptimus/db-migrator.go/migrator/db"
 	"log"
 	"time"
 )

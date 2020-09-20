@@ -10,8 +10,8 @@ package migrator
 import (
 	"errors"
 	"fmt"
-	"github.com/raoptimus/db-migrator/console"
-	"github.com/raoptimus/db-migrator/iofile"
+	"github.com/raoptimus/db-migrator.go/console"
+	"github.com/raoptimus/db-migrator.go/iofile"
 	"log"
 	"path"
 	"regexp"

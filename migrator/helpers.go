@@ -10,7 +10,7 @@ package migrator
 import (
 	"errors"
 	"fmt"
-	"github.com/raoptimus/db-migrator/migrator/db"
+	"github.com/raoptimus/db-migrator.go/migrator/db"
 	"strconv"
 )
 
