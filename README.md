@@ -104,7 +104,19 @@ If you want build the debian package, then you can run the command
 `make build-deb` or `build-deb-docker` into docker container.
 
 #### With Go toolchain
-`go get -u -d github.com/raoptimus/db-migrator/cmd/db-migrator@0.0.4`
+The Latest version:
+```
+go get -u -d github.com/raoptimus/db-migrator.go/cmd/db-migrator
+```  
+The custom version:  
+```
+go get -u -d github.com/raoptimus/db-migrator.go/cmd/db-migrator@0.0.5
+```
+
+#### With docker
+```
+docker pull raoptimus/db-migrator
+```
 
 ### Example
 ```

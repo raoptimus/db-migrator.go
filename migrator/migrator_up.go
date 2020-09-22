@@ -14,7 +14,7 @@ import (
 )
 
 func (s *Service) Up(limit string) error {
-	limitInt, err := parseLimit(limit, 1)
+	limitInt, err := parseLimit(limit, 0)
 	if err != nil {
 		return err
 	}
@@ -27,7 +27,7 @@ func (s *Service) Up(limit string) error {
 		fmt.Println(console.Green("No new migrations found. Your system is up-to-date."))
 		return nil
 	}
-	if limitInt > 0 {
+	if limitInt > 0 && len(hist) > limitInt {
 		hist = hist[:limitInt]
 	}
 	n := hist.Len()

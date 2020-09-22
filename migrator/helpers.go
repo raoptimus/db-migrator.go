@@ -38,9 +38,9 @@ func printAllMigrations(hist db.HistoryItems, withTime bool) {
 	for _, item := range hist {
 		//todo check len of version name
 		if withTime {
-			fmt.Printf("\t(%s) %s", item.ApplyTimeFormat(), item.Version)
+			fmt.Printf("\t(%s) %s\n", item.ApplyTimeFormat(), item.Version)
 		} else {
-			fmt.Printf("\t%s", item.Version)
+			fmt.Printf("\t%s\n", item.Version)
 		}
 
 	}
