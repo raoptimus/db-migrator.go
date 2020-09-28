@@ -1,8 +1,8 @@
-SHELL = /bin/bash -ex
+SHELL = /bin/bash -e
 BASEDIR=$(shell pwd)
 GIT_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD)
-GIT_TAG ?= $(shell git describe --tags --abbrev=0 --exact-match HEAD 2>/dev/null || false)
+GIT_TAG ?= $(shell git describe --tags --abbrev=0 HEAD 2>/dev/null || false)
 VERSION ?= $(shell [[ "${GIT_TAG}" == "" ]] && echo 0.0.1 || echo ${GIT_TAG})
 export ${VERSION}
 LDFLAGS=-ldflags "-s -w -X main.Version=${GIT_TAG} -X main.GitCommit=${GIT_COMMIT}"
@@ -24,6 +24,9 @@ DOCKER_IMAGE = "${PKG_NAME}"
 
 help:
 	@echo "VERSION: ${VERSION}"
+	@echo "GIT_BRANCH: ${GIT_BRANCH}"
+	@echo "GIT_TAG: ${GIT_TAG}"
+	@echo "GIT_COMMIT: ${GIT_COMMIT}"
 
 build-docker-image:
 	@docker build \
@@ -77,8 +80,3 @@ publish-deb:
 	@curl --fail --connect-timeout 5 -X POST ${APTLY_BASE_URL}/api/repos/${APTLY_REPO}/file/debian/${PACKAGE_FILE}
 	@curl --fail --connect-timeout 5 -X PUT ${APTLY_BASE_URL}/api/publish/filesystem:ci:${APTLY_PREFIX}/${APTLY_DIST}
 
-build-deb-docker:
-	@docker-compose run app make build-deb
-
-build-docker:
-	@docker-compose run app make build
