@@ -69,7 +69,7 @@ func (s *Service) initPostgres() error {
 			MaxSqlOutputLength: s.options.MaxSqlOutputLength,
 			Directory:          s.options.Directory,
 			Compact:            s.options.Compact,
-			MultiSTMT:          true,
+			MultiSTMT:          false,
 			ForceSafely:        false,
 		},
 	)
