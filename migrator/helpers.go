@@ -34,7 +34,7 @@ func parseLimit(limit string, defaults int) (int, error) {
 	}
 }
 
-func printAllMigrations(hist db.HistoryItems, withTime bool) {
+func printAllMigrations(hist db.MigrationEntityList, withTime bool) {
 	for _, item := range hist {
 		//todo check len of version name
 		if withTime {

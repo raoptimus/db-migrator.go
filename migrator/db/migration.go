@@ -13,7 +13,6 @@ import (
 	"github.com/raoptimus/db-migrator.go/console"
 	"github.com/raoptimus/db-migrator.go/iofile"
 	"github.com/raoptimus/db-migrator.go/migrator/multistmt"
-	"io/ioutil"
 	"log"
 	"path/filepath"
 	"regexp"
@@ -30,7 +29,7 @@ type (
 		InitializeTableHistory() error
 		AddMigrationHistory(version string) error
 		RemoveMigrationHistory(version string) error
-		GetMigrationHistory(limit int) (HistoryItems, error)
+		GetMigrationHistory(limit int) (MigrationEntityList, error)
 		ConvertError(err error, query string) error
 	}
 	MigrationOptions struct {
@@ -42,8 +41,9 @@ type (
 	}
 	Migration struct {
 		MigrationInterface
-		connection *sql.DB
-		options    MigrationOptions
+		connection  *sql.DB
+		transaction *sql.Tx
+		options     MigrationOptions
 	}
 )
 
@@ -55,27 +55,28 @@ func NewMigration(m MigrationInterface, conn *sql.DB, options MigrationOptions) 
 	}
 }
 
-func (s *Migration) GetNewMigrations(limit int) (HistoryItems, error) {
-	hist, err := s.GetMigrationHistory(limit)
+func (s *Migration) GetNewMigrations(limit int) (MigrationEntityList, error) {
+	entityList, err := s.GetMigrationHistory(limit)
 	if err != nil {
 		return nil, err
 	}
-	files, err := filepath.Glob(filepath.Join(s.options.Directory, "*.up.sql"))
+	var files []string
+	files, err = filepath.Glob(filepath.Join(s.options.Directory, "*.up.sql"))
 	if err != nil {
 		return nil, err
 	}
 
-	result := HistoryItems{}
+	result := MigrationEntityList{}
 	var baseFilename string
 	for _, file := range files {
 		baseFilename = filepath.Base(file)
 		groups := Regex.FindStringSubmatch(baseFilename)
 		if len(groups) != 5 {
-			return nil, fmt.Errorf("File name %s is invalid", baseFilename)
+			return nil, fmt.Errorf("file name %s is invalid", baseFilename)
 		}
 		found := false
-		for _, item := range hist {
-			if item.Version == groups[1] {
+		for _, entity := range entityList {
+			if entity.Version == groups[1] {
 				found = true
 				break
 			}
@@ -83,9 +84,8 @@ func (s *Migration) GetNewMigrations(limit int) (HistoryItems, error) {
 		if !found {
 			result = append(
 				result,
-				HistoryItem{
+				MigrationEntity{
 					Version: groups[1],
-					Safely:  groups[3] == "safe",
 				},
 			)
 		}
@@ -96,42 +96,42 @@ func (s *Migration) GetNewMigrations(limit int) (HistoryItems, error) {
 	return result, err
 }
 
-func (s *Migration) MigrateUp(item HistoryItem) error {
-	if item.Version == BaseMigration {
+func (s *Migration) MigrateUp(entity MigrationEntity, fileName string, safely bool) error {
+	if entity.Version == BaseMigration {
 		return nil
 	}
-	log.Printf(console.Yellow("*** applying %s"), item.Version)
+	log.Printf(console.Yellow("*** applying %s"), entity.Version)
 
-	elapsedTime, err := s.executeFile(item.GetUpFileName(), s.options.ForceSafely || item.Safely)
+	elapsedTime, err := s.executeFile(fileName, s.options.ForceSafely || safely)
 	if err == nil {
-		err = s.AddMigrationHistory(item.Version)
+		err = s.AddMigrationHistory(entity.Version)
 	}
 	if err == nil {
-		log.Printf(console.Green("*** applied %s (time: %.3fs)"), item.Version, elapsedTime)
+		log.Printf(console.Green("*** applied %s (time: %.3fs)"), entity.Version, elapsedTime)
 		return nil
 	}
 
 	return fmt.Errorf("*** failed to apply %s (time: %.3fs)\nException: %v",
-		item.Version, elapsedTime, err)
+		entity.Version, elapsedTime, err)
 }
 
-func (s *Migration) MigrateDown(item HistoryItem) error {
-	if item.Version == BaseMigration {
+func (s *Migration) MigrateDown(entity MigrationEntity, fileName string, safely bool) error {
+	if entity.Version == BaseMigration {
 		return nil
 	}
-	log.Printf(console.Yellow("*** reverting %s"), item.Version)
+	log.Printf(console.Yellow("*** reverting %s"), entity.Version)
 
-	elapsedTime, err := s.executeFile(item.GetDownFileName(), s.options.ForceSafely || item.Safely)
+	elapsedTime, err := s.executeFile(fileName, s.options.ForceSafely || safely)
 	if err == nil {
-		err = s.RemoveMigrationHistory(item.Version)
+		err = s.RemoveMigrationHistory(entity.Version)
 	}
 	if err == nil {
-		log.Printf(console.Green("*** reverted %s (time: %.3fs)"), item.Version, elapsedTime)
+		log.Printf(console.Green("*** reverted %s (time: %.3fs)"), entity.Version, elapsedTime)
 		return nil
 	}
 
 	return fmt.Errorf("*** failed to reverted %s (time: %.3fs)\nException: %v",
-		item.Version, elapsedTime, err)
+		entity.Version, elapsedTime, err)
 }
 
 func (s *Migration) BeginCommand(sqlQuery string) time.Time {
@@ -143,22 +143,13 @@ func (s *Migration) BeginCommand(sqlQuery string) time.Time {
 	return time.Now()
 }
 
-func (s *Migration) ExecuteSafely(sqlQuery string, args ...interface{}) error {
+func (s *Migration) ExecuteSafely(tx *sql.Tx, sqlQuery string, args ...interface{}) error {
 	start := s.BeginCommand(sqlQuery)
-	tx, err := s.connection.Begin()
-	if err != nil {
-		return s.ConvertError(err, sqlQuery)
-	}
 	stmt, err := tx.Prepare(sqlQuery)
 	if err != nil {
-		tx.Rollback()
 		return s.ConvertError(err, sqlQuery)
 	}
 	if _, err := stmt.Exec(args...); err != nil {
-		tx.Rollback()
-		return s.ConvertError(err, sqlQuery)
-	}
-	if err = tx.Commit(); err != nil {
 		return s.ConvertError(err, sqlQuery)
 	}
 	s.EndCommand(start)
@@ -191,36 +182,42 @@ func (s *Migration) EndCommand(start time.Time) {
 	}
 }
 
-func (s *Migration) executeFile(filename string, safely bool) (elapsedSeconds float64, err error) {
+func (s *Migration) executeFile(fileName string, safely bool) (elapsedSeconds float64, err error) {
 	start := time.Now()
-	filename = filepath.Join(s.options.Directory, filename)
-	if !iofile.Exists(filename) {
-		return 0, fmt.Errorf("migration file %s does not exists", filename)
+	if !iofile.Exists(fileName) {
+		return 0, fmt.Errorf("migration file %s does not exists", fileName)
 	}
 
-	if !s.options.MultiSTMT {
-		err = multistmt.ParseSQLFile(filename, func(sqlQuery string) error {
-			return s.executeSql(sqlQuery, safely)
-		})
-	} else {
-		var sqlBytes []byte
-		sqlBytes, err = ioutil.ReadFile(filename)
-		if err == nil {
-			err = s.executeSql(string(sqlBytes), safely)
+	if safely {
+		var tx *sql.Tx
+		tx, err = s.connection.Begin()
+		if err != nil {
+			return 0, err
 		}
+
+		err = multistmt.ReadOrParseSQLFile(fileName, s.options.MultiSTMT, func(sqlQuery string) error {
+			return s.ExecuteSafely(tx, sqlQuery)
+		})
+
+		if err != nil {
+			_ = tx.Rollback()
+			return 0, err
+		}
+
+		if err = tx.Commit(); err != nil {
+			return 0, err
+		}
+
+		return time.Now().Sub(start).Seconds(), nil
 	}
+
+	err = multistmt.ReadOrParseSQLFile(fileName, s.options.MultiSTMT, func(sqlQuery string) error {
+		return s.Execute(sqlQuery)
+	})
 
 	if err != nil {
 		return 0, err
 	}
 
 	return time.Now().Sub(start).Seconds(), nil
-}
-
-func (s *Migration) executeSql(sqlQuery string, safely bool) error {
-	if safely {
-		return s.ExecuteSafely(sqlQuery)
-	}
-
-	return s.Execute(sqlQuery)
 }

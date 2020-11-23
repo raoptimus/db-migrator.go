@@ -18,19 +18,19 @@ func (s *Service) Up(limit string) error {
 	if err != nil {
 		return err
 	}
-	hist, err := s.migration.GetNewMigrations(limitInt)
+	entityList, err := s.migration.GetNewMigrations(limitInt)
 	if err != nil {
 		return err
 	}
-	total := hist.Len()
+	total := entityList.Len()
 	if total == 0 {
 		fmt.Println(console.Green("No new migrations found. Your system is up-to-date."))
 		return nil
 	}
-	if limitInt > 0 && len(hist) > limitInt {
-		hist = hist[:limitInt]
+	if limitInt > 0 && len(entityList) > limitInt {
+		entityList = entityList[:limitInt]
 	}
-	n := hist.Len()
+	n := entityList.Len()
 	if n == total {
 		fmt.Printf(console.Yellow("Total %d new %s to be applied: \n"),
 			n, console.NumberPlural(n, "migration", "migrations"))
@@ -39,7 +39,7 @@ func (s *Service) Up(limit string) error {
 			n, total, console.NumberPlural(total, "migration", "migrations"))
 	}
 
-	printAllMigrations(hist, false)
+	printAllMigrations(entityList, false)
 
 	applied := 0
 	question := fmt.Sprintf("Apply the above %s?",
@@ -49,8 +49,9 @@ func (s *Service) Up(limit string) error {
 		return nil
 	}
 
-	for _, item := range hist {
-		if err := s.migration.MigrateUp(item); err != nil {
+	for _, entity := range entityList {
+		fileName, safely := s.fileBuilder.BuildUpFileName(entity.Version, true)
+		if err := s.migration.MigrateUp(entity, fileName, safely); err != nil {
 			return fmt.Errorf(
 				"%v\n%d from %d %s applied.\nMigration failed. The rest of the migrations are canceled.",
 				err, applied, n, console.NumberPlural(applied, "migration was", "migrations were"),
