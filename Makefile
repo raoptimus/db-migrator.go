@@ -3,7 +3,7 @@ BASEDIR=$(shell pwd)
 GIT_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD)
 GIT_TAG ?= $(shell git describe --tags --abbrev=0 HEAD 2>/dev/null || false)
-VERSION ?= $(shell [[ "${GIT_TAG}" == "" ]] && echo 0.0.1 || echo ${GIT_TAG})
+VERSION ?= $(shell [[ "${GIT_TAG}" == "" ]] && echo 0.0.1 || echo ${GIT_TAG} | tr -d v)
 export ${VERSION}
 LDFLAGS=-ldflags "-s -w -X main.Version=${GIT_TAG} -X main.GitCommit=${GIT_COMMIT}"
 COVERAGE_DIR ?= .coverage
@@ -56,8 +56,7 @@ test:
 		-covermode=atomic \
 		-coverprofile=${COVERAGE_DIR}/coverage.txt $(SOURCE_FILES) \
 		-run $(TEST_PATTERN) \
-		-timeout=2m \
-		-v
+		-timeout=2m
 
 build-deb: build
 	@echo "deb package $(PKG_NAME) building..."
