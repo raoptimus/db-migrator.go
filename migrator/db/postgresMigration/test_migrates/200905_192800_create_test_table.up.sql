@@ -1,10 +1,16 @@
+
 CREATE TABLE test (
-    id SERIAL,
-    value int
+    id INT PRIMARY KEY,
+    rank SMALLINT,
+    title text,
+    synonyms text[],
+    updated_at TIMESTAMP
 );
 
-ALTER TABLE test
-    ADD COLUMN created_at timestamp NOT NULL DEFAULT now();
+create index test_rank_idx ON test(rank);
 
-CREATE INDEX test_created_at_idx ON test USING btree (created_at DESC)
-;
+CREATE TABLE test2 (
+    id int PRIMARY KEY REFERENCES test(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    document tsvector,
+    updated_at timestamp
+);

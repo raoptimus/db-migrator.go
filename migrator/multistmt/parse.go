@@ -3,6 +3,7 @@ package multistmt
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -10,7 +11,11 @@ import (
 
 const maxMigrationSize = 10 * 1 << 20
 
-var multiStmtDelimiter = []byte(";")
+var (
+	multiStmtDelimiter  = []byte(";")
+	psqlPLFuncDelimiter = []byte("$$")
+	skip                = 0
+)
 
 // StartBufSize is the default starting size of the buffer used to scan and parse multi-statement migrations
 var StartBufSize = 4096
@@ -29,10 +34,30 @@ func splitWithDelimiter() func(d []byte, atEOF bool) (int, []byte, error) {
 			}
 			return len(d), d, nil
 		}
-		if i := bytes.Index(d, multiStmtDelimiter); i >= 0 {
-			return i + len(multiStmtDelimiter), d[:i+len(multiStmtDelimiter)], nil
+
+		openPi, pLen := bytes.Index(d, psqlPLFuncDelimiter), len(psqlPLFuncDelimiter)
+		delI, delLen := bytes.Index(d, multiStmtDelimiter), len(multiStmtDelimiter)
+
+		switch {
+		case openPi > delI:
+			return delI + delLen, d[:delI+delLen], nil
+		case openPi >= 0 && openPi < delI:
+			closePi := bytes.Index(d[openPi+pLen:], psqlPLFuncDelimiter)
+			if closePi < 0 {
+				return 0, nil, fmt.Errorf("closed tag %s not found", psqlPLFuncDelimiter)
+			}
+			offset := closePi + openPi + pLen
+			delI = bytes.Index(d[offset:], multiStmtDelimiter)
+			offset = offset + delI + delLen
+			if delI < 0 {
+				return 0, nil, fmt.Errorf("closed tag %s not found", multiStmtDelimiter)
+			}
+			return offset, d[:offset], nil
+		case delI >= 0:
+			return delI + delLen, d[:delI+delLen], nil
+		default:
+			return 0, nil, nil
 		}
-		return 0, nil, nil
 	}
 }
 
@@ -42,13 +67,16 @@ func Parse(reader io.Reader, callback Handler) error {
 	scanner.Buffer(make([]byte, 0, StartBufSize), maxMigrationSize)
 	scanner.Split(splitWithDelimiter())
 
-	var sqlQuery string
+	var (
+		sqlQuery string
+	)
 	for scanner.Scan() {
 		sqlQuery = string(scanner.Bytes())
 		sqlQuery = strings.Trim(sqlQuery, " \n")
 		if sqlQuery == "" {
 			continue
 		}
+
 		if err := callback(sqlQuery); err != nil {
 			return err
 		}
