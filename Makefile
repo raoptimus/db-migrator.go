@@ -56,7 +56,8 @@ test:
 		-covermode=atomic \
 		-coverprofile=${COVERAGE_DIR}/coverage.txt $(SOURCE_FILES) \
 		-run $(TEST_PATTERN) \
-		-timeout=2m
+		-timeout=2m \
+		-v
 
 build-deb: build
 	@echo "deb package $(PKG_NAME) building..."

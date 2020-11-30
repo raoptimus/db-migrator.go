@@ -68,3 +68,52 @@ func TestParseDiscontinue(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, expected, stmts)
 }
+
+func TestParsePostgresFunctions(t *testing.T) {
+	expected := []string{`CREATE test;`,
+		`CREATE OR REPLACE FUNCTION test_index_update() RETURNS trigger AS $$
+BEGIN
+    	something;
+    ELSEIF(TG_OP = 'UPDATE') THEN
+		something;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql
+;`, `CREATE TRIGGER test_index_update_trigger
+;`}
+	multiStmt := strings.Join(expected, "")
+
+	stmts := make([]string, 0, len(expected))
+	err := Parse(strings.NewReader(multiStmt), func(sqlQuery string) error {
+		stmts = append(stmts, sqlQuery)
+
+		return nil
+	})
+
+	assert.Nil(t, err)
+	assert.Equal(t, expected, stmts)
+}
+
+func TestParseFailure(t *testing.T) {
+	multiStmt := `CREATE test;
+CREATE OR REPLACE FUNCTION test_index_update() RETURNS trigger AS $$
+BEGIN
+    	something;
+    ELSEIF(TG_OP = 'UPDATE') THEN
+		something;
+    END IF;
+
+    RETURN NEW;
+END;
+ LANGUAGE plpgsql
+;
+CREATE TRIGGER test_index_update_trigger`
+
+	err := Parse(strings.NewReader(multiStmt), func(sqlQuery string) error {
+		return nil
+	})
+
+	assert.Error(t, err)
+}

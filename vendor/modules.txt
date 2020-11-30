@@ -16,6 +16,8 @@ github.com/cloudflare/golz4
 github.com/cpuguy83/go-md2man/v2/md2man
 # github.com/davecgh/go-spew v1.1.0
 github.com/davecgh/go-spew/spew
+# github.com/lfittl/pg_query_go v1.0.1
+## explicit
 # github.com/lib/pq v1.0.0
 ## explicit
 github.com/lib/pq
