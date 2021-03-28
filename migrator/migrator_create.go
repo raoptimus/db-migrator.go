@@ -13,7 +13,6 @@ import (
 	"github.com/raoptimus/db-migrator.go/console"
 	"github.com/raoptimus/db-migrator.go/iofile"
 	"log"
-	"path"
 	"regexp"
 	"time"
 )
@@ -26,9 +25,10 @@ func (s *Service) CreateMigration(name string) error {
 	}
 
 	prefix := time.Now().Format("060102_150405")
-	filenameUp := path.Join(s.options.Directory, prefix+"_"+name+".safe.up.sql")
-	filenameDown := path.Join(s.options.Directory, prefix+"_"+name+".safe.down.sql")
-	question := fmt.Sprintf("Create new migration files: \n'%s' and \n'%s'?\n", filenameUp, filenameDown)
+	version := prefix + "_" + name
+	fileNameUp, _ := s.fileBuilder.BuildUpFileName(version, true)
+	fileNameDown, _ := s.fileBuilder.BuildDownFileName(version, true)
+	question := fmt.Sprintf("Create new migration files: \n'%s' and \n'%s'?\n", fileNameUp, fileNameDown)
 
 	if !console.Confirm(question) {
 		return nil
@@ -38,11 +38,11 @@ func (s *Service) CreateMigration(name string) error {
 		return err
 	}
 
-	if err := iofile.CreateFile(filenameUp); err != nil {
+	if err := iofile.CreateFile(fileNameUp); err != nil {
 		return err
 	}
 
-	if err := iofile.CreateFile(filenameDown); err != nil {
+	if err := iofile.CreateFile(fileNameDown); err != nil {
 		return err
 	}
 

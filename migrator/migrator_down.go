@@ -18,11 +18,11 @@ func (s *Service) Down(limit string) error {
 	if err != nil {
 		return err
 	}
-	hist, err := s.migration.GetMigrationHistory(limitInt)
+	entityList, err := s.migration.GetMigrationHistory(limitInt)
 	if err != nil {
 		return err
 	}
-	n := hist.Len()
+	n := entityList.Len()
 	if n == 0 {
 		log.Println(console.Green("No migration has been done before."))
 		return nil
@@ -31,7 +31,7 @@ func (s *Service) Down(limit string) error {
 	fmt.Printf(console.Yellow("Total %d %s to be reverted: \n"),
 		n, console.NumberPlural(n, "migration", "migrations"))
 
-	printAllMigrations(hist, false)
+	printAllMigrations(entityList, false)
 
 	reverted := 0
 	question := fmt.Sprintf("Revert the above %d %s?",
@@ -41,8 +41,9 @@ func (s *Service) Down(limit string) error {
 		return nil
 	}
 
-	for _, item := range hist {
-		if err := s.migration.MigrateDown(item); err != nil {
+	for _, entity := range entityList {
+		fileName, safely := s.fileBuilder.BuildDownFileName(entity.Version, true)
+		if err := s.migration.MigrateDown(entity, fileName, safely); err != nil {
 			return fmt.Errorf(
 				"%v\n%d from %d %s reverted.\nMigration failed. "+
 					"Migration failed. The rest of the migrations are canceled.",

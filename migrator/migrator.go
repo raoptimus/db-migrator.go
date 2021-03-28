@@ -19,9 +19,10 @@ import (
 
 type (
 	Service struct {
-		options   Options
-		db        *sql.DB
-		migration *db.Migration
+		options     Options
+		db          *sql.DB
+		migration   *db.Migration
+		fileBuilder FileNameBuilder
 	}
 	Options struct {
 		DSN                string
@@ -34,17 +35,20 @@ type (
 )
 
 func New(options Options) (*Service, error) {
-	controller := Service{options: options}
-	if err := controller.init(); err != nil {
+	serv := Service{
+		options:     options,
+		fileBuilder: NewFileNameBuilder(options.Directory),
+	}
+	if err := serv.init(); err != nil {
 		return nil, err
 	}
-	return &controller, nil
+	return &serv, nil
 }
 
 func (s *Service) init() error {
 	switch {
 	case strings.HasPrefix(s.options.DSN, "clickhouse://"):
-		return s.initClickhouse()
+		return s.initClickHouse()
 	case strings.HasPrefix(s.options.DSN, "postgres://"):
 		return s.initPostgres()
 	default:
@@ -77,7 +81,7 @@ func (s *Service) initPostgres() error {
 	return nil
 }
 
-func (s *Service) initClickhouse() error {
+func (s *Service) initClickHouse() error {
 	dsn := "tcp://" + strings.TrimPrefix(s.options.DSN, "clickhouse://")
 	connection, err := sql.Open("clickhouse", dsn)
 	if err != nil {

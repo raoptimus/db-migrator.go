@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"strings"
 )
@@ -92,4 +93,25 @@ func ParseSQLFile(filename string, callback Handler) error {
 	}
 
 	return Parse(f, callback)
+}
+
+func ReadSQLFile(filename string, callback Handler) error {
+	var (
+		sqlBytes []byte
+		err      error
+	)
+	sqlBytes, err = ioutil.ReadFile(filename)
+	if err != nil {
+		return err
+	}
+
+	return callback(string(sqlBytes))
+}
+
+func ReadOrParseSQLFile(filename string, multiSTMT bool, callback Handler) error {
+	if multiSTMT {
+		return ReadSQLFile(filename, callback)
+	}
+
+	return ParseSQLFile(filename, callback)
 }

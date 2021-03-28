@@ -19,11 +19,11 @@ func (s *Service) Redo(limit string) error {
 	if err != nil {
 		return err
 	}
-	hist, err := s.migration.GetMigrationHistory(limitInt)
+	entityList, err := s.migration.GetMigrationHistory(limitInt)
 	if err != nil {
 		return err
 	}
-	n := hist.Len()
+	n := entityList.Len()
 	if n == 0 {
 		log.Println(console.Green("No migration has been done before."))
 		return nil
@@ -32,7 +32,7 @@ func (s *Service) Redo(limit string) error {
 	fmt.Printf(console.Yellow("Total %d %s to be redone: \n"),
 		n, console.NumberPlural(n, "migration", "migrations"))
 
-	printAllMigrations(hist, false)
+	printAllMigrations(entityList, false)
 
 	question := fmt.Sprintf("Redo the above %d %s?",
 		n, console.NumberPlural(n, "migration", "migrations"),
@@ -41,18 +41,21 @@ func (s *Service) Redo(limit string) error {
 		return nil
 	}
 
-	var reverseHist db.HistoryItems
-	for _, item := range hist {
-		if err := s.migration.MigrateDown(item); err != nil {
+	var reverseHist db.MigrationEntityList
+	for _, entity := range entityList {
+		fileName, safely := s.fileBuilder.BuildDownFileName(entity.Version, true)
+		if err := s.migration.MigrateDown(entity, fileName, safely); err != nil {
 			return fmt.Errorf(
 				"%v\nMigration failed. The rest of the migrations are canceled.", err,
 			)
 		}
 
-		reverseHist = append(reverseHist, item)
+		reverseHist = append(reverseHist, entity)
 	}
-	for _, item := range reverseHist {
-		if err := s.migration.MigrateUp(item); err != nil {
+
+	for _, entity := range reverseHist {
+		fileName, safely := s.fileBuilder.BuildUpFileName(entity.Version, true)
+		if err := s.migration.MigrateUp(entity, fileName, safely); err != nil {
 			return fmt.Errorf(
 				"%v\nMigration failed. The rest of the migrations are canceled.", err,
 			)

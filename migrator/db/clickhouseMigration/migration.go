@@ -56,7 +56,7 @@ func (s *Migration) InitializeTableHistory() error {
 	return nil
 }
 
-func (s *Migration) GetMigrationHistory(limit int) (db.HistoryItems, error) {
+func (s *Migration) GetMigrationHistory(limit int) (db.MigrationEntityList, error) {
 	if err := s.InitializeTableHistory(); err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func (s *Migration) GetMigrationHistory(limit int) (db.HistoryItems, error) {
 			LIMIT ?`,
 			s.tableName,
 		)
-		result db.HistoryItems
+		result db.MigrationEntityList
 	)
 	if limit < 1 {
 		limit = db.DefaultLimit
@@ -95,7 +95,7 @@ func (s *Migration) GetMigrationHistory(limit int) (db.HistoryItems, error) {
 			continue
 		}
 		result = append(result,
-			db.HistoryItem{
+			db.MigrationEntity{
 				Version:   version,
 				ApplyTime: applyTime,
 			},
