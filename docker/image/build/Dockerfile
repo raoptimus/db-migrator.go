@@ -1,4 +1,4 @@
-FROM golang:1.15.1-alpine3.12 as build
+FROM golang:1.16-alpine as build
 
 RUN apk add --update make git bash file
 
@@ -6,7 +6,7 @@ WORKDIR /go/src/db-migrator
 COPY . ./
 
 RUN find .
-RUN go mod vendor
+#RUN go mod vendor
 
 ARG VERSION
 ARG GIT_TAG

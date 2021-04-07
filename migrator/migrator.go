@@ -82,7 +82,11 @@ func (s *Service) initPostgres() error {
 }
 
 func (s *Service) initClickHouse() error {
-	dsn := "tcp://" + strings.TrimPrefix(s.options.DSN, "clickhouse://")
+	dsn, err := clickhouseMigration.NormalizeDSN(s.options.DSN)
+	if err != nil {
+		return err
+	}
+	fmt.Println(dsn)
 	connection, err := sql.Open("clickhouse", dsn)
 	if err != nil {
 		return err
