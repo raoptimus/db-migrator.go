@@ -217,7 +217,7 @@ func (s *Migration) createMigrationHistoryTable() error {
 		)
 	}
 
-	fmt.Sprintln(sqlQuery)
+	fmt.Println(sqlQuery)
 	if _, err := s.connection.Exec(sqlQuery); err != nil {
 		return err
 	}

@@ -2,7 +2,11 @@ CREATE TABLE test ON CLUSTER test_cluster (
     time DateTime DEFAULT now(),
     value UInt32
 
-) ENGINE = MergeTree
+)
+ENGINE = ReplicatedMergeTree (
+    '/clickhouse/tables/{shard}/test_cluster_test',
+    '{replica}'
+)
 PARTITION BY toYYYYMM(time)
 ORDER BY (time, value);
 
