@@ -14,6 +14,7 @@ import (
 	"github.com/raoptimus/db-migrator.go/migrator/db"
 	"github.com/raoptimus/db-migrator.go/migrator/db/clickhouseMigration"
 	"github.com/raoptimus/db-migrator.go/migrator/db/postgresMigration"
+	"net/url"
 	"strings"
 )
 
@@ -82,7 +83,13 @@ func (s *Service) initPostgres() error {
 }
 
 func (s *Service) initClickHouse() error {
-	dsn := "tcp://" + strings.TrimPrefix(s.options.DSN, "clickhouse://")
+	dsn, err := clickhouseMigration.NormalizeDSN(s.options.DSN)
+	if err != nil {
+		return err
+	}
+	u, _ := url.Parse(dsn)
+	clusterName := u.Query().Get("cluster")
+
 	connection, err := sql.Open("clickhouse", dsn)
 	if err != nil {
 		return err
@@ -96,7 +103,7 @@ func (s *Service) initClickHouse() error {
 	}
 	s.db = connection
 	s.migration = db.NewMigration(
-		clickhouseMigration.New(connection, s.options.TableName, s.options.Directory),
+		clickhouseMigration.New(connection, s.options.TableName, clusterName, s.options.Directory),
 		connection,
 		db.MigrationOptions{
 			MaxSqlOutputLength: s.options.MaxSqlOutputLength,
