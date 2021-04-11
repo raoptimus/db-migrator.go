@@ -54,6 +54,13 @@ func main() {
 			Value:   "migration",
 			Usage:   "Table name for history of migrates",
 		},
+		&cli.StringFlag{
+			Name:    "migrationClusterName",
+			EnvVars: []string{"MIGRATION_CLUSTER_NAME"},
+			Aliases: []string{"cn"},
+			Value:   "migration",
+			Usage:   "Cluster name for history of migrates",
+		},
 		&cli.BoolFlag{
 			Name:    "compact",
 			EnvVars: []string{"COMPACT"},
@@ -137,6 +144,7 @@ func before(c *cli.Context) error {
 		DSN:         c.String("dsn"),
 		Directory:   c.String("migrationPath"),
 		TableName:   c.String("migrationTable"),
+		ClusterName: c.String("migrationClusterName"),
 		Compact:     c.Bool("compact"),
 		Interactive: c.Bool("interactive"),
 	})
