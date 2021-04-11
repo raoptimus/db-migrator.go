@@ -85,6 +85,9 @@ Note that the directory must exist, or the command may trigger an error.
 - `migrationTable` or `t`: string (defaults to migration), specifies the name of the database table for storing migration history information. 
 The table will be automatically created by the command if it does not exist. 
 You may also manually create it using the structure version varchar(255) primary key, apply_time integer.
+- `migrationClusterName` or `cn`: string (defaults to empty), specifies the name of the database cluster name for storing migration history information. 
+The table will be automatically created in cluster by the command if it does not exist.
+It uses only for clickhouse
 - `dsn` or `d`: string (defaults to empty), Database connection strings are specified via URLs. 
 The URL format is driver dependent but generally has the form: driver://username:password@host:port/dbname?option1=true.
 - `compact` or `c`: boolean (defaults to false), output in compact mode
@@ -94,6 +97,7 @@ The URL format is driver dependent but generally has the form: driver://username
 DSN=clickhouse://default:@localhost:9000/docker?sslmode=disable&compress=true&debug=false
 MIGRATION_PATH=./migrations
 MIGRATION_TABLE=migration
+MIGRATION_CLUSTER_NAME=test_cluster
 COMPACT=true
 INTERACTIVE=false
 ```
@@ -110,13 +114,14 @@ go get -u -d github.com/raoptimus/db-migrator.go/cmd/db-migrator
 ```  
 The custom version:  
 ```
-go get -u -d github.com/raoptimus/db-migrator.go/cmd/db-migrator@0.0.5
+go get -u -d github.com/raoptimus/db-migrator.go/cmd/db-migrator@0.1.1
 ```
 
 #### With docker
 ```
-docker pull raoptimus/db-migrator
+docker pull raoptimus/db-migrator:latest
 ```
+See [https://hub.docker.com/r/raoptimus/db-migrator](https://hub.docker.com/r/raoptimus/db-migrator)
 
 ### Example
 ```

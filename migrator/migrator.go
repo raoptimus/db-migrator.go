@@ -14,7 +14,6 @@ import (
 	"github.com/raoptimus/db-migrator.go/migrator/db"
 	"github.com/raoptimus/db-migrator.go/migrator/db/clickhouseMigration"
 	"github.com/raoptimus/db-migrator.go/migrator/db/postgresMigration"
-	"net/url"
 	"strings"
 )
 
@@ -29,6 +28,7 @@ type (
 		DSN                string
 		Directory          string
 		TableName          string
+		ClusterName        string
 		Compact            bool
 		Interactive        bool
 		MaxSqlOutputLength int
@@ -87,9 +87,6 @@ func (s *Service) initClickHouse() error {
 	if err != nil {
 		return err
 	}
-	u, _ := url.Parse(dsn)
-	clusterName := u.Query().Get("cluster")
-
 	connection, err := sql.Open("clickhouse", dsn)
 	if err != nil {
 		return err
@@ -103,7 +100,12 @@ func (s *Service) initClickHouse() error {
 	}
 	s.db = connection
 	s.migration = db.NewMigration(
-		clickhouseMigration.New(connection, s.options.TableName, clusterName, s.options.Directory),
+		clickhouseMigration.New(
+			connection,
+			s.options.TableName,
+			s.options.ClusterName,
+			s.options.Directory,
+		),
 		connection,
 		db.MigrationOptions{
 			MaxSqlOutputLength: s.options.MaxSqlOutputLength,
