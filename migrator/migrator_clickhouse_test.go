@@ -1,6 +1,7 @@
 package migrator
 
 import (
+	"database/sql"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
@@ -18,10 +19,7 @@ func TestMigrateService_ClickHouse_UpDown(t *testing.T) {
 	err = m.Up("2")
 	assert.NoError(t, err)
 
-	var count int
-	err = m.db.QueryRow("SELECT count(*) FROM docker.migration").Scan(&count)
-	assert.NoError(t, err)
-	assert.Equal(t, 2+1, count)
+	assertEqualMigrationsCount(t, m.db, 2+1)
 }
 
 func createClickhouseMigrator() (*Service, error) {
@@ -32,4 +30,11 @@ func createClickhouseMigrator() (*Service, error) {
 		Compact:     false,
 		Interactive: false,
 	})
+}
+
+func assertEqualMigrationsCount(t *testing.T, db *sql.DB, expected int) {
+	var count int
+	err := db.QueryRow("SELECT count(*) FROM docker.migration").Scan(&count)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, count)
 }

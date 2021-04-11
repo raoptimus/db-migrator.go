@@ -19,17 +19,19 @@ import (
 
 type (
 	Migration struct {
-		connection *sql.DB
-		tableName  string
-		directory  string
+		connection  *sql.DB
+		tableName   string
+		directory   string
+		clusterName string
 	}
 )
 
-func New(connection *sql.DB, tableName, directory string) *Migration {
+func New(connection *sql.DB, tableName, clusterName, directory string) *Migration {
 	return &Migration{
-		connection: connection,
-		tableName:  tableName,
-		directory:  directory,
+		connection:  connection,
+		tableName:   tableName,
+		clusterName: clusterName,
+		directory:   directory,
 	}
 }
 
@@ -164,16 +166,23 @@ func (s *Migration) RemoveMigrationHistory(version string) error {
 }
 
 func (s *Migration) optimizeTable() error {
-	_, err := s.connection.Exec(fmt.Sprintf("OPTIMIZE TABLE %s", s.tableName))
+	var sqlQuery string
+	if s.clusterName == "" {
+		sqlQuery = fmt.Sprintf("OPTIMIZE TABLE %s FINAL", s.tableName)
+	} else {
+		sqlQuery = fmt.Sprintf("OPTIMIZE TABLE %s ON CLUSTER %s FINAL", s.tableName, s.clusterName)
+	}
+	_, err := s.connection.Exec(sqlQuery)
 
 	return err
 }
 
 func (s *Migration) createMigrationHistoryTable() error {
 	log.Printf(console.Yellow("Creating migration history table %s..."), s.tableName)
-
-	q := fmt.Sprintf(
-		`
+	var sqlQuery string
+	if s.clusterName == "" {
+		sqlQuery = fmt.Sprintf(
+			`
 			CREATE TABLE %s (
 				version String, 
 				date Date DEFAULT toDate(apply_time),
@@ -185,10 +194,31 @@ func (s *Migration) createMigrationHistoryTable() error {
 			ORDER BY (version)
 			SETTINGS index_granularity=8192
 			`,
-		s.tableName,
-	)
+			s.tableName,
+		)
+	} else {
+		sqlQuery = fmt.Sprintf(
+			`
+			CREATE TABLE %s ON CLUSTER %s (
+				version String, 
+				date Date DEFAULT toDate(apply_time),
+				apply_time UInt32,
+				is_deleted UInt8
+			) ENGINE = ReplicatedReplacingMergeTree('/clickhouse/tables/{shard}/%s_%s', '{replica}', apply_time)
+			PRIMARY KEY (version)
+			PARTITION BY (toYYYYMM(date))
+			ORDER BY (version)
+			SETTINGS index_granularity=8192
+			`,
+			s.tableName,
+			s.clusterName,
+			s.clusterName,
+			s.tableName,
+		)
+	}
 
-	if _, err := s.connection.Exec(q); err != nil {
+	fmt.Println(sqlQuery)
+	if _, err := s.connection.Exec(sqlQuery); err != nil {
 		return err
 	}
 	if err := s.AddMigrationHistory(db.BaseMigration); err != nil {
