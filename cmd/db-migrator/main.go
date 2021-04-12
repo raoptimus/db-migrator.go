@@ -58,7 +58,7 @@ func main() {
 			Name:    "migrationClusterName",
 			EnvVars: []string{"MIGRATION_CLUSTER_NAME"},
 			Aliases: []string{"cn"},
-			Value:   "migration",
+			Value:   "",
 			Usage:   "Cluster name for history of migrates",
 		},
 		&cli.BoolFlag{
