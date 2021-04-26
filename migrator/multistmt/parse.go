@@ -3,7 +3,6 @@ package multistmt
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -41,21 +40,27 @@ func splitWithDelimiter() func(d []byte, atEOF bool) (int, []byte, error) {
 
 		switch {
 		case openPi > delI:
+			if len(d[:delI+delLen]) == 0 {
+				return 0, nil, nil
+			}
 			return delI + delLen, d[:delI+delLen], nil
+
 		case openPi >= 0 && openPi < delI:
 			closePi := bytes.Index(d[openPi+pLen:], psqlPLFuncDelimiter)
 			if closePi < 0 {
-				return 0, nil, fmt.Errorf("closed tag %s not found", psqlPLFuncDelimiter)
+				return 0, nil, nil
 			}
 			offset := closePi + openPi + pLen
 			delI = bytes.Index(d[offset:], multiStmtDelimiter)
 			offset = offset + delI + delLen
 			if delI < 0 {
-				return 0, nil, fmt.Errorf("closed tag %s not found", multiStmtDelimiter)
+				return 0, nil, nil
 			}
 			return offset, d[:offset], nil
+
 		case delI >= 0:
 			return delI + delLen, d[:delI+delLen], nil
+
 		default:
 			return 0, nil, nil
 		}

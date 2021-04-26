@@ -115,5 +115,5 @@ CREATE TRIGGER test_index_update_trigger`
 		return nil
 	})
 
-	assert.Error(t, err)
+	assert.NoError(t, err)
 }
