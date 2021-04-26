@@ -33,7 +33,6 @@ func splitWithDelimiter() func(d []byte, atEOF bool) (int, []byte, error) {
 			if len(d) == 0 {
 				return 0, nil, nil
 			}
-			return len(d), d, nil
 		}
 
 		openPi, pLen := bytes.Index(d, psqlPLFuncDelimiter), len(psqlPLFuncDelimiter)
@@ -41,22 +40,39 @@ func splitWithDelimiter() func(d []byte, atEOF bool) (int, []byte, error) {
 
 		switch {
 		case openPi > delI:
+			if len(d[:delI+delLen]) == 0 {
+				return 0, nil, nil
+			}
 			return delI + delLen, d[:delI+delLen], nil
+
 		case openPi >= 0 && openPi < delI:
 			closePi := bytes.Index(d[openPi+pLen:], psqlPLFuncDelimiter)
 			if closePi < 0 {
-				return 0, nil, fmt.Errorf("closed tag %s not found", psqlPLFuncDelimiter)
+				var err error
+				if atEOF {
+					err = fmt.Errorf("closed tag %s not found", psqlPLFuncDelimiter)
+				}
+				return 0, nil, err
 			}
 			offset := closePi + openPi + pLen
 			delI = bytes.Index(d[offset:], multiStmtDelimiter)
 			offset = offset + delI + delLen
 			if delI < 0 {
-				return 0, nil, fmt.Errorf("closed tag %s not found", multiStmtDelimiter)
+				var err error
+				if atEOF {
+					err = fmt.Errorf("closed tag %s not found", multiStmtDelimiter)
+				}
+				return 0, nil, err
 			}
 			return offset, d[:offset], nil
+
 		case delI >= 0:
 			return delI + delLen, d[:delI+delLen], nil
+
 		default:
+			if atEOF {
+				return len(d), d, nil
+			}
 			return 0, nil, nil
 		}
 	}

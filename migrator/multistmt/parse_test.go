@@ -117,3 +117,28 @@ CREATE TRIGGER test_index_update_trigger`
 
 	assert.Error(t, err)
 }
+
+func TestBufferReadAll(t *testing.T) {
+	multiStmt := `CREATE test;
+CREATE OR REPLACE FUNCTION test_index_update() RETURNS trigger AS $$
+BEGIN
+    	something;
+    ELSEIF(TG_OP = 'UPDATE') THEN
+		something;
+    END IF;
+
+    RETURN NEW;
+END;
+$$
+ LANGUAGE plpgsql
+;
+CREATE TRIGGER test_index_update_trigger`
+
+	StartBufSize = 100
+
+	err := Parse(strings.NewReader(multiStmt), func(sqlQuery string) error {
+		return nil
+	})
+
+	assert.NoError(t, err)
+}
