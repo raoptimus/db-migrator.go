@@ -66,9 +66,19 @@ func (s *Service) initPostgres() error {
 		return err
 	}
 
+	var tableName, tableSchema string
+	if strings.Contains(s.options.TableName, ".") {
+		parts := strings.Split(s.options.TableName, ".")
+		tableSchema = parts[0]
+		tableName = parts[1]
+	} else {
+		tableSchema = postgresMigration.DefaultSchema
+		tableName = s.options.TableName
+	}
+
 	s.db = connection
 	s.migration = db.NewMigration(
-		postgresMigration.New(connection, s.options.TableName, s.options.Directory),
+		postgresMigration.New(connection, tableName, tableSchema, s.options.Directory),
 		connection,
 		db.MigrationOptions{
 			MaxSqlOutputLength: s.options.MaxSqlOutputLength,
