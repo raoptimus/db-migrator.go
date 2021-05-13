@@ -24,9 +24,12 @@ func TestMigrateService_Postgres_UpDown_Successfully(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 0, c)
 
-	err = m.db.QueryRow("select count(*) from migration").Scan(&c)
+	err = m.db.QueryRow("select count(*) from public.migration").Scan(&c)
 	assert.NoError(t, err)
 	assert.Equal(t, 3, c)
+
+	err = m.Down("all")
+	assert.NoError(t, err)
 }
 
 func TestMigrateService_Postgres_Redo_Successfully(t *testing.T) {
@@ -43,7 +46,7 @@ func TestMigrateService_Postgres_Redo_Successfully(t *testing.T) {
 	assert.NoError(t, err)
 
 	var c int
-	err = m.db.QueryRow("select count(*) from migration").Scan(&c)
+	err = m.db.QueryRow("select count(*) from public.migration").Scan(&c)
 	assert.NoError(t, err)
 	assert.Equal(t, 3, c)
 
@@ -69,6 +72,28 @@ func TestMigrateService_Postgres_UpDown_WithSchema_Successfully(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 0, c)
 
+	err = m.db.QueryRow("select count(*) from docker.migration").Scan(&c)
+	assert.NoError(t, err)
+	assert.Equal(t, 3, c)
+
+	err = m.Down("all")
+	assert.NoError(t, err)
+}
+
+func TestMigrateService_Postgres_Redo_WithSchema_Successfully(t *testing.T) {
+	m, err := createPostgresMigrator("docker.migration")
+	assert.NoError(t, err)
+
+	err = m.Down("all")
+	assert.NoError(t, err)
+
+	err = m.Up("2")
+	assert.NoError(t, err)
+
+	err = m.Redo("1")
+	assert.NoError(t, err)
+
+	var c int
 	err = m.db.QueryRow("select count(*) from docker.migration").Scan(&c)
 	assert.NoError(t, err)
 	assert.Equal(t, 3, c)
