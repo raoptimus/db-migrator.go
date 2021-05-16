@@ -8,6 +8,8 @@ services:
 
   postgres:
     image: postgres:12-alpine
+    volumes:
+      - "./docker/volume/postgres/dump:/docker-entrypoint-initdb.d/"
     env_file:
       - .env
 

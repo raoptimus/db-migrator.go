@@ -18,21 +18,23 @@ import (
 	"time"
 )
 
-const defaultSchema = "public"
+const DefaultSchema = "public"
 
 type (
 	Migration struct {
-		connection *sql.DB
-		tableName  string
-		directory  string
+		connection  *sql.DB
+		tableName   string
+		tableSchema string
+		directory   string
 	}
 )
 
-func New(connection *sql.DB, tableName, directory string) *Migration {
+func New(connection *sql.DB, tableName, tableSchema, directory string) *Migration {
 	return &Migration{
-		connection: connection,
-		tableName:  tableName,
-		directory:  directory,
+		connection:  connection,
+		tableName:   tableName,
+		tableSchema: tableSchema,
+		directory:   directory,
 	}
 }
 
@@ -85,7 +87,7 @@ func (s *Migration) GetMigrationHistory(limit int) (db.MigrationEntityList, erro
 			FROM %s
 			ORDER BY apply_time DESC, version DESC
 			LIMIT $1`,
-			s.tableName,
+			s.getTableNameWithSchema(),
 		)
 		result db.MigrationEntityList
 	)
@@ -126,7 +128,7 @@ func (s *Migration) AddMigrationHistory(version string) error {
 	q := fmt.Sprintf(`
 		INSERT INTO %s (version, apply_time) 
 		VALUES ($1, $2)`,
-		s.tableName,
+		s.getTableNameWithSchema(),
 	)
 	_, err := s.connection.Exec(q, version, now)
 
@@ -134,14 +136,14 @@ func (s *Migration) AddMigrationHistory(version string) error {
 }
 
 func (s *Migration) RemoveMigrationHistory(version string) error {
-	q := fmt.Sprintf(`DELETE FROM %s WHERE (version) = ($1)`, s.tableName)
+	q := fmt.Sprintf(`DELETE FROM %s WHERE (version) = ($1)`, s.getTableNameWithSchema())
 	_, err := s.connection.Exec(q, version)
 
 	return err
 }
 
 func (s *Migration) createMigrationHistoryTable() error {
-	log.Printf(console.Yellow("Creating migration history table %s..."), s.tableName)
+	log.Printf(console.Yellow("Creating migration history table %s..."), s.getTableNameWithSchema())
 
 	q := fmt.Sprintf(
 		`
@@ -150,14 +152,14 @@ func (s *Migration) createMigrationHistoryTable() error {
 				  apply_time integer
 				)
 			`,
-		s.tableName,
+		s.getTableNameWithSchema(),
 	)
 
 	if _, err := s.connection.Exec(q); err != nil {
 		return s.internalConvertError(err, q)
 	}
 	if err := s.AddMigrationHistory(db.BaseMigration); err != nil {
-		q2 := fmt.Sprintf(`DROP TABLE %s`, s.tableName)
+		q2 := fmt.Sprintf(`DROP TABLE %s`, s.getTableNameWithSchema())
 		_, _ = s.connection.Exec(q2)
 
 		return err
@@ -181,7 +183,7 @@ func (s *Migration) getTableScheme() (exists bool, err error) {
 		rows *sql.Rows
 	)
 
-	rows, err = s.connection.Query(q, s.tableName, defaultSchema)
+	rows, err = s.connection.Query(q, s.tableName, s.tableSchema)
 	if err != nil {
 		return false, s.internalConvertError(err, q)
 	}
@@ -202,4 +204,8 @@ func (s *Migration) getTableScheme() (exists bool, err error) {
 	}
 
 	return false, nil
+}
+
+func (s *Migration) getTableNameWithSchema() string {
+	return s.tableSchema + "." + s.tableName
 }
