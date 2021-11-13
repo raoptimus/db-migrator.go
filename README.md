@@ -6,6 +6,7 @@ Database Migration tool in CLI on Golang that allows you to keep track of databa
 The db migration tool currently supports the following db drivers: 
 - clickhouse
 - postgres
+- mysql
 
 ### Creating Migrations
 To create a new migration, run the following command:  

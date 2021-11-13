@@ -104,6 +104,10 @@ func (s *Migration) GetMigrationHistory(limit int) (db.MigrationEntityList, erro
 		)
 	}
 
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return result, nil
 }
 
@@ -261,6 +265,10 @@ func (s *Migration) getTableScheme() (exists bool, err error) {
 		if table == s.tableName {
 			return true, nil
 		}
+	}
+
+	if err = rows.Err(); err != nil {
+		return false, err
 	}
 
 	return false, nil

@@ -5,26 +5,23 @@
  * @license https://github.com/raoptimus/db-migrator.go/blob/master/LICENSE.md
  * @link https://github.com/raoptimus/db-migrator.go
  */
-package postgresMigration
+package mysqlMigration
 
 import (
 	"database/sql"
 	"fmt"
-	"github.com/lib/pq"
-	_ "github.com/lib/pq"
+	"github.com/go-sql-driver/mysql"
 	"github.com/raoptimus/db-migrator.go/console"
 	"github.com/raoptimus/db-migrator.go/migrator/db"
 	"log"
 	"time"
 )
 
-const DefaultSchema = "public"
-
 type (
 	Migration struct {
 		connection  *sql.DB
-		tableName   string
 		tableSchema string
+		tableName   string
 		directory   string
 	}
 )
@@ -32,24 +29,18 @@ type (
 func New(connection *sql.DB, tableName, tableSchema, directory string) *Migration {
 	return &Migration{
 		connection:  connection,
-		tableName:   tableName,
 		tableSchema: tableSchema,
+		tableName:   tableName,
 		directory:   directory,
 	}
 }
 
 func (s *Migration) internalConvertError(err error, query string) error {
-	if ex, ok := err.(*pq.Error); ok {
-		q := ex.InternalQuery
-		if q == "" {
-			q = query
-		}
-		return fmt.Errorf("SQLSTATE[%s]: %s: %s\nDETAILS:%s\nThe SQL being executed was: %s\n",
-			ex.Code,
-			ex.Severity,
+	if ex, ok := err.(*mysql.MySQLError); ok {
+		return fmt.Errorf("SQLSTATE[%d]: %s\nThe SQL being executed was: %s\n",
+			ex.Number,
 			ex.Message,
-			ex.Detail,
-			q,
+			query,
 		)
 	}
 
@@ -86,8 +77,8 @@ func (s *Migration) GetMigrationHistory(limit int) (db.MigrationEntityList, erro
 			SELECT version, apply_time 
 			FROM %s
 			ORDER BY apply_time DESC, version DESC
-			LIMIT $1`,
-			s.getTableNameWithSchema(),
+			LIMIT ?`,
+			s.tableName,
 		)
 		result db.MigrationEntityList
 	)
@@ -131,8 +122,8 @@ func (s *Migration) AddMigrationHistory(version string) error {
 	now := uint32(time.Now().Unix())
 	q := fmt.Sprintf(`
 		INSERT INTO %s (version, apply_time) 
-		VALUES ($1, $2)`,
-		s.getTableNameWithSchema(),
+		VALUES (?, ?)`,
+		s.tableName,
 	)
 	_, err := s.connection.Exec(q, version, now)
 
@@ -140,30 +131,31 @@ func (s *Migration) AddMigrationHistory(version string) error {
 }
 
 func (s *Migration) RemoveMigrationHistory(version string) error {
-	q := fmt.Sprintf(`DELETE FROM %s WHERE (version) = ($1)`, s.getTableNameWithSchema())
+	q := fmt.Sprintf(`DELETE FROM %s WHERE version = ?`, s.tableName)
 	_, err := s.connection.Exec(q, version)
 
 	return err
 }
 
 func (s *Migration) createMigrationHistoryTable() error {
-	log.Printf(console.Yellow("Creating migration history table %s..."), s.getTableNameWithSchema())
+	log.Printf(console.Yellow("Creating migration history table %s..."), s.tableName)
 
 	q := fmt.Sprintf(
 		`
 				CREATE TABLE %s (
-				  version varchar(180) PRIMARY KEY,
-				  apply_time integer
+				  version VARCHAR(180) PRIMARY KEY,
+				  apply_time INT
 				)
+				ENGINE=InnoDB
 			`,
-		s.getTableNameWithSchema(),
+		s.tableName,
 	)
 
 	if _, err := s.connection.Exec(q); err != nil {
 		return s.internalConvertError(err, q)
 	}
 	if err := s.AddMigrationHistory(db.BaseMigration); err != nil {
-		q2 := fmt.Sprintf(`DROP TABLE %s`, s.getTableNameWithSchema())
+		q2 := fmt.Sprintf(`DROP TABLE %s`, s.tableName)
 		_, _ = s.connection.Exec(q2)
 
 		return err
@@ -177,33 +169,23 @@ func (s *Migration) createMigrationHistoryTable() error {
 func (s *Migration) getTableScheme() (exists bool, err error) {
 	var (
 		q = `
-			SELECT
-				d.nspname AS table_schema,
-				c.relname AS table_name
-			FROM pg_class c
-			LEFT JOIN pg_namespace d ON d.oid = c.relnamespace
-			WHERE (c.relname, d.nspname) = ($1, $2)
+			SELECT EXISTS(
+			    SELECT *
+				FROM information_schema.tables
+				WHERE table_schema = ? AND table_name = ?
+			)
 		`
 		rows *sql.Rows
 	)
 
-	rows, err = s.connection.Query(q, s.tableName, s.tableSchema)
+	rows, err = s.connection.Query(q, s.tableSchema, s.tableName)
 	if err != nil {
 		return false, s.internalConvertError(err, q)
 	}
 
 	for rows.Next() {
-		var (
-			tableName string
-			schema    string
-		)
-		if err := rows.Scan(&schema, &tableName); err != nil {
+		if err := rows.Scan(&exists); err != nil {
 			return false, s.internalConvertError(err, q)
-		}
-
-		//todo scan columns to tableScheme
-		if tableName == s.tableName {
-			return true, nil
 		}
 	}
 
@@ -211,9 +193,5 @@ func (s *Migration) getTableScheme() (exists bool, err error) {
 		return false, err
 	}
 
-	return false, nil
-}
-
-func (s *Migration) getTableNameWithSchema() string {
-	return s.tableSchema + "." + s.tableName
+	return exists, nil
 }
