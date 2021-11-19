@@ -1,0 +1,51 @@
+name: Test
+
+on:
+  push:
+
+jobs:
+  docker:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      - name: Cache go mods
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Pull containers
+        run:  docker-compose -f "docker-compose.yml" pull
+
+      - name: Cache containers
+        uses: satackey/action-docker-layer-caching@v0.0.11
+        continue-on-error: true
+
+      - name: Start containers
+        run: docker-compose -f "docker-compose.yml" up -d --build
+
+      - name: Sleep for 5 seconds
+        uses: jakejarvis/wait-action@master
+        with:
+          time: '5s'
+
+      - name: Run ps
+        run: docker-compose -f "docker-compose.yml" ps
+
+      - name: Run logs
+        run: docker-compose -f "docker-compose.yml" logs
+
+      - name: Run tests
+        run: docker-compose -f "docker-compose.yml" exec -T app make test
+
+      - name: Stop containers
+        if: always()
+        run: docker-compose -f "docker-compose.yml" down

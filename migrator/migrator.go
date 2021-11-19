@@ -11,8 +11,10 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/ClickHouse/clickhouse-go"
+	"github.com/go-sql-driver/mysql"
 	"github.com/raoptimus/db-migrator.go/migrator/db"
 	"github.com/raoptimus/db-migrator.go/migrator/db/clickhouseMigration"
+	"github.com/raoptimus/db-migrator.go/migrator/db/mysqlMigration"
 	"github.com/raoptimus/db-migrator.go/migrator/db/postgresMigration"
 	"strings"
 )
@@ -52,9 +54,42 @@ func (s *Service) init() error {
 		return s.initClickHouse()
 	case strings.HasPrefix(s.options.DSN, "postgres://"):
 		return s.initPostgres()
+	case strings.HasPrefix(s.options.DSN, "mysql://"):
+		return s.initMysql()
 	default:
 		return fmt.Errorf("Driver %s doesn't support", s.options.DSN)
 	}
+}
+
+func (s *Service) initMysql() error {
+	connection, err := sql.Open("mysql", s.options.DSN[8:])
+	if err != nil {
+		return err
+	}
+	if err := connection.Ping(); err != nil {
+		return err
+	}
+
+	var cfg *mysql.Config
+	cfg, err = mysql.ParseDSN(s.options.DSN)
+	if err != nil {
+		return err
+	}
+
+	s.db = connection
+	s.migration = db.NewMigration(
+		mysqlMigration.New(connection, s.options.TableName, cfg.DBName, s.options.Directory),
+		connection,
+		db.MigrationOptions{
+			MaxSqlOutputLength: s.options.MaxSqlOutputLength,
+			Directory:          s.options.Directory,
+			Compact:            s.options.Compact,
+			MultiSTMT:          false,
+			ForceSafely:        false,
+		},
+	)
+
+	return nil
 }
 
 func (s *Service) initPostgres() error {

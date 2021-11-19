@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   clickhouse:
-    image: yandex/clickhouse-server:20.9.2.20
+    image: yandex/clickhouse-server:21.11.3.6-alpine
     volumes:
       - "./docker/volume/clickhouse/dump:/docker-entrypoint-initdb.d/"
 
@@ -10,6 +10,11 @@ services:
     image: postgres:12-alpine
     volumes:
       - "./docker/volume/postgres/dump:/docker-entrypoint-initdb.d/"
+    env_file:
+      - .env
+
+  mysql:
+    image: mysql:8.0.27
     env_file:
       - .env
 
@@ -22,8 +27,11 @@ services:
       - clickhouse1
       - clickhouse2
       - postgres
+      - mysql
     volumes:
       - "./:/usr/src/app"
+      - "~/.cache/go-build:/root/.cache/go-build"
+      - "~/go/pkg/mod:/go/pkg/mod"
     env_file:
       - .env
 
@@ -31,7 +39,8 @@ services:
     image: zookeeper
 
   clickhouse1:
-    image: yandex/clickhouse-server:20.9.2.20
+    image: yandex/clickhouse-server:21.11.3.6-alpine
+    restart: on-failure
     volumes:
       - "./docker/volume/clickhouse-cluster/dump:/docker-entrypoint-initdb.d/"
       - "./docker/volume/clickhouse-cluster/config/config_1.xml:/etc/clickhouse-server/config.xml"
@@ -40,9 +49,9 @@ services:
       - zookeeper
 
   clickhouse2:
-    image: yandex/clickhouse-server:20.9.2.20
+    image: yandex/clickhouse-server:21.11.3.6-alpine
+    restart: on-failure
     volumes:
-      - "./docker/volume/clickhouse-cluster/dump:/docker-entrypoint-initdb.d/"
       - "./docker/volume/clickhouse-cluster/config/config_2.xml:/etc/clickhouse-server/config.xml"
       - "./docker/volume/clickhouse-cluster/config/config_replica.xml:/etc/clickhouse-server/clickhouse_replication_config.xml"
     depends_on:

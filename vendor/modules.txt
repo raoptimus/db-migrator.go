@@ -16,6 +16,9 @@ github.com/cloudflare/golz4
 github.com/cpuguy83/go-md2man/v2/md2man
 # github.com/davecgh/go-spew v1.1.0
 github.com/davecgh/go-spew/spew
+# github.com/go-sql-driver/mysql v1.4.0
+## explicit
+github.com/go-sql-driver/mysql
 # github.com/lib/pq v1.0.0
 ## explicit
 github.com/lib/pq
@@ -32,5 +35,8 @@ github.com/stretchr/testify/assert
 # github.com/urfave/cli/v2 v2.2.0
 ## explicit
 github.com/urfave/cli/v2
+# google.golang.org/appengine v1.6.7
+## explicit
+google.golang.org/appengine/cloudsql
 # gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 gopkg.in/yaml.v3
