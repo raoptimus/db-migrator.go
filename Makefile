@@ -2,8 +2,8 @@ SHELL = /bin/bash -e
 BASEDIR=$(shell pwd)
 GIT_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD)
-GIT_TAG ?= $(shell git describe --tags --abbrev=0 HEAD 2>/dev/null || false)
-VERSION ?= $(shell [[ "${GIT_TAG}" == "" ]] && echo 0.0.1 || echo ${GIT_TAG} | tr -d v)
+GIT_TAG ?= $(shell git describe --tags --abbrev=0 HEAD 2>/dev/null || echo "v0.0.0")
+VERSION = $(shell echo "${GIT_TAG}" | grep -Eo "v([0-9]+\.[0-9]+\.[0-9]+)" | cut -dv -f2)
 export ${VERSION}
 LDFLAGS=-ldflags "-s -w -X main.Version=${GIT_TAG} -X main.GitCommit=${GIT_COMMIT}"
 COVERAGE_DIR ?= .coverage

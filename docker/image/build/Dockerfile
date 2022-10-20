@@ -6,7 +6,7 @@ WORKDIR /go/src/db-migrator
 COPY . ./
 
 RUN find .
-#RUN go mod vendor
+RUN go mod tidy
 
 ARG VERSION
 ARG GIT_TAG
