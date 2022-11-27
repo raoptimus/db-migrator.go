@@ -20,6 +20,7 @@ APTLY_PREFIX ?= $(shell [[ ${GIT_BRANCH} == "master" ]] && echo "stable" || echo
 PACKAGE_FILE = "$(PKG_NAME)-$(VERSION).deb"
 PKG_WORKDIR = "${BUILD_DIR}/${PKG_NAME}-${VERSION}"
 DOCKER_ID_USER = raoptimus
+DOCKER_PASS ?= ""
 DOCKER_IMAGE = "${PKG_NAME}"
 
 help:
@@ -29,7 +30,9 @@ help:
 	@echo "GIT_COMMIT: ${GIT_COMMIT}"
 
 build-docker-image:
+	@docker login -u "${DOCKER_ID_USER}" -p "${DOCKER_PASS}" docker.io
 	@docker build \
+		--platform linux/x86_64 \
 		--build-arg VERSION=${VERSION} \
 		--build-arg GIT_BRANCH=${GIT_BRANCH} \
 		--build-arg GIT_COMMIT=${GIT_COMMIT} \
