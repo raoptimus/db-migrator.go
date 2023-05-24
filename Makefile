@@ -1,4 +1,5 @@
 SHELL = /bin/bash -e
+.DEFAULT_GOAL=help
 BASEDIR=$(shell pwd)
 GIT_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 GIT_COMMIT ?= $(shell git rev-parse --short HEAD)
@@ -6,11 +7,8 @@ GIT_TAG ?= $(shell git describe --tags --abbrev=0 HEAD 2>/dev/null || echo "v0.0
 VERSION = $(shell echo "${GIT_TAG}" | grep -Eo "v([0-9]+\.[0-9]+\.[0-9]+)" | cut -dv -f2)
 export ${VERSION}
 LDFLAGS=-ldflags "-s -w -X main.Version=${GIT_TAG} -X main.GitCommit=${GIT_COMMIT}"
-COVERAGE_DIR ?= .coverage
+REPORT_DIR ?= .report
 BUILD_DIR ?= .build
-SOURCE_FILES ?= ./...
-TEST_PATTERN ?= .
-TEST_OPTIONS ?=
 PKG_NAME = db-migrator
 APTLY_BASE_URL ?=
 APTLY_REPO_MASTER ?= xenial
@@ -23,7 +21,10 @@ DOCKER_ID_USER = raoptimus
 DOCKER_PASS ?= ""
 DOCKER_IMAGE = "${PKG_NAME}"
 
-help:
+help: ## Show help message
+	@cat $(MAKEFILE_LIST) | grep -e "^[a-zA-Z_\-]*: *.*## *" | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+version:
 	@echo "VERSION: ${VERSION}"
 	@echo "GIT_BRANCH: ${GIT_BRANCH}"
 	@echo "GIT_TAG: ${GIT_TAG}"
@@ -50,16 +51,31 @@ build: help
 	@file  ${BUILD_DIR}/${PKG_NAME}
 	@du -h ${BUILD_DIR}/${PKG_NAME}
 
-test:
-	@[ -d ${COVERAGE_DIR} ] || mkdir -p ${COVERAGE_DIR}
-	@go test $(TEST_OPTIONS) \
+test-coverage: ## Coverage
+	@[ -d ${REPORT_DIR} ] || mkdir -p ${REPORT_DIR}
+	@-go test \
+          -cover \
+          -covermode=atomic \
+          -coverprofile=${REPORT_DIR}/coverage.txt \
+          ./... \
+          -timeout=2m \
+          -v
+
+test-unit: ## Run only Unit tests
+	@go test $$(go list ./... | grep -v mock) \
+		-buildvcs=false \
 		-failfast \
-		-race \
-		-coverpkg=./... \
-		-covermode=atomic \
-		-coverprofile=${COVERAGE_DIR}/coverage.txt $(SOURCE_FILES) \
-		-run $(TEST_PATTERN) \
-		-timeout=2m
+		-short \
+		-timeout=2m \
+		-v
+
+test-integration: ## Run Integration Tests only
+	@go test $$(go list ./... | grep -v mock) \
+		-buildvcs=false \
+		-failfast \
+		-run Integration \
+		-tags=integration \
+		-v
 
 build-deb: build
 	@echo "deb package $(PKG_NAME) building..."
@@ -83,3 +99,25 @@ publish-deb:
 	@curl --fail --connect-timeout 5 -X POST ${APTLY_BASE_URL}/api/repos/${APTLY_REPO}/file/debian/${PACKAGE_FILE}
 	@curl --fail --connect-timeout 5 -X PUT ${APTLY_BASE_URL}/api/publish/filesystem:ci:${APTLY_PREFIX}/${APTLY_DIST}
 
+lint: ## Run linter
+	@[ -d ${REPORT_DIR} ] || mkdir -p ${REPORT_DIR}
+	golangci-lint run --timeout 5m
+
+install-mockery:
+	@mockery --version &> /dev/null || go install github.com/vektra/mockery/v2@latest
+	@mockery --version
+
+gen-mocks: install-mockery ## Run mockery
+	@bash -c 'for d in $$(find . ! -path "**/mock*" ! -path "**/.*" -name "**.go" -exec dirname {} \; | sort --unique); do \
+	if [[ "$$d" ==  "." ]]; then continue; fi; \
+	pkg=mock$$(basename -- "$${d/./''}"); \
+	mockery --srcpkg=$${d} --outpkg=$${pkg} --output=$${d}/$${pkg} --all --with-expecter=true; \
+	done; \
+	'
+
+gen-mocks-dry-run: install-mockery ## Run mockery --dry-run=true
+	@bash -c 'for d in $$(find . ! -path "**/mock*" ! -path "**/.*" -name "**.go" -exec dirname {} \; | sort --unique); do \
+	if [[ "$$d" ==  "." ]]; then continue; fi; \
+	mockery --srcpkg=$${d} --output=$${d}/mock$$(basename -- "$${d/./''}") --all --dry-run=true; \
+	done; \
+	'
