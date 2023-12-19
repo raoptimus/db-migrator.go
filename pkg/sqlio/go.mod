@@ -1,6 +1,6 @@
 module github.com/raoptimus/db-migrator.go/pkg/sqlio
 
-go 1.20
+go 1.21
 
 require github.com/stretchr/testify v1.8.3
 

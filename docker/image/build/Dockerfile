@@ -1,6 +1,7 @@
-FROM golang:1.19-alpine3.16 as build
+ARG GO_IMAGE_VERSION
+FROM golang:${GO_IMAGE_VERSION}-alpine as build
 
-RUN apk add --update make git bash file
+RUN apk add --update make bash file
 
 WORKDIR /go/src/db-migrator
 COPY . ./

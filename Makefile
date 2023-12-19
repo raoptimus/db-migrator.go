@@ -20,6 +20,7 @@ PKG_WORKDIR = "${BUILD_DIR}/${PKG_NAME}-${VERSION}"
 DOCKER_ID_USER = raoptimus
 DOCKER_PASS ?= ""
 DOCKER_IMAGE = "${PKG_NAME}"
+export GO_IMAGE_VERSION="1.21"
 
 help: ## Show help message
 	@cat $(MAKEFILE_LIST) | grep -e "^[a-zA-Z_\-]*: *.*## *" | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
@@ -38,6 +39,7 @@ build-docker-image:
 		--build-arg GIT_BRANCH=${GIT_BRANCH} \
 		--build-arg GIT_COMMIT=${GIT_COMMIT} \
 		--build-arg GIT_TAG=${GIT_TAG} \
+		--build-arg GO_IMAGE_VERSION=${GO_IMAGE_VERSION} \
 		-f ./docker/image/build/Dockerfile \
 		-t ${DOCKER_ID_USER}/${DOCKER_IMAGE}:"${VERSION}-alpine" \
 		-t ${DOCKER_ID_USER}/${DOCKER_IMAGE}:latest  ./
