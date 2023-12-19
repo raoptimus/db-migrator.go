@@ -38,10 +38,10 @@ jobs:
       - name: Run unit tests
         run: docker-compose -f "docker-compose.yml" exec -T app make test-unit
 
-      - name: Sleep for 5 seconds
+      - name: Sleep for 10 seconds
         uses: jakejarvis/wait-action@master
         with:
-          time: '5s'
+          time: '10s'
 
       - name: Run integration tests
         run: docker-compose -f "docker-compose.yml" exec -T app make test-integration
