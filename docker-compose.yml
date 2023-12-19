@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   clickhouse:
-    image: yandex/clickhouse-server:21.11.3.6-alpine
+    image: clickhouse/clickhouse-server:23.11-alpine
     volumes:
       - "./docker/volume/clickhouse/dump:/docker-entrypoint-initdb.d/"
 
@@ -19,7 +19,12 @@ services:
       - .env
 
   app:
-    image: raoptimus/go-magick:latest
+    build:
+      context: ./
+      dockerfile: Dockerfile
+      args:
+        GO_IMAGE_VERSION: ${GO_IMAGE_VERSION}
+        GO_LINT_VERSION: ${GO_LINT_VERSION}
     working_dir: "/usr/src/app"
     command: "sleep infinity"
     depends_on:
@@ -28,31 +33,38 @@ services:
       - clickhouse2
       - postgres
       - mysql
+    links:
+      - clickhouse
+      - clickhouse1
+      - clickhouse2
+      - postgres
+      - mysql
     volumes:
       - "./:/usr/src/app"
       - "~/.cache/go-build:/root/.cache/go-build"
-      - "~/go/pkg/mod:/go/pkg/mod"
+      - "~/go/pkg/mod:/root/go/pkg/mod"
     env_file:
       - .env
 
-  zookeeper:
-    image: zookeeper
+  clickhouse-keeper:
+    image: clickhouse/clickhouse-keeper:23.11-alpine
+    restart: on-failure
+    volumes:
+      - "./docker/volume/clickhouse-cluster/config/keeper1/keeper_config.xml:/etc/clickhouse-keeper/keeper_config.xml"
 
   clickhouse1:
-    image: yandex/clickhouse-server:21.11.3.6-alpine
+    image: clickhouse/clickhouse-server:23.11-alpine
     restart: on-failure
     volumes:
       - "./docker/volume/clickhouse-cluster/dump:/docker-entrypoint-initdb.d/"
-      - "./docker/volume/clickhouse-cluster/config/config_1.xml:/etc/clickhouse-server/config.xml"
-      - "./docker/volume/clickhouse-cluster/config/config_replica.xml:/etc/clickhouse-server/clickhouse_replication_config.xml"
+      - "./docker/volume/clickhouse-cluster/config/clickhouse1:/etc/clickhouse-server/config.d/"
     depends_on:
-      - zookeeper
+      - clickhouse-keeper
 
   clickhouse2:
-    image: yandex/clickhouse-server:21.11.3.6-alpine
+    image: clickhouse/clickhouse-server:23.11-alpine
     restart: on-failure
     volumes:
-      - "./docker/volume/clickhouse-cluster/config/config_2.xml:/etc/clickhouse-server/config.xml"
-      - "./docker/volume/clickhouse-cluster/config/config_replica.xml:/etc/clickhouse-server/clickhouse_replication_config.xml"
+      - "./docker/volume/clickhouse-cluster/config/clickhouse2:/etc/clickhouse-server/config.d/"
     depends_on:
-      - zookeeper
+      - clickhouse-keeper

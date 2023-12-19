@@ -10,32 +10,21 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v1
-
-      - name: Cache go mods
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+        uses: actions/checkout@v3
+#
+#      - name: Cache go mods
+#        uses: actions/cache@v3
+#        with:
+#          path: |
+#            ~/.cache/go-build
+#            ~/go/pkg/mod
+#          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
 
       - name: Pull containers
         run:  docker-compose -f "docker-compose.yml" pull
 
-      - name: Cache containers
-        uses: satackey/action-docker-layer-caching@v0.0.11
-        continue-on-error: true
-
       - name: Start containers
         run: docker-compose -f "docker-compose.yml" up -d --build
-
-      - name: Sleep for 5 seconds
-        uses: jakejarvis/wait-action@master
-        with:
-          time: '5s'
 
       - name: Run ps
         run: docker-compose -f "docker-compose.yml" ps
@@ -43,8 +32,31 @@ jobs:
       - name: Run logs
         run: docker-compose -f "docker-compose.yml" logs
 
-      - name: Run tests
-        run: docker-compose -f "docker-compose.yml" exec -T app make test
+      - name: Run lint
+        run: docker-compose -f "docker-compose.yml" exec -T app make lint
+
+      - name: Run unit tests
+        run: docker-compose -f "docker-compose.yml" exec -T app make test-unit
+
+      - name: Sleep for 10 seconds
+        uses: jakejarvis/wait-action@master
+        with:
+          time: '10s'
+
+      - name: Run integration tests
+        run: docker-compose -f "docker-compose.yml" exec -T app make test-integration
+
+#      - name: Publish Test Report
+#        uses: mikepenz/action-junit-report@v4
+#        if: success() || failure()
+#        with:
+#          report_paths: '**/.report/*.xml'
+
+#      - name: Test & publish code coverage
+#        uses: paambaati/codeclimate-action@v5.0.0
+#        with:
+#          coverageLocations: |
+#            ${{github.workspace}}/.report/*.json:cobertura
 
       - name: Stop containers
         if: always()

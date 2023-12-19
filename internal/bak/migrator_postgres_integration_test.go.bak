@@ -1,0 +1,135 @@
+/**
+ * This file is part of the raoptimus/db-migrator.go library
+ *
+ * @copyright Copyright (c) Evgeniy Urvantsev <resmus@gmail.com>
+ * @license https://github.com/raoptimus/db-migrator.go/blob/master/LICENSE.md
+ * @link https://github.com/raoptimus/db-migrator.go
+ */
+
+package bak
+
+import (
+	"os"
+	"testing"
+
+	"github.com/raoptimus/db-migrator.go/internal/app"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestMigrateService_Postgres_UpDown_Successfully(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+	m, err := createPostgresMigrator("migration")
+	assert.NoError(t, err)
+
+	err = m.Down("all")
+	assert.NoError(t, err)
+
+	err = m.Up("2")
+	assert.NoError(t, err)
+
+	err = m.Up("1")
+	assert.Error(t, err)
+
+	var c int
+	err = m.db.QueryRow("select count(*) from test").Scan(&c)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, c)
+
+	err = m.db.QueryRow("select count(*) from public.migration").Scan(&c)
+	assert.NoError(t, err)
+	assert.Equal(t, 3, c)
+
+	err = m.Down("all")
+	assert.NoError(t, err)
+}
+
+func TestMigrateService_Postgres_Redo_Successfully(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+	m, err := createPostgresMigrator("migration")
+	assert.NoError(t, err)
+
+	err = m.Down("all")
+	assert.NoError(t, err)
+
+	err = m.Up("2")
+	assert.NoError(t, err)
+
+	err = m.Redo("1")
+	assert.NoError(t, err)
+
+	var c int
+	err = m.db.QueryRow("select count(*) from public.migration").Scan(&c)
+	assert.NoError(t, err)
+	assert.Equal(t, 3, c)
+
+	err = m.Down("all")
+	assert.NoError(t, err)
+}
+
+func TestMigrateService_Postgres_UpDown_WithSchema_Successfully(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+	m, err := createPostgresMigrator("docker.migration")
+	assert.NoError(t, err)
+
+	err = m.Down("all")
+	assert.NoError(t, err)
+
+	err = m.Up("2")
+	assert.NoError(t, err)
+
+	err = m.Up("1")
+	assert.Error(t, err)
+
+	var c int
+	err = m.db.QueryRow("select count(*) from test").Scan(&c)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, c)
+
+	err = m.db.QueryRow("select count(*) from docker.migration").Scan(&c)
+	assert.NoError(t, err)
+	assert.Equal(t, 3, c)
+
+	err = m.Down("all")
+	assert.NoError(t, err)
+}
+
+func TestMigrateService_Postgres_Redo_WithSchema_Successfully(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+	m, err := createPostgresMigrator("docker.migration")
+	assert.NoError(t, err)
+
+	err = m.Downgrade("all")
+	assert.NoError(t, err)
+
+	err = m.Up("2")
+	assert.NoError(t, err)
+
+	err = m.Redo("1")
+	assert.NoError(t, err)
+
+	var c int
+	err = m.db.QueryRow("select count(*) from docker.migration").Scan(&c)
+	assert.NoError(t, err)
+	assert.Equal(t, 3, c)
+
+	err = m.Down("all")
+	assert.NoError(t, err)
+}
+
+func createPostgresMigrator(migrationTableName string) (*app.DBService, error) {
+	return app.New(&app.Options{
+		DSN:         os.Getenv("POSTGRES_DSN"),
+		Directory:   os.Getenv("POSTGRES_MIGRATIONS_PATH"),
+		TableName:   migrationTableName,
+		Compact:     false,
+		Interactive: false,
+	})
+}

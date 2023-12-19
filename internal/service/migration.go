@@ -1,0 +1,327 @@
+/**
+ * This file is part of the raoptimus/db-migrator.go library
+ *
+ * @copyright Copyright (c) Evgeniy Urvantsev
+ * @license https://github.com/raoptimus/db-migrator.go/blob/master/LICENSE.md
+ * @link https://github.com/raoptimus/db-migrator.go
+ */
+
+package service
+
+import (
+	"context"
+	"fmt"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"time"
+
+	"github.com/pkg/errors"
+	_ "github.com/raoptimus/db-migrator.go/internal/console"
+	"github.com/raoptimus/db-migrator.go/internal/dal/entity"
+	"github.com/raoptimus/db-migrator.go/pkg/sqlio"
+)
+
+const (
+	baseMigration            = "000000_000000_base"
+	baseMigrationsCount      = 1
+	defaultLimit             = 10000
+	regexpFileNameGroupCount = 5
+)
+
+var (
+	regexpFileName = regexp.MustCompile(`^(\d{6}_?\d{6}[A-Za-z0-9_]+)\.((safe)\.)?(up|down)\.sql$`)
+)
+
+type Migration struct {
+	options *Options
+	console Console
+	file    File
+	repo    Repository
+}
+
+func NewMigration(
+	options *Options,
+	console Console,
+	file File,
+	repo Repository,
+) *Migration {
+	return &Migration{
+		options: options,
+		console: console,
+		file:    file,
+		repo:    repo,
+	}
+}
+
+func (m *Migration) InitializeTableHistory(ctx context.Context) error {
+	exists, err := m.repo.HasMigrationHistoryTable(ctx)
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		return nil
+	}
+
+	m.console.Warnf("Creating migration history table %s...", m.repo.TableNameWithSchema())
+
+	if err := m.repo.CreateMigrationHistoryTable(ctx); err != nil {
+		return err
+	}
+
+	if err := m.repo.InsertMigration(ctx, baseMigration); err != nil {
+		if err2 := m.repo.DropMigrationHistoryTable(ctx); err2 != nil {
+			return errors.Wrap(err, err2.Error())
+		}
+		return err
+	}
+
+	m.console.SuccessLn("Done")
+	return nil
+}
+
+func (m *Migration) Migrations(ctx context.Context, limit int) (entity.Migrations, error) {
+	if err := m.InitializeTableHistory(ctx); err != nil {
+		return nil, err
+	}
+	if limit < 1 {
+		limit = defaultLimit
+	}
+	migrations, err := m.repo.Migrations(ctx, limit+baseMigrationsCount)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range migrations {
+		if migrations[i].Version == baseMigration {
+			return append(migrations[:i], migrations[i+1:]...), nil
+		}
+	}
+
+	return migrations, nil
+}
+
+func (m *Migration) NewMigrations(ctx context.Context, limit int) (entity.Migrations, error) {
+	if err := m.InitializeTableHistory(ctx); err != nil {
+		return nil, err
+	}
+	if limit < 1 {
+		limit = defaultLimit
+	}
+	migrations, err := m.repo.Migrations(ctx, limit+baseMigrationsCount)
+	if err != nil {
+		return nil, err
+	}
+
+	var files []string
+	files, err = filepath.Glob(filepath.Join(m.options.Directory, "*.up.sql"))
+	if err != nil {
+		return nil, err
+	}
+
+	newMigrations := make(entity.Migrations, 0)
+	var baseFilename string
+
+	for _, file := range files {
+		baseFilename = filepath.Base(file)
+		groups := regexpFileName.FindStringSubmatch(baseFilename)
+		if len(groups) != regexpFileNameGroupCount {
+			return nil, fmt.Errorf("file name %s is invalid", baseFilename)
+		}
+		found := false
+		for _, migration := range migrations {
+			if migration.Version == baseMigration {
+				continue
+			}
+			if migration.Version == groups[1] {
+				found = true
+				break
+			}
+		}
+		if !found {
+			newMigrations = append(
+				newMigrations,
+				entity.Migration{
+					Version: groups[1],
+				},
+			)
+		}
+	}
+
+	newMigrations.SortByVersion()
+	return newMigrations, err
+}
+
+func (m *Migration) ApplySQL(
+	ctx context.Context,
+	safely bool,
+	version,
+	upSQL,
+	downSQL string,
+) error {
+	if version == baseMigration {
+		return ErrMigrationVersionReserved
+	}
+	m.console.Warnf("*** applying %s\n", version)
+	scanner := sqlio.NewScanner(strings.NewReader(upSQL))
+	elapsedTime, err := m.apply(ctx, scanner, safely)
+	if err != nil {
+		m.console.Errorf("*** failed to apply %s (time: %.3fs)\n", version, elapsedTime.Seconds())
+		return err
+	}
+	if err := m.repo.InsertMigration(ctx, version); err != nil {
+		return err
+	}
+	// todo: save downSQL
+	m.console.Successf("*** applied %s (time: %.3fs)\n", version, elapsedTime.Seconds())
+	return nil
+}
+
+func (m *Migration) RevertSQL(
+	ctx context.Context,
+	safely bool,
+	version,
+	upSQL,
+	downSQL string,
+) error {
+	if version == baseMigration {
+		return ErrMigrationVersionReserved
+	}
+	m.console.Warnf("*** reverting %s\n", version)
+	scanner := sqlio.NewScanner(strings.NewReader(downSQL))
+	elapsedTime, err := m.apply(ctx, scanner, safely)
+	if err != nil {
+		m.console.Errorf("*** failed to reverted %s (time: %.3fs)\n", version, elapsedTime.Seconds())
+		return err
+	}
+	if err := m.repo.RemoveMigration(ctx, version); err != nil {
+		return err
+	}
+	m.console.Warnf("*** reverted %s (time: %.3fs)\n", version, elapsedTime.Seconds())
+	return nil
+}
+
+func (m *Migration) ApplyFile(ctx context.Context, entity *entity.Migration, fileName string, safely bool) error {
+	if entity.Version == baseMigration {
+		return ErrMigrationVersionReserved
+	}
+	m.console.Warnf("*** applying %s\n", entity.Version)
+	scanner, err := m.scannerByFile(fileName)
+	if err != nil {
+		return err
+	}
+	elapsedTime, err := m.apply(ctx, scanner, safely)
+	if err != nil {
+		m.console.Errorf("*** failed to apply %s (time: %.3fs)\n", entity.Version, elapsedTime.Seconds())
+		return err
+	}
+	if err := m.repo.InsertMigration(ctx, entity.Version); err != nil {
+		return err
+	}
+	m.console.Successf("*** applied %s (time: %.3fs)\n", entity.Version, elapsedTime.Seconds())
+	return nil
+}
+
+func (m *Migration) RevertFile(ctx context.Context, entity *entity.Migration, fileName string, safely bool) error {
+	if entity.Version == baseMigration {
+		return ErrMigrationVersionReserved
+	}
+	m.console.Warnf("*** reverting %s\n", entity.Version)
+	scanner, err := m.scannerByFile(fileName)
+	if err != nil {
+		return err
+	}
+
+	elapsedTime, err := m.apply(ctx, scanner, safely)
+	if err != nil {
+		m.console.Errorf("*** failed to reverted %s (time: %.3fs)\n",
+			entity.Version, elapsedTime.Seconds())
+	}
+	if err := m.repo.RemoveMigration(ctx, entity.Version); err != nil {
+		return err
+	}
+	m.console.Warnf("*** reverted %s (time: %.3fs)\n",
+		entity.Version, elapsedTime.Seconds())
+	return nil
+}
+
+func (m *Migration) BeginCommand(sqlQuery string) time.Time {
+	sqlQueryOutput := m.SQLQueryOutput(sqlQuery)
+	if !m.options.Compact {
+		m.console.Infof("    > execute SQL: %s ...\n", sqlQueryOutput)
+	}
+
+	return time.Now()
+}
+
+func (m *Migration) ExecQuery(ctx context.Context, sqlQuery string) error {
+	start := m.BeginCommand(sqlQuery)
+	if err := m.repo.ExecQuery(ctx, sqlQuery); err != nil {
+		return err
+	}
+	m.EndCommand(start)
+
+	return nil
+}
+
+func (m *Migration) SQLQueryOutput(sqlQuery string) string {
+	sqlQueryOutput := sqlQuery
+	if m.options.MaxSQLOutputLength > 0 && m.options.MaxSQLOutputLength < len(sqlQuery) {
+		sqlQueryOutput = sqlQuery[:m.options.MaxSQLOutputLength]
+	}
+
+	return sqlQueryOutput
+}
+
+func (m *Migration) EndCommand(start time.Time) {
+	if m.options.Compact {
+		m.console.Infof(" done (time: '%.3fs)\n", time.Since(start).Seconds())
+	}
+}
+
+func (m *Migration) apply(
+	ctx context.Context,
+	scanner *sqlio.Scanner,
+	safely bool,
+) (time.Duration, error) {
+	start := time.Now()
+	processScanFunc := func(ctx context.Context) error {
+		var q string
+		for scanner.Scan() {
+			q = scanner.SQL()
+			if q == "" {
+				continue
+			}
+			if err := m.ExecQuery(ctx, q); err != nil {
+				return err
+			}
+		}
+		return scanner.Err()
+	}
+
+	var err error
+	if m.repo.ForceSafely() || safely {
+		err = m.repo.ExecQueryTransaction(ctx, processScanFunc)
+	} else {
+		err = processScanFunc(ctx)
+	}
+	elapsedTime := time.Since(start)
+	return elapsedTime, err
+}
+
+func (m *Migration) scannerByFile(fileName string) (*sqlio.Scanner, error) {
+	exists, err := m.file.Exists(fileName)
+	if err != nil {
+		return nil, errors.Wrapf(err, "migration file %s does not exists", fileName)
+	}
+	if !exists {
+		return nil, fmt.Errorf("migration file %s does not exists", fileName)
+	}
+
+	f, err := m.file.Open(fileName)
+	if err != nil {
+		return nil, errors.Wrapf(err, "migration file %s does not read", fileName)
+	}
+	return sqlio.NewScanner(f), nil
+}

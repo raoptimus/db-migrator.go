@@ -1,8 +1,8 @@
 **
 !cmd
-!console
-!iofile
-!migrator
+!internal
+!pkg
+!fixtures
 !go.mod
 !go.sum
 !Makefile
