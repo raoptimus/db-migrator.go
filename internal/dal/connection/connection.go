@@ -29,7 +29,7 @@ func New(dsn string) (*Connection, error) {
 	case strings.HasPrefix(dsn, "mysql://"):
 		return mysql(dsn)
 	default:
-		return nil, fmt.Errorf("driver %s doesn't support", dsn)
+		return nil, fmt.Errorf("driver \"%s\" doesn't support", dsn)
 	}
 }
 

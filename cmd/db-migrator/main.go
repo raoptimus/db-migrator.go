@@ -25,24 +25,17 @@ var (
 )
 
 func main() {
-	options := &migrator.Options{}
+	options := migrator.Options{}
 
 	app := cli.NewApp()
 	app.Name = "DB Service"
 	app.Usage = "up/down/redo command for migrates the different db"
 	app.Version = fmt.Sprintf("v%s.rev[%s]", Version, GitCommit)
-	app.Flags = flags(options)
-	app.Commands = commands()
+	app.Flags = flags(&options)
+	app.Commands = commands(&options)
 	app.Before = func(context *cli.Context) error {
-		dbService = migrator.New(options)
+		dbService = migrator.New(&options)
 		return nil
-	}
-	app.Action = func(ctx *cli.Context) error {
-		if a, err := dbService.Upgrade(); err != nil {
-			return err
-		} else {
-			return a.Run(ctx)
-		}
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -50,10 +43,11 @@ func main() {
 	}
 }
 
-func commands() []*cli.Command {
+func commands(options *migrator.Options) []*cli.Command {
 	return []*cli.Command{
 		{
-			Name: "up",
+			Name:  "up",
+			Flags: addsFlags(options),
 			Action: func(ctx *cli.Context) error {
 				if a, err := dbService.Upgrade(); err != nil {
 					return err
@@ -63,7 +57,8 @@ func commands() []*cli.Command {
 			},
 		},
 		{
-			Name: "down",
+			Name:  "down",
+			Flags: addsFlags(options),
 			Action: func(ctx *cli.Context) error {
 				if a, err := dbService.Downgrade(); err != nil {
 					return err
@@ -73,7 +68,8 @@ func commands() []*cli.Command {
 			},
 		},
 		{
-			Name: "redo",
+			Name:  "redo",
+			Flags: addsFlags(options),
 			Action: func(ctx *cli.Context) error {
 				if a, err := dbService.Redo(); err != nil {
 					return err
@@ -89,7 +85,8 @@ func commands() []*cli.Command {
 			},
 		},
 		{
-			Name: "history",
+			Name:  "history",
+			Flags: addsFlags(options),
 			Action: func(ctx *cli.Context) error {
 				if a, err := dbService.History(); err != nil {
 					return err
@@ -99,7 +96,8 @@ func commands() []*cli.Command {
 			},
 		},
 		{
-			Name: "new",
+			Name:  "new",
+			Flags: addsFlags(options),
 			Action: func(ctx *cli.Context) error {
 				if a, err := dbService.HistoryNew(); err != nil {
 					return err
@@ -109,7 +107,8 @@ func commands() []*cli.Command {
 			},
 		},
 		{
-			Name: "to",
+			Name:  "to",
+			Flags: addsFlags(options),
 			Action: func(ctx *cli.Context) error {
 				if a, err := dbService.To(); err != nil {
 					return err
@@ -121,25 +120,27 @@ func commands() []*cli.Command {
 	}
 }
 
+func addsFlags(options *migrator.Options) []cli.Flag {
+	return []cli.Flag{
+		&cli.StringFlag{
+			Name:        "dsn",
+			EnvVars:     []string{"DSN"},
+			Aliases:     []string{"d"},
+			Usage:       "DB connection string",
+			Destination: &options.DSN,
+			Required:    true,
+		},
+	}
+}
+
 func flags(options *migrator.Options) []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{
-			Name:    "dsn",
-			EnvVars: []string{"DSN"},
-			Aliases: []string{"d"},
-			//Value: "postgres://docker:docker@postgres:5432/docker?sslmode=disable",
-			//Value: "clickhouse://default:@clickhouse:9000/docker?sslmode=disable&compress=true&debug=false",
-			Usage:       "DB connection string",
-			Destination: &options.DSN,
-		},
-		&cli.StringFlag{
-			Name:    "migrationPath",
-			EnvVars: []string{"MIGRATION_PATH"},
-			Aliases: []string{"p"},
-			//Value: "./migrator/db/clickhouseMigration/test_migrates",
-			//Value: "./migrator/db/postgresMigration/test_migrates",
+			Name:        "migrationPath",
+			EnvVars:     []string{"MIGRATION_PATH"},
+			Aliases:     []string{"p"},
+			Value:       "./migrations",
 			Usage:       "Directory for migrated files",
-			Required:    true,
 			Destination: &options.Directory,
 		},
 		&cli.StringFlag{

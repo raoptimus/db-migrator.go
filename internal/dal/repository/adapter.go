@@ -112,6 +112,6 @@ func create(conn Connection, options *Options) (adapter, error) {
 		})
 		return repo, nil
 	default:
-		return nil, fmt.Errorf("driver %s doesn't support", conn.Driver())
+		return nil, fmt.Errorf("driver \"%s\" doesn't support", conn.Driver())
 	}
 }
