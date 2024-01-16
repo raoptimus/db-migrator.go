@@ -32,7 +32,7 @@ func (h *HistoryNew) Run(ctx *cli.Context) error {
 		return err
 	}
 
-	migrations, err := h.service.NewMigrations(ctx.Context, limit)
+	migrations, err := h.service.NewMigrations(ctx.Context)
 	if err != nil {
 		return err
 	}
@@ -43,20 +43,23 @@ func (h *HistoryNew) Run(ctx *cli.Context) error {
 		return nil
 	}
 
-	if limit > 0 {
+	if limit > 0 && migrationsCount > limit {
+		migrations = migrations[:limit]
 		console.Warnf(
-			"Showing the last %d %s: \n",
+			"Showing %d out of %d new %s \n",
+			limit,
 			migrationsCount,
 			console.NumberPlural(migrationsCount, "migration", "migrations"),
 		)
 	} else {
 		console.Warnf(
-			"Total %d %s been applied before: \n",
+			"Found %d new %s \n",
 			migrationsCount,
-			console.NumberPlural(migrationsCount, "migration has", "migrations have"),
+			console.NumberPlural(migrationsCount, "migration", "migrations"),
 		)
 	}
 
 	printMigrations(migrations, true)
+
 	return nil
 }

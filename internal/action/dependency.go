@@ -53,7 +53,7 @@ type MigrationService interface {
 	Migrations(ctx context.Context, limit int) (entity.Migrations, error)
 	// NewMigrations returns an entities of new migrations
 	//todo: domain.Migrations
-	NewMigrations(ctx context.Context, limit int) (entity.Migrations, error)
+	NewMigrations(ctx context.Context) (entity.Migrations, error)
 	// ApplyFile applies new migration
 	//todo: domain.Migration
 	ApplyFile(ctx context.Context, entity *entity.Migration, fileName string, safely bool) error

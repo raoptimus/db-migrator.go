@@ -122,25 +122,25 @@ func (_c *MigrationService_Migrations_Call) RunAndReturn(run func(context.Contex
 	return _c
 }
 
-// NewMigrations provides a mock function with given fields: ctx, limit
-func (_m *MigrationService) NewMigrations(ctx context.Context, limit int) (entity.Migrations, error) {
-	ret := _m.Called(ctx, limit)
+// NewMigrations provides a mock function with given fields: ctx
+func (_m *MigrationService) NewMigrations(ctx context.Context) (entity.Migrations, error) {
+	ret := _m.Called(ctx)
 
 	var r0 entity.Migrations
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, int) (entity.Migrations, error)); ok {
-		return rf(ctx, limit)
+	if rf, ok := ret.Get(0).(func(context.Context) (entity.Migrations, error)); ok {
+		return rf(ctx)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, int) entity.Migrations); ok {
-		r0 = rf(ctx, limit)
+	if rf, ok := ret.Get(0).(func(context.Context) entity.Migrations); ok {
+		r0 = rf(ctx)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(entity.Migrations)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, int) error); ok {
-		r1 = rf(ctx, limit)
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -155,14 +155,13 @@ type MigrationService_NewMigrations_Call struct {
 
 // NewMigrations is a helper method to define mock.On call
 //   - ctx context.Context
-//   - limit int
-func (_e *MigrationService_Expecter) NewMigrations(ctx interface{}, limit interface{}) *MigrationService_NewMigrations_Call {
-	return &MigrationService_NewMigrations_Call{Call: _e.mock.On("NewMigrations", ctx, limit)}
+func (_e *MigrationService_Expecter) NewMigrations(ctx interface{}) *MigrationService_NewMigrations_Call {
+	return &MigrationService_NewMigrations_Call{Call: _e.mock.On("NewMigrations", ctx)}
 }
 
-func (_c *MigrationService_NewMigrations_Call) Run(run func(ctx context.Context, limit int)) *MigrationService_NewMigrations_Call {
+func (_c *MigrationService_NewMigrations_Call) Run(run func(ctx context.Context)) *MigrationService_NewMigrations_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(int))
+		run(args[0].(context.Context))
 	})
 	return _c
 }
@@ -172,7 +171,7 @@ func (_c *MigrationService_NewMigrations_Call) Return(_a0 entity.Migrations, _a1
 	return _c
 }
 
-func (_c *MigrationService_NewMigrations_Call) RunAndReturn(run func(context.Context, int) (entity.Migrations, error)) *MigrationService_NewMigrations_Call {
+func (_c *MigrationService_NewMigrations_Call) RunAndReturn(run func(context.Context) (entity.Migrations, error)) *MigrationService_NewMigrations_Call {
 	_c.Call.Return(run)
 	return _c
 }

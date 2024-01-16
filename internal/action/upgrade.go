@@ -42,7 +42,7 @@ func (u *Upgrade) Run(ctx *cli.Context) error {
 		return err
 	}
 
-	migrations, err := u.service.NewMigrations(ctx.Context, limit)
+	migrations, err := u.service.NewMigrations(ctx.Context)
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ func (u *Upgrade) Run(ctx *cli.Context) error {
 
 	printMigrations(migrations, false)
 
-	question := fmt.Sprintf("ApplyFile the above %s?",
+	question := fmt.Sprintf("Apply the above %s?",
 		u.console.NumberPlural(migrations.Len(), "migration", "migrations"),
 	)
 	if u.interactive && !u.console.Confirm(question) {

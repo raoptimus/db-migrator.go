@@ -11,9 +11,9 @@ import (
 )
 
 func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test")
-	}
+	//if testing.Short() {
+	t.Skip("skipping integration test")
+	//}
 
 	// region data provider
 	tests := []struct {
@@ -94,6 +94,37 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 			assertEqualRowsCount(t, ctx, dbServ.repo, 1)
 		})
 	}
+}
+
+func TestIntegrationDBService_Upgrade_AlreadyExistsMigration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+	opts := Options{
+		DSN:         os.Getenv("POSTGRES_DSN"),
+		Directory:   migrationsPathAbs(os.Getenv("POSTGRES_MIGRATIONS_PATH")),
+		TableName:   "migration",
+		Compact:     true,
+		Interactive: false,
+	}
+	dbServ := New(&opts)
+
+	down, err := dbServ.Downgrade()
+	assert.NoError(t, err)
+	err = down.Run(cliContext(t, "all"))
+	assert.NoError(t, err)
+
+	up, err := dbServ.Upgrade()
+	assert.NoError(t, err)
+	// apply first migration
+	err = up.Run(cliContext(t, "1"))
+	assert.NoError(t, err)
+	// apply second migration
+	err = up.Run(cliContext(t, "1"))
+	assert.NoError(t, err)
+	// apply third broken migration
+	err = up.Run(cliContext(t, "1"))
+	assert.Error(t, err)
 }
 
 func assertEqualRowsCount(

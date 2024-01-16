@@ -26,6 +26,7 @@ const (
 	baseMigration            = "000000_000000_base"
 	baseMigrationsCount      = 1
 	defaultLimit             = 10000
+	maxLimit                 = 100000
 	regexpFileNameGroupCount = 5
 )
 
@@ -102,20 +103,16 @@ func (m *Migration) Migrations(ctx context.Context, limit int) (entity.Migration
 	return migrations, nil
 }
 
-func (m *Migration) NewMigrations(ctx context.Context, limit int) (entity.Migrations, error) {
+func (m *Migration) NewMigrations(ctx context.Context) (entity.Migrations, error) {
 	if err := m.InitializeTableHistory(ctx); err != nil {
 		return nil, err
 	}
-	if limit < 1 {
-		limit = defaultLimit
-	}
-	migrations, err := m.repo.Migrations(ctx, limit+baseMigrationsCount)
+	migrations, err := m.repo.Migrations(ctx, maxLimit)
 	if err != nil {
 		return nil, err
 	}
 
-	var files []string
-	files, err = filepath.Glob(filepath.Join(m.options.Directory, "*.up.sql"))
+	files, err := filepath.Glob(filepath.Join(m.options.Directory, "*.up.sql"))
 	if err != nil {
 		return nil, err
 	}
@@ -150,6 +147,7 @@ func (m *Migration) NewMigrations(ctx context.Context, limit int) (entity.Migrat
 	}
 
 	newMigrations.SortByVersion()
+
 	return newMigrations, err
 }
 

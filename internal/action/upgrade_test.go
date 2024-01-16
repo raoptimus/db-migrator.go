@@ -13,7 +13,7 @@ func TestUpgrade_Run_NoMigrations_NoError(t *testing.T) {
 
 	serv := mockaction.NewMigrationService(t)
 	serv.EXPECT().
-		NewMigrations(ctx.Context, 2).
+		NewMigrations(ctx.Context).
 		Return(entity.Migrations{}, nil)
 
 	c := mockaction.NewConsole(t)
