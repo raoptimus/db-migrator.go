@@ -36,7 +36,7 @@ func NewRedo(
 }
 
 func (r *Redo) Run(ctx *cli.Context) error {
-	limit, err := args.ParseStepStringOrDefault(ctx.Args().Get(0), 1)
+	limit, err := args.ParseStepStringOrDefault(ctx.Args().Get(0), minLimit)
 	if err != nil {
 		return err
 	}

@@ -15,6 +15,10 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+const (
+	defaultUpgradeLimit = 0
+)
+
 type Upgrade struct {
 	console         Console
 	service         MigrationService
@@ -37,7 +41,7 @@ func NewUpgrade(
 }
 
 func (u *Upgrade) Run(ctx *cli.Context) error {
-	limit, err := args.ParseStepStringOrDefault(ctx.Args().Get(0), minLimit)
+	limit, err := args.ParseStepStringOrDefault(ctx.Args().Get(0), defaultUpgradeLimit)
 	if err != nil {
 		return err
 	}
