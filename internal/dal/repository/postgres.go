@@ -135,7 +135,6 @@ func (p *Postgres) RemoveMigration(ctx context.Context, version string) error {
 // ExecQuery executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.
 func (p *Postgres) ExecQuery(ctx context.Context, query string, args ...any) error {
-	fmt.Println(query)
 	if _, err := p.conn.ExecContext(ctx, query, args...); err != nil {
 		return p.dbError(err, query)
 	}
