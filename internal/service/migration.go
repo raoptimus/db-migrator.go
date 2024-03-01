@@ -89,7 +89,7 @@ func (m *Migration) Migrations(ctx context.Context, limit int) (entity.Migration
 	if limit < 1 {
 		limit = defaultLimit
 	}
-	migrations, err := m.repo.Migrations(ctx, limit+baseMigrationsCount)
+	migrations, err := m.repo.Migrations(ctx, limit)
 	if err != nil {
 		return nil, err
 	}
