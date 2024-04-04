@@ -67,7 +67,7 @@ func (r *Redo) Run(ctx *cli.Context) error {
 		return nil
 	}
 
-	reversedMigrations := make(entity.Migrations, 0, len(migrations))
+	reversedMigrations := make(entity.Migrations, 0, migrationsCount)
 	for i := range migrations {
 		migration := &migrations[i]
 		fileName, safely := r.fileNameBuilder.Down(migration.Version, false)
@@ -80,7 +80,7 @@ func (r *Redo) Run(ctx *cli.Context) error {
 		reversedMigrations = append(reversedMigrations, migrations[i])
 	}
 
-	for i := range reversedMigrations {
+	for i := migrationsCount - 1; i >= 0; i-- {
 		migration := &reversedMigrations[i]
 		fileName, safely := r.fileNameBuilder.Up(migration.Version, false)
 
@@ -96,5 +96,6 @@ func (r *Redo) Run(ctx *cli.Context) error {
 		console.NumberPlural(migrationsCount, migrationWas, migrationsWere),
 	)
 	console.SuccessLn("Migration redone successfully.\n")
+
 	return nil
 }

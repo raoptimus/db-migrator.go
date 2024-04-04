@@ -235,6 +235,7 @@ func (m *Migration) RevertFile(ctx context.Context, entity *entity.Migration, fi
 	if err != nil {
 		m.console.Errorf("*** failed to reverted %s (time: %.3fs)\n",
 			entity.Version, elapsedTime.Seconds())
+		return err
 	}
 	if err := m.repo.RemoveMigration(ctx, entity.Version); err != nil {
 		return err

@@ -14,11 +14,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/raoptimus/db-migrator.go/internal/action/mockaction"
 	"github.com/raoptimus/db-migrator.go/internal/dal/entity"
 	"github.com/raoptimus/db-migrator.go/internal/service/mockservice"
 	"github.com/raoptimus/db-migrator.go/pkg/console"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestMigration_BeginCommand(t *testing.T) {
@@ -95,4 +97,31 @@ func TestMigration_ApplyFile_SimpleSTMT_Successfully(t *testing.T) {
 		false,
 	)
 	assert.NoError(t, err)
+}
+
+func TestMigration_RevertFile_ApplyReturnsBadError(t *testing.T) {
+	ctx := context.Background()
+	badErr := errors.New("bad")
+	fileName := "000000_000000_test.up.sql"
+	sqlReaderCloser := io.NopCloser(strings.NewReader("select 1"))
+
+	file := mockservice.NewFile(t)
+	file.EXPECT().
+		Open(fileName).
+		Return(sqlReaderCloser, nil)
+	file.EXPECT().
+		Exists(fileName).
+		Return(true, nil)
+
+	repo := mockservice.NewRepository(t)
+	repo.EXPECT().
+		ForceSafely().
+		Return(true)
+	repo.EXPECT().
+		ExecQueryTransaction(ctx, mock.Anything).
+		Return(badErr)
+
+	serv := NewMigration(&Options{}, console.NewDummy(true), file, repo)
+	err := serv.RevertFile(ctx, &entity.Migration{}, fileName, true)
+	assert.ErrorIs(t, err, badErr)
 }

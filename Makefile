@@ -31,7 +31,7 @@ version:
 	@echo "GIT_TAG: ${GIT_TAG}"
 	@echo "GIT_COMMIT: ${GIT_COMMIT}"
 
-build-docker-image:
+build-docker-image: ## Build docker image
 	@docker login -u "${DOCKER_ID_USER}" -p "${DOCKER_PASS}" docker.io
 	@docker build \
 		--platform linux/x86_64 \
