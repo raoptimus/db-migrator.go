@@ -113,9 +113,17 @@ The Latest version:
 ```
 go get -u -d github.com/raoptimus/db-migrator.go/cmd/db-migrator
 ```  
+or
+```
+go install github.com/raoptimus/db-migrator.go/cmd/db-migrator@latest
+```
 The custom version:  
 ```
-go get -u -d github.com/raoptimus/db-migrator.go/cmd/db-migrator@0.1.1
+go get -u -d github.com/raoptimus/db-migrator.go/cmd/db-migrator@v0.2.7
+```
+or
+```
+go install github.com/raoptimus/db-migrator.go/cmd/db-migrator@v0.2.7
 ```
 
 #### With docker
