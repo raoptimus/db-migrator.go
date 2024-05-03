@@ -32,3 +32,5 @@ replace (
 	github.com/raoptimus/db-migrator.go/pkg/sqlio => ./pkg/sqlio
 	github.com/raoptimus/db-migrator.go/pkg/timex => ./pkg/timex
 )
+
+replace github.com/raoptimus/db-migrator.go => github.com/raoptimus/db-migrator.go v0.2.6
