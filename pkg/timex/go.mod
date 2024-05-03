@@ -1,3 +1,3 @@
 module github.com/raoptimus/db-migrator.go/pkg/timex
 
-go 1.21
+go 1.22
