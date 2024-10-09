@@ -58,7 +58,7 @@ func (s *Scanner) Scan() bool {
 		return false
 	}
 	for s.scanner.Scan() {
-		s.sql = strings.Trim(s.scanner.Text(), " \n;")
+		s.sql = strings.Trim(s.scanner.Text(), " \r\n;")
 		if s.sql == "" {
 			continue
 		}

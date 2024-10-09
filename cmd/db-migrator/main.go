@@ -30,7 +30,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "DB Service"
 	app.Usage = "up/down/redo command for migrates the different db"
-	app.Version = fmt.Sprintf("v%s.rev[%s]", Version, GitCommit)
+	app.Version = fmt.Sprintf("%s.rev[%s]", Version, GitCommit)
 	app.Flags = flags(&options)
 	app.Commands = commands(&options)
 	app.Before = func(context *cli.Context) error {
