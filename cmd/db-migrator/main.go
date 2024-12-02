@@ -11,6 +11,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"slices"
 
 	_ "github.com/lib/pq"
 	"github.com/raoptimus/db-migrator.go/internal/migrator"
@@ -31,7 +32,6 @@ func main() {
 	app.Name = "DB Service"
 	app.Usage = "up/down/redo command for migrates the different db"
 	app.Version = fmt.Sprintf("%s.rev[%s]", Version, GitCommit)
-	app.Flags = flags(&options)
 	app.Commands = commands(&options)
 	app.Before = func(context *cli.Context) error {
 		dbService = migrator.New(&options)
@@ -44,10 +44,13 @@ func main() {
 }
 
 func commands(options *migrator.Options) []*cli.Command {
+	defaultFlags := flags(options)
+	allFlags := slices.Concat(defaultFlags, addsFlags(options))
+
 	return []*cli.Command{
 		{
 			Name:  "up",
-			Flags: addsFlags(options),
+			Flags: allFlags,
 			Action: func(ctx *cli.Context) error {
 				if a, err := dbService.Upgrade(); err != nil {
 					return err
@@ -58,7 +61,7 @@ func commands(options *migrator.Options) []*cli.Command {
 		},
 		{
 			Name:  "down",
-			Flags: addsFlags(options),
+			Flags: allFlags,
 			Action: func(ctx *cli.Context) error {
 				if a, err := dbService.Downgrade(); err != nil {
 					return err
@@ -69,7 +72,7 @@ func commands(options *migrator.Options) []*cli.Command {
 		},
 		{
 			Name:  "redo",
-			Flags: addsFlags(options),
+			Flags: allFlags,
 			Action: func(ctx *cli.Context) error {
 				if a, err := dbService.Redo(); err != nil {
 					return err
@@ -79,14 +82,15 @@ func commands(options *migrator.Options) []*cli.Command {
 			},
 		},
 		{
-			Name: "create",
+			Name:  "create",
+			Flags: defaultFlags,
 			Action: func(ctx *cli.Context) error {
 				return dbService.Create().Run(ctx)
 			},
 		},
 		{
 			Name:  "history",
-			Flags: addsFlags(options),
+			Flags: allFlags,
 			Action: func(ctx *cli.Context) error {
 				if a, err := dbService.History(); err != nil {
 					return err
@@ -97,7 +101,7 @@ func commands(options *migrator.Options) []*cli.Command {
 		},
 		{
 			Name:  "new",
-			Flags: addsFlags(options),
+			Flags: allFlags,
 			Action: func(ctx *cli.Context) error {
 				if a, err := dbService.HistoryNew(); err != nil {
 					return err
@@ -108,7 +112,7 @@ func commands(options *migrator.Options) []*cli.Command {
 		},
 		{
 			Name:  "to",
-			Flags: addsFlags(options),
+			Flags: allFlags,
 			Action: func(ctx *cli.Context) error {
 				if a, err := dbService.To(); err != nil {
 					return err
