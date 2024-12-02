@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ClickHouse/clickhouse-go"
+	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/pkg/errors"
 	"github.com/raoptimus/db-migrator.go/internal/dal/entity"
 )
@@ -214,7 +214,7 @@ func (c *Clickhouse) TableNameWithSchema() string {
 }
 
 func (c *Clickhouse) ForceSafely() bool {
-	return true
+	return false
 }
 
 // insertMigration inserts migration record.

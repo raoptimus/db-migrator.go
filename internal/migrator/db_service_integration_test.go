@@ -6,14 +6,22 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/joho/godotenv"
 	"github.com/raoptimus/db-migrator.go/internal/dal/repository"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
-	//if testing.Short() {
-	t.Skip("skipping integration test")
-	//}
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+
+	if os.Getenv("CLICKHOUSE_CLUSTER_DSN1") == "" {
+		if err := godotenv.Load("../../.env"); err != nil {
+			require.NoError(t, err, "Load environments")
+		}
+	}
 
 	// region data provider
 	tests := []struct {

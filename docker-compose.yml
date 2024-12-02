@@ -1,5 +1,3 @@
-version: "3.7"
-
 services:
   clickhouse:
     image: clickhouse/clickhouse-server:23.11-alpine
@@ -22,9 +20,6 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile
-      args:
-        GO_IMAGE_VERSION: ${GO_IMAGE_VERSION}
-        GO_LINT_VERSION: ${GO_LINT_VERSION}
     working_dir: "/usr/src/app"
     command: "sleep infinity"
     depends_on:
@@ -56,7 +51,6 @@ services:
     image: clickhouse/clickhouse-server:23.11-alpine
     restart: on-failure
     volumes:
-      - "./docker/volume/clickhouse-cluster/dump:/docker-entrypoint-initdb.d/"
       - "./docker/volume/clickhouse-cluster/config/clickhouse1:/etc/clickhouse-server/config.d/"
     depends_on:
       - clickhouse-keeper

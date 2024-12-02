@@ -1,5 +1,4 @@
-ARG GO_IMAGE_VERSION
-FROM golang:${GO_IMAGE_VERSION}-alpine
+FROM golang:1.23-alpine
 RUN apk add --no-cache  \
     tzdata  \
     ca-certificates  \
@@ -16,8 +15,7 @@ RUN export BINDIR=/go/bin  \
 #RUN go install github.com/boumenot/gocover-cobertura@latest  \
 #    && go install github.com/jstemmer/go-junit-report@latest
 
-ARG GO_LINT_VERSION
-RUN wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v${GO_LINT_VERSION}
+RUN wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.59.1
 
 RUN go env -w GOFLAGS=-buildvcs=false && \
     go env -w CGO_ENABLED=0
