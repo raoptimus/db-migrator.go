@@ -1,8 +1,10 @@
 package action
 
 import (
+	"context"
+
 	"github.com/raoptimus/db-migrator.go/internal/console"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 type To struct {
@@ -23,7 +25,7 @@ func NewTo(
 	}
 }
 
-func (t *To) Run(ctx *cli.Context) error {
+func (t *To) Run(_ context.Context, _ cli.Args) error {
 	// version string from args
 	console.Info("coming soon")
 	return nil

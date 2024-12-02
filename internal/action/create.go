@@ -9,13 +9,14 @@
 package action
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"regexp"
 
 	"github.com/pkg/errors"
 	"github.com/raoptimus/db-migrator.go/pkg/timex"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 const fileModeExecutable = 0o755
@@ -46,8 +47,8 @@ func NewCreate(
 	}
 }
 
-func (c *Create) Run(ctx *cli.Context) error {
-	migrationName := ctx.Args().Get(0)
+func (c *Create) Run(_ context.Context, cmdArgs cli.Args) error {
+	migrationName := cmdArgs.Get(0)
 	if !regexpFileName.MatchString(migrationName) {
 		return ErrInvalidFileName
 	}

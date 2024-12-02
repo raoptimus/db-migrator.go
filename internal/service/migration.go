@@ -163,7 +163,10 @@ func (m *Migration) ApplySQL(
 	}
 	m.console.Warnf("*** applying %s\n", version)
 	scanner := sqlio.NewScanner(strings.NewReader(upSQL))
-	elapsedTime, err := m.apply(ctx, scanner, safely)
+
+	start := time.Now()
+	err := m.apply(ctx, scanner, safely)
+	elapsedTime := time.Since(start)
 	if err != nil {
 		m.console.Errorf("*** failed to apply %s (time: %.3fs)\n", version, elapsedTime.Seconds())
 		return err
@@ -188,9 +191,12 @@ func (m *Migration) RevertSQL(
 	}
 	m.console.Warnf("*** reverting %s\n", version)
 	scanner := sqlio.NewScanner(strings.NewReader(downSQL))
-	elapsedTime, err := m.apply(ctx, scanner, safely)
+	start := time.Now()
+	err := m.apply(ctx, scanner, safely)
+	elapsedTime := time.Since(start)
 	if err != nil {
 		m.console.Errorf("*** failed to reverted %s (time: %.3fs)\n", version, elapsedTime.Seconds())
+
 		return err
 	}
 	if err := m.repo.RemoveMigration(ctx, version); err != nil {
@@ -209,15 +215,20 @@ func (m *Migration) ApplyFile(ctx context.Context, entity *entity.Migration, fil
 	if err != nil {
 		return err
 	}
-	elapsedTime, err := m.apply(ctx, scanner, safely)
+
+	start := time.Now()
+	err = m.apply(ctx, scanner, safely)
+	elapsedTime := time.Since(start)
 	if err != nil {
 		m.console.Errorf("*** failed to apply %s (time: %.3fs)\n", entity.Version, elapsedTime.Seconds())
+
 		return err
 	}
 	if err := m.repo.InsertMigration(ctx, entity.Version); err != nil {
 		return err
 	}
 	m.console.Successf("*** applied %s (time: %.3fs)\n", entity.Version, elapsedTime.Seconds())
+
 	return nil
 }
 
@@ -231,7 +242,9 @@ func (m *Migration) RevertFile(ctx context.Context, entity *entity.Migration, fi
 		return err
 	}
 
-	elapsedTime, err := m.apply(ctx, scanner, safely)
+	start := time.Now()
+	err = m.apply(ctx, scanner, safely)
+	elapsedTime := time.Since(start)
 	if err != nil {
 		m.console.Errorf("*** failed to reverted %s (time: %.3fs)\n",
 			entity.Version, elapsedTime.Seconds())
@@ -279,12 +292,7 @@ func (m *Migration) EndCommand(start time.Time) {
 	}
 }
 
-func (m *Migration) apply(
-	ctx context.Context,
-	scanner *sqlio.Scanner,
-	safely bool,
-) (time.Duration, error) {
-	start := time.Now()
+func (m *Migration) apply(ctx context.Context, scanner *sqlio.Scanner, safely bool) error {
 	processScanFunc := func(ctx context.Context) error {
 		var q string
 		for scanner.Scan() {
@@ -305,8 +313,8 @@ func (m *Migration) apply(
 	} else {
 		err = processScanFunc(ctx)
 	}
-	elapsedTime := time.Since(start)
-	return elapsedTime, err
+
+	return err
 }
 
 func (m *Migration) scannerByFile(fileName string) (*sqlio.Scanner, error) {

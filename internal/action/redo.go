@@ -9,12 +9,13 @@
 package action
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/raoptimus/db-migrator.go/internal/args"
 	"github.com/raoptimus/db-migrator.go/internal/console"
 	"github.com/raoptimus/db-migrator.go/internal/dal/entity"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 type Redo struct {
@@ -35,13 +36,13 @@ func NewRedo(
 	}
 }
 
-func (r *Redo) Run(ctx *cli.Context) error {
-	limit, err := args.ParseStepStringOrDefault(ctx.Args().Get(0), minLimit)
+func (r *Redo) Run(ctx context.Context, cmdArgs cli.Args) error {
+	limit, err := args.ParseStepStringOrDefault(cmdArgs.Get(0), minLimit)
 	if err != nil {
 		return err
 	}
 
-	migrations, err := r.service.Migrations(ctx.Context, limit)
+	migrations, err := r.service.Migrations(ctx, limit)
 	if err != nil {
 		return err
 	}
@@ -72,7 +73,7 @@ func (r *Redo) Run(ctx *cli.Context) error {
 		migration := &migrations[i]
 		fileName, safely := r.fileNameBuilder.Down(migration.Version, false)
 
-		if err := r.service.RevertFile(ctx.Context, migration, fileName, safely); err != nil {
+		if err := r.service.RevertFile(ctx, migration, fileName, safely); err != nil {
 			console.ErrorLn("Migration failed. The rest of the migrations are canceled.")
 			return err
 		}
@@ -84,7 +85,7 @@ func (r *Redo) Run(ctx *cli.Context) error {
 		migration := &reversedMigrations[i]
 		fileName, safely := r.fileNameBuilder.Up(migration.Version, false)
 
-		if err := r.service.ApplyFile(ctx.Context, migration, fileName, safely); err != nil {
+		if err := r.service.ApplyFile(ctx, migration, fileName, safely); err != nil {
 			console.ErrorLn("Migration failed. The rest of the migrations are canceled.\n")
 			return err
 		}

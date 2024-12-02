@@ -9,9 +9,11 @@
 package action
 
 import (
+	"context"
+
 	"github.com/raoptimus/db-migrator.go/internal/args"
 	"github.com/raoptimus/db-migrator.go/internal/console"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 const defaultGetHistoryLimit = 10
@@ -28,13 +30,13 @@ func NewHistory(
 	}
 }
 
-func (h *History) Run(ctx *cli.Context) error {
-	limit, err := args.ParseStepStringOrDefault(ctx.Args().Get(0), defaultGetHistoryLimit)
+func (h *History) Run(ctx context.Context, cmdArgs cli.Args) error {
+	limit, err := args.ParseStepStringOrDefault(cmdArgs.Get(0), defaultGetHistoryLimit)
 	if err != nil {
 		return err
 	}
 
-	migrations, err := h.service.Migrations(ctx.Context, limit)
+	migrations, err := h.service.Migrations(ctx, limit)
 	if err != nil {
 		return err
 	}

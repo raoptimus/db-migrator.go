@@ -14,6 +14,7 @@ require (
 	github.com/raoptimus/db-migrator.go/pkg/timex v0.0.0-20240503100150-5445e535daaf
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli/v2 v2.27.5
+	github.com/urfave/cli/v3 v3.0.0-beta1
 )
 
 require (

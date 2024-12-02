@@ -9,11 +9,12 @@
 package action
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/raoptimus/db-migrator.go/internal/args"
 	"github.com/raoptimus/db-migrator.go/internal/console"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 type Downgrade struct {
@@ -34,13 +35,13 @@ func NewDowngrade(
 	}
 }
 
-func (d *Downgrade) Run(ctx *cli.Context) error {
-	limit, err := args.ParseStepStringOrDefault(ctx.Args().Get(0), minLimit)
+func (d *Downgrade) Run(ctx context.Context, cmdArgs cli.Args) error {
+	limit, err := args.ParseStepStringOrDefault(cmdArgs.Get(0), minLimit)
 	if err != nil {
 		return err
 	}
 
-	migrations, err := d.service.Migrations(ctx.Context, limit)
+	migrations, err := d.service.Migrations(ctx, limit)
 	if err != nil {
 		return err
 	}
@@ -72,7 +73,7 @@ func (d *Downgrade) Run(ctx *cli.Context) error {
 		migration := &migrations[i]
 		fileName, safely := d.fileNameBuilder.Down(migration.Version, false)
 
-		if err := d.service.RevertFile(ctx.Context, migration, fileName, safely); err != nil {
+		if err := d.service.RevertFile(ctx, migration, fileName, safely); err != nil {
 			console.Errorf(
 				"%d from %d %s reverted.\n"+
 					"Migration failed. The rest of the migrations are canceled.\n",

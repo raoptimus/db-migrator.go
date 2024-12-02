@@ -9,14 +9,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
-	"slices"
 
 	_ "github.com/lib/pq"
 	"github.com/raoptimus/db-migrator.go/internal/migrator"
 	"github.com/raoptimus/db-migrator.go/pkg/console"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 var (
@@ -28,111 +28,92 @@ var (
 func main() {
 	options := migrator.Options{}
 
-	app := cli.NewApp()
-	app.Name = "DB Service"
-	app.Usage = "up/down/redo command for migrates the different db"
-	app.Version = fmt.Sprintf("%s.rev[%s]", Version, GitCommit)
-	app.Commands = commands(&options)
-	app.Before = func(context *cli.Context) error {
-		dbService = migrator.New(&options)
-		return nil
+	cmd := &cli.Command{
+		Name:           "DB Service",
+		Usage:          "up/down/redo command for migrates the different db",
+		Version:        fmt.Sprintf("%s.rev[%s]", Version, GitCommit),
+		Commands:       commands(),
+		DefaultCommand: "help",
+		Flags:          flags(&options),
+		Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
+			dbService = migrator.New(&options)
+
+			return ctx, nil
+		},
 	}
 
-	if err := app.Run(os.Args); err != nil {
+	if err := cmd.Run(context.Background(), os.Args); err != nil {
 		console.Std.Fatal(err)
 	}
 }
 
-func commands(options *migrator.Options) []*cli.Command {
-	defaultFlags := flags(options)
-	allFlags := slices.Concat(defaultFlags, addsFlags(options))
-
+func commands() []*cli.Command {
 	return []*cli.Command{
 		{
-			Name:  "up",
-			Flags: allFlags,
-			Action: func(ctx *cli.Context) error {
+			Name: "up",
+			Action: func(ctx context.Context, cmd *cli.Command) error {
 				if a, err := dbService.Upgrade(); err != nil {
 					return err
 				} else {
-					return a.Run(ctx)
+					return a.Run(ctx, cmd.Args())
 				}
 			},
 		},
 		{
-			Name:  "down",
-			Flags: allFlags,
-			Action: func(ctx *cli.Context) error {
+			Name: "down",
+			Action: func(ctx context.Context, cmd *cli.Command) error {
 				if a, err := dbService.Downgrade(); err != nil {
 					return err
 				} else {
-					return a.Run(ctx)
+					return a.Run(ctx, cmd.Args())
 				}
 			},
 		},
 		{
-			Name:  "redo",
-			Flags: allFlags,
-			Action: func(ctx *cli.Context) error {
+			Name: "redo",
+			Action: func(ctx context.Context, cmd *cli.Command) error {
 				if a, err := dbService.Redo(); err != nil {
 					return err
 				} else {
-					return a.Run(ctx)
+					return a.Run(ctx, cmd.Args())
 				}
 			},
 		},
 		{
-			Name:  "create",
-			Flags: defaultFlags,
-			Action: func(ctx *cli.Context) error {
-				return dbService.Create().Run(ctx)
+			Name: "create",
+			Action: func(ctx context.Context, cmd *cli.Command) error {
+				return dbService.Create().Run(ctx, cmd.Args())
 			},
 		},
 		{
-			Name:  "history",
-			Flags: allFlags,
-			Action: func(ctx *cli.Context) error {
+			Name: "history",
+			Action: func(ctx context.Context, cmd *cli.Command) error {
 				if a, err := dbService.History(); err != nil {
 					return err
 				} else {
-					return a.Run(ctx)
+					return a.Run(ctx, cmd.Args())
 				}
 			},
 		},
 		{
-			Name:  "new",
-			Flags: allFlags,
-			Action: func(ctx *cli.Context) error {
+			Name: "new",
+			Action: func(ctx context.Context, cmd *cli.Command) error {
 				if a, err := dbService.HistoryNew(); err != nil {
 					return err
 				} else {
-					return a.Run(ctx)
+					return a.Run(ctx, cmd.Args())
 				}
 			},
 		},
 		{
-			Name:  "to",
-			Flags: allFlags,
-			Action: func(ctx *cli.Context) error {
+			Name: "to",
+			Action: func(ctx context.Context, cmd *cli.Command) error {
 				if a, err := dbService.To(); err != nil {
 					return err
 				} else {
-					return a.Run(ctx)
+					return a.Run(ctx, cmd.Args())
 				}
 			},
-		},
-	}
-}
-
-func addsFlags(options *migrator.Options) []cli.Flag {
-	return []cli.Flag{
-		&cli.StringFlag{
-			Name:        "dsn",
-			EnvVars:     []string{"DSN"},
-			Aliases:     []string{"d"},
-			Usage:       "DB connection string",
-			Destination: &options.DSN,
-			Required:    true,
 		},
 	}
 }
@@ -140,8 +121,15 @@ func addsFlags(options *migrator.Options) []cli.Flag {
 func flags(options *migrator.Options) []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{
+			Name:        "dsn",
+			Sources:     cli.EnvVars("DSN"),
+			Aliases:     []string{"d"},
+			Usage:       "DB connection string",
+			Destination: &options.DSN,
+		},
+		&cli.StringFlag{
 			Name:        "migrationPath",
-			EnvVars:     []string{"MIGRATION_PATH"},
+			Sources:     cli.EnvVars("MIGRATION_PATH"),
 			Aliases:     []string{"p"},
 			Value:       "./migrations",
 			Usage:       "Directory for migrated files",
@@ -149,7 +137,7 @@ func flags(options *migrator.Options) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:        "migrationTable",
-			EnvVars:     []string{"MIGRATION_TABLE"},
+			Sources:     cli.EnvVars("MIGRATION_TABLE"),
 			Aliases:     []string{"t"},
 			Value:       "migration",
 			Usage:       "Table name for history of migrates",
@@ -157,7 +145,7 @@ func flags(options *migrator.Options) []cli.Flag {
 		},
 		&cli.StringFlag{
 			Name:        "migrationClusterName",
-			EnvVars:     []string{"MIGRATION_CLUSTER_NAME"},
+			Sources:     cli.EnvVars("MIGRATION_CLUSTER_NAME"),
 			Aliases:     []string{"cn"},
 			Value:       "",
 			Usage:       "Cluster name for history of migrates",
@@ -165,7 +153,7 @@ func flags(options *migrator.Options) []cli.Flag {
 		},
 		&cli.BoolFlag{
 			Name:        "compact",
-			EnvVars:     []string{"COMPACT"},
+			Sources:     cli.EnvVars("COMPACT"),
 			Aliases:     []string{"c"},
 			Usage:       "Indicates whether the console output should be compacted.",
 			Value:       false,
@@ -173,7 +161,7 @@ func flags(options *migrator.Options) []cli.Flag {
 		},
 		&cli.BoolFlag{
 			Name:        "interactive",
-			EnvVars:     []string{"INTERACTIVE"},
+			Sources:     cli.EnvVars("INTERACTIVE"),
 			Aliases:     []string{"i"},
 			Usage:       "Whether to run the command interactively",
 			Value:       true,

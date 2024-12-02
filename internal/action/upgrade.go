@@ -9,10 +9,11 @@
 package action
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/raoptimus/db-migrator.go/internal/args"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 const (
@@ -40,13 +41,13 @@ func NewUpgrade(
 	}
 }
 
-func (u *Upgrade) Run(ctx *cli.Context) error {
-	limit, err := args.ParseStepStringOrDefault(ctx.Args().Get(0), defaultUpgradeLimit)
+func (u *Upgrade) Run(ctx context.Context, cmdArgs cli.Args) error {
+	limit, err := args.ParseStepStringOrDefault(cmdArgs.Get(0), defaultUpgradeLimit)
 	if err != nil {
 		return err
 	}
 
-	migrations, err := u.service.NewMigrations(ctx.Context)
+	migrations, err := u.service.NewMigrations(ctx)
 	if err != nil {
 		return err
 	}
@@ -90,7 +91,7 @@ func (u *Upgrade) Run(ctx *cli.Context) error {
 		migration := &migrations[i]
 		fileName, safely := u.fileNameBuilder.Up(migration.Version, false)
 
-		if err := u.service.ApplyFile(ctx.Context, migration, fileName, safely); err != nil {
+		if err := u.service.ApplyFile(ctx, migration, fileName, safely); err != nil {
 			u.console.Errorf("%d from %d %s applied.\n",
 				applied,
 				migrations.Len(),
