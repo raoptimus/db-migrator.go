@@ -74,7 +74,6 @@ test-unit: ## Run only Unit tests
 test-integration: ## Run Integration Tests only
 	@go test $$(go list ./... | grep -v mock) \
 		-buildvcs=false \
-		-failfast \
 		-run Integration \
 		-tags=integration \
 		-v
