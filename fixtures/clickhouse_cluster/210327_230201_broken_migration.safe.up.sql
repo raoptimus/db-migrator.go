@@ -1,1 +1,1 @@
-insert into test2 values (time) values (now());
+INSERT INTO test2 (time) VALUES (now());

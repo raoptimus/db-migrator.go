@@ -1,7 +1,6 @@
 name: Test
 
-on:
-  push:
+on: [push]
 
 jobs:
   docker:
@@ -10,54 +9,18 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-#
-#      - name: Cache go mods
-#        uses: actions/cache@v3
-#        with:
-#          path: |
-#            ~/.cache/go-build
-#            ~/go/pkg/mod
-#          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        uses: actions/checkout@v4
 
-      - name: Pull containers
-        run:  docker-compose -f "docker-compose.yml" pull
-
-      - name: Start containers
-        run: docker-compose -f "docker-compose.yml" up -d --build
-
-      - name: Run ps
-        run: docker-compose -f "docker-compose.yml" ps
-
-      - name: Run logs
-        run: docker-compose -f "docker-compose.yml" logs
+      - name: Run docker-compose
+        uses: hoverkraft-tech/compose-action@v2.0.1
+        with:
+          compose-file: "./docker-compose.yml"
 
       - name: Run lint
-        run: docker-compose -f "docker-compose.yml" exec -T app make lint
+        run: docker compose exec -T app make lint
 
       - name: Run unit tests
-        run: docker-compose -f "docker-compose.yml" exec -T app make test-unit
-
-      - name: Sleep for 10 seconds
-        uses: jakejarvis/wait-action@master
-        with:
-          time: '10s'
+        run: docker compose exec -T app make test-unit
 
       - name: Run integration tests
-        run: docker-compose -f "docker-compose.yml" exec -T app make test-integration
-
-#      - name: Publish Test Report
-#        uses: mikepenz/action-junit-report@v4
-#        if: success() || failure()
-#        with:
-#          report_paths: '**/.report/*.xml'
-
-#      - name: Test & publish code coverage
-#        uses: paambaati/codeclimate-action@v5.0.0
-#        with:
-#          coverageLocations: |
-#            ${{github.workspace}}/.report/*.json:cobertura
-
-      - name: Stop containers
-        if: always()
-        run: docker-compose -f "docker-compose.yml" down
+        run: docker compose exec -T app make test-integration

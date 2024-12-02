@@ -1,2 +1,3 @@
-ALTER TABLE test DROP COLUMN text;
+ALTER TABLE test ON CLUSTER test_cluster
+	DROP COLUMN text;
 

@@ -32,7 +32,7 @@ version:
 	@echo "GIT_COMMIT: ${GIT_COMMIT}"
 
 build-docker-image: ## Build docker image
-	@docker login -u "${DOCKER_ID_USER}" -p "${DOCKER_PASS}" docker.io
+	@#docker login -u "${DOCKER_ID_USER}" -p "${DOCKER_PASS}" docker.io
 	@docker build \
 		--platform linux/x86_64 \
 		--build-arg VERSION=${VERSION} \
@@ -123,3 +123,6 @@ gen-mocks-dry-run: install-mockery ## Run mockery --dry-run=true
 	mockery --srcpkg=$${d} --output=$${d}/mock$$(basename -- "$${d/./''}") --all --dry-run=true; \
 	done; \
 	'
+
+start:
+	@docker-compose -f "docker-compose.yml" -f "docker-compose.dev.yml" up -d

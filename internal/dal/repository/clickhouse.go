@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ClickHouse/clickhouse-go"
+	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/pkg/errors"
 	"github.com/raoptimus/db-migrator.go/internal/dal/entity"
 )
@@ -214,7 +214,7 @@ func (c *Clickhouse) TableNameWithSchema() string {
 }
 
 func (c *Clickhouse) ForceSafely() bool {
-	return true
+	return false
 }
 
 // insertMigration inserts migration record.
@@ -225,6 +225,7 @@ func (c *Clickhouse) insertMigration(ctx context.Context, version string, isDele
 		c.options.TableName,
 	)
 
+	//nolint:gosec // overflow ok
 	now := uint32(time.Now().Unix())
 	var isDeletedInt int
 	if isDeleted {

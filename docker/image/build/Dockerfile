@@ -1,5 +1,4 @@
-ARG GO_IMAGE_VERSION
-FROM golang:${GO_IMAGE_VERSION}-alpine as build
+FROM golang:1.23-alpine as build
 
 RUN apk add --update make bash file
 
@@ -17,6 +16,9 @@ ARG GIT_COMMIT
 RUN make build
 
 FROM alpine:latest AS db-migrator
+
+RUN apk add --no-cache tzdata ca-certificates
+ENV TZ UTC
 
 WORKDIR /usr/bin
 COPY --from=build /go/src/db-migrator/.build .

@@ -80,6 +80,7 @@ func (c *Connection) ExecContext(ctx context.Context, query string, args ...any)
 			return stmt.ExecContext(ctx, args...)
 		}
 	}
+
 	return c.db.ExecContext(ctx, query, args...)
 }
 
@@ -111,10 +112,6 @@ func (c *Connection) Transaction(ctx context.Context, txFn func(ctx context.Cont
 
 // clickhouse returns repository with clickhouse configuration.
 func clickhouse(dsn string) (*Connection, error) {
-	dsn, err := NormalizeClickhouseDSN(dsn)
-	if err != nil {
-		return nil, err
-	}
 	db, err := sql.Open("clickhouse", dsn)
 	if err != nil {
 		return nil, err
