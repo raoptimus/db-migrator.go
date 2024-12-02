@@ -16,18 +16,6 @@ jobs:
         with:
           compose-file: "./docker-compose.yml"
 
-      - name: Pull containers
-        run:  docker-compose -f "docker-compose.yml" pull
-
-      - name: Start containers
-        run: docker-compose -f "docker-compose.yml" up -d --build
-
-      - name: Run ps
-        run: docker-compose -f "docker-compose.yml" ps
-
-      - name: Run logs
-        run: docker-compose -f "docker-compose.yml" logs
-
       - name: Run lint
         run: docker-compose -f "docker-compose.yml" exec -T app make lint
 
