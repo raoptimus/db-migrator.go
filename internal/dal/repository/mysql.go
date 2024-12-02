@@ -105,6 +105,7 @@ func (m *MySQL) InsertMigration(ctx context.Context, version string) error {
 		VALUES (?, ?)`,
 		m.options.TableName,
 	)
+	//nolint:gosec // overflow ok
 	now := uint32(time.Now().Unix())
 	if _, err := m.conn.ExecContext(ctx, q, version, now); err != nil {
 		return errors.Wrap(m.dbError(err, q), "insert migration")

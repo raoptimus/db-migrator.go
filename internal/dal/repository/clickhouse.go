@@ -225,6 +225,7 @@ func (c *Clickhouse) insertMigration(ctx context.Context, version string, isDele
 		c.options.TableName,
 	)
 
+	//nolint:gosec // overflow ok
 	now := uint32(time.Now().Unix())
 	var isDeletedInt int
 	if isDeleted {

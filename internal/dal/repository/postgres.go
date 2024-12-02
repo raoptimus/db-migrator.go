@@ -116,6 +116,7 @@ func (p *Postgres) InsertMigration(ctx context.Context, version string) error {
 		VALUES ($1, $2)`,
 		p.TableNameWithSchema(),
 	)
+	//nolint:gosec // overflow ok
 	now := uint32(time.Now().Unix())
 	if _, err := p.conn.ExecContext(ctx, q, version, now); err != nil {
 		return errors.Wrap(p.dbError(err, q), "insert migration")

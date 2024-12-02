@@ -41,7 +41,7 @@ linters:
     - errchkjson # Checks types passed to the json encoding functions. Reports unsupported types and optionally reports occasions, where the check for the returned error can be omitted.
     - errname # Checks that sentinel errors are prefixed with the Err and error types are suffixed with the Error.
     - errorlint # errorlint is a linter for that can be used to find code that will cause problems with the error wrapping scheme introduced in Go 1.13.
-    - exportloopref # checks for pointers to enclosing loop variables
+    - copyloopvar # checks for pointers to enclosing loop variables
     - forcetypeassert # finds forced type assertions
     - goconst # Finds repeated strings that could be replaced by a constant
     - gocritic # Provides diagnostics that check for bugs, performance and style issues.
@@ -76,7 +76,6 @@ linters:
     - decorder # check declaration order and count of types, constants, variables and functions
     - depguard # Go linter that checks if package imports are in a list of acceptable packages
     - dogsled # Checks assignments with too many blank identifiers (e.g. x, , , _, := f())
-    - execinquery # execinquery is a linter about query string checker in Query function which reads your Go src files and warning it finds
     - exhaustive # check exhaustiveness of enum switch statements
     - exhaustruct # Checks if all structure fields are initialized
     - forbidigo # Forbids identifiers
@@ -135,8 +134,6 @@ output:
 
 # all available settings of specific linters
 linters-settings:
-  govet:
-    enable-all: true
 
   dupl:
     threshold: 100

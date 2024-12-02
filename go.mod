@@ -12,7 +12,7 @@ require (
 	github.com/raoptimus/db-migrator.go/pkg/iohelp v0.0.0-20240503100150-5445e535daaf
 	github.com/raoptimus/db-migrator.go/pkg/sqlio v0.0.0-20240503100150-5445e535daaf
 	github.com/raoptimus/db-migrator.go/pkg/timex v0.0.0-20240503100150-5445e535daaf
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli/v2 v2.27.5
 )
 
