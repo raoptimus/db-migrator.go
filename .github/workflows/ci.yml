@@ -17,10 +17,10 @@ jobs:
           compose-file: "./docker-compose.yml"
 
       - name: Run lint
-        run: docker-compose exec -T app make lint
+        run: docker compose exec -T app make lint
 
       - name: Run unit tests
-        run: docker-compose exec -T app make test-unit
+        run: docker compose exec -T app make test-unit
 
       - name: Run integration tests
-        run: docker-compose exec -T app make test-integration
+        run: docker compose exec -T app make test-integration
