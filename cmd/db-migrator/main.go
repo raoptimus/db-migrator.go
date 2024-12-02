@@ -55,7 +55,7 @@ func commands() []*cli.Command {
 				if a, err := dbService.Upgrade(); err != nil {
 					return err
 				} else {
-					return a.Run(ctx, cmd.Args())
+					return a.Run(ctx, cmd.Args().Get(0))
 				}
 			},
 		},
@@ -65,7 +65,7 @@ func commands() []*cli.Command {
 				if a, err := dbService.Downgrade(); err != nil {
 					return err
 				} else {
-					return a.Run(ctx, cmd.Args())
+					return a.Run(ctx, cmd.Args().Get(0))
 				}
 			},
 		},
@@ -75,14 +75,14 @@ func commands() []*cli.Command {
 				if a, err := dbService.Redo(); err != nil {
 					return err
 				} else {
-					return a.Run(ctx, cmd.Args())
+					return a.Run(ctx, cmd.Args().Get(0))
 				}
 			},
 		},
 		{
 			Name: "create",
 			Action: func(ctx context.Context, cmd *cli.Command) error {
-				return dbService.Create().Run(ctx, cmd.Args())
+				return dbService.Create().Run(ctx, cmd.Args().Get(0))
 			},
 		},
 		{
@@ -91,7 +91,7 @@ func commands() []*cli.Command {
 				if a, err := dbService.History(); err != nil {
 					return err
 				} else {
-					return a.Run(ctx, cmd.Args())
+					return a.Run(ctx, cmd.Args().Get(0))
 				}
 			},
 		},
@@ -101,7 +101,7 @@ func commands() []*cli.Command {
 				if a, err := dbService.HistoryNew(); err != nil {
 					return err
 				} else {
-					return a.Run(ctx, cmd.Args())
+					return a.Run(ctx, cmd.Args().Get(0))
 				}
 			},
 		},
@@ -111,7 +111,7 @@ func commands() []*cli.Command {
 				if a, err := dbService.To(); err != nil {
 					return err
 				} else {
-					return a.Run(ctx, cmd.Args())
+					return a.Run(ctx, cmd.Args().Get(0))
 				}
 			},
 		},

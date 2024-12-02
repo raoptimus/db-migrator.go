@@ -1,11 +1,9 @@
 package migrator
 
 import (
-	"flag"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/urfave/cli/v3"
 )
 
 func TestDBService_Create_ReturnsAction(t *testing.T) {
@@ -66,18 +64,4 @@ func TestDBService_Redo_ReturnsAction(t *testing.T) {
 	action, err := dbServ.Redo()
 	assert.NoError(t, err)
 	assert.NotNil(t, action)
-}
-
-func flagSet(t *testing.T, argument string) *flag.FlagSet {
-	flagSet := flag.NewFlagSet("test", 0)
-	err := flagSet.Parse([]string{argument})
-	assert.NoError(t, err)
-
-	return flagSet
-}
-
-func cliContext(t *testing.T, argument string) *cli.Context {
-	flagSet := flagSet(t, argument)
-
-	return cli.NewContext(nil, flagSet, nil)
 }

@@ -1,6 +1,7 @@
 package action
 
 import (
+	"context"
 	"testing"
 
 	"github.com/raoptimus/db-migrator.go/internal/action/mockaction"
@@ -9,11 +10,11 @@ import (
 )
 
 func TestUpgrade_Run_NoMigrations_NoError(t *testing.T) {
-	ctx := cliContext(t, "2")
+	ctx := context.Background()
 
 	serv := mockaction.NewMigrationService(t)
 	serv.EXPECT().
-		NewMigrations(ctx.Context).
+		NewMigrations(ctx).
 		Return(entity.Migrations{}, nil)
 
 	c := mockaction.NewConsole(t)
@@ -23,6 +24,6 @@ func TestUpgrade_Run_NoMigrations_NoError(t *testing.T) {
 	fb := mockaction.NewFileNameBuilder(t)
 
 	upgrade := NewUpgrade(c, serv, fb, true)
-	err := upgrade.Run(ctx)
+	err := upgrade.Run(ctx, "2")
 	assert.NoError(t, err)
 }

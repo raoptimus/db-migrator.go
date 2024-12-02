@@ -13,7 +13,6 @@ import (
 
 	"github.com/raoptimus/db-migrator.go/internal/args"
 	"github.com/raoptimus/db-migrator.go/internal/console"
-	"github.com/urfave/cli/v3"
 )
 
 type HistoryNew struct {
@@ -28,8 +27,8 @@ func NewHistoryNew(
 	}
 }
 
-func (h *HistoryNew) Run(ctx context.Context, cmdArgs cli.Args) error {
-	limit, err := args.ParseStepStringOrDefault(cmdArgs.Get(0), defaultGetHistoryLimit)
+func (h *HistoryNew) Run(ctx context.Context, cmdArgs ...string) error {
+	limit, err := args.ParseStepStringOrDefault(cmdArgs[0], defaultGetHistoryLimit)
 	if err != nil {
 		return err
 	}

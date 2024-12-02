@@ -1,6 +1,7 @@
 package action
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -37,6 +38,7 @@ func TestCreate_Run_ExpectedArguments_NoError(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
 			tm := timex.New(func() time.Time {
 				return time230527213123
 			})
@@ -73,9 +75,8 @@ func TestCreate_Run_ExpectedArguments_NoError(t *testing.T) {
 				Down(tt.version, true).
 				Return(tt.fileNameDown, tt.safely)
 
-			ctx := cliContext(t, "init")
 			create := NewCreate(tm, f, c, fb, "/tmp")
-			err := create.Run(ctx)
+			err := create.Run(ctx, "init")
 			assert.NoError(t, err)
 		})
 	}

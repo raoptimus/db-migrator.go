@@ -15,7 +15,6 @@ import (
 	"github.com/raoptimus/db-migrator.go/internal/args"
 	"github.com/raoptimus/db-migrator.go/internal/console"
 	"github.com/raoptimus/db-migrator.go/internal/dal/entity"
-	"github.com/urfave/cli/v3"
 )
 
 type Redo struct {
@@ -36,8 +35,8 @@ func NewRedo(
 	}
 }
 
-func (r *Redo) Run(ctx context.Context, cmdArgs cli.Args) error {
-	limit, err := args.ParseStepStringOrDefault(cmdArgs.Get(0), minLimit)
+func (r *Redo) Run(ctx context.Context, cmdArgs ...string) error {
+	limit, err := args.ParseStepStringOrDefault(cmdArgs[0], minLimit)
 	if err != nil {
 		return err
 	}

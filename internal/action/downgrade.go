@@ -14,7 +14,6 @@ import (
 
 	"github.com/raoptimus/db-migrator.go/internal/args"
 	"github.com/raoptimus/db-migrator.go/internal/console"
-	"github.com/urfave/cli/v3"
 )
 
 type Downgrade struct {
@@ -35,8 +34,8 @@ func NewDowngrade(
 	}
 }
 
-func (d *Downgrade) Run(ctx context.Context, cmdArgs cli.Args) error {
-	limit, err := args.ParseStepStringOrDefault(cmdArgs.Get(0), minLimit)
+func (d *Downgrade) Run(ctx context.Context, cmdArgs ...string) error {
+	limit, err := args.ParseStepStringOrDefault(cmdArgs[0], minLimit)
 	if err != nil {
 		return err
 	}

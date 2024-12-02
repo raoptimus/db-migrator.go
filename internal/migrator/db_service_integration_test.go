@@ -84,20 +84,20 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 			assert.NoError(t, err)
 
 			defer func() {
-				_ = down.Run(cliContext(t, "all"))
+				_ = down.Run(ctx, "all")
 			}()
 
-			err = up.Run(cliContext(t, "2"))
+			err = up.Run(ctx, "2")
 			assert.NoError(t, err)
 			assertEqualRowsCount(t, ctx, dbServ.repo, 3)
 
-			err = up.Run(cliContext(t, "1")) // migration with error
+			err = up.Run(ctx, "1") // migration with error
 			assert.Error(t, err)
 			assertEqualRowsCount(t, ctx, dbServ.repo, 3)
 			err = dbServ.repo.ExecQuery(ctx, "select * from test") // checks table exists
 			assert.NoError(t, err)
 
-			err = down.Run(cliContext(t, "all"))
+			err = down.Run(ctx, "all")
 			assert.NoError(t, err)
 			assertEqualRowsCount(t, ctx, dbServ.repo, 1)
 		})
@@ -108,6 +108,7 @@ func TestIntegrationDBService_Upgrade_AlreadyExistsMigration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
 	}
+	ctx := context.Background()
 	opts := Options{
 		DSN:         os.Getenv("POSTGRES_DSN"),
 		Directory:   migrationsPathAbs(os.Getenv("POSTGRES_MIGRATIONS_PATH")),
@@ -119,19 +120,19 @@ func TestIntegrationDBService_Upgrade_AlreadyExistsMigration(t *testing.T) {
 
 	down, err := dbServ.Downgrade()
 	assert.NoError(t, err)
-	err = down.Run(cliContext(t, "all"))
+	err = down.Run(ctx, "all")
 	assert.NoError(t, err)
 
 	up, err := dbServ.Upgrade()
 	assert.NoError(t, err)
 	// apply first migration
-	err = up.Run(cliContext(t, "1"))
+	err = up.Run(ctx, "1")
 	assert.NoError(t, err)
 	// apply second migration
-	err = up.Run(cliContext(t, "1"))
+	err = up.Run(ctx, "1")
 	assert.NoError(t, err)
 	// apply third broken migration
-	err = up.Run(cliContext(t, "1"))
+	err = up.Run(ctx, "1")
 	assert.Error(t, err)
 }
 
