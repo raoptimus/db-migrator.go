@@ -1,9 +1,8 @@
 <clickhouse replace="true">
     <logger>
-        <level>information</level>
-        <log>/var/log/clickhouse-keeper/clickhouse-keeper.log</log>
-        <errorlog>/var/log/clickhouse-keeper/clickhouse-keeper.err.log</errorlog>
-        <size>1000M</size>
+        <level>error</level>
+        <console>1</console>
+        <size>10M</size>
         <count>3</count>
     </logger>
     <listen_host>0.0.0.0</listen_host>
@@ -20,7 +19,7 @@
         <raft_configuration>
             <server>
                 <id>1</id>
-                <hostname>clickhouse-keeper</hostname>
+                <hostname>clickhouse-keeper-r</hostname>
                 <port>9234</port>
             </server>
         </raft_configuration>

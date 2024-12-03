@@ -1,7 +1,7 @@
 <clickhouse>
     <zookeeper>
         <node>
-            <host>clickhouse-keeper</host>
+            <host>clickhouse-keeper-r</host>
             <port>9181</port>
         </node>
     </zookeeper>
