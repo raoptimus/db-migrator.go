@@ -157,11 +157,6 @@ func (c *Clickhouse) CreateMigrationHistoryTable(ctx context.Context) error {
 		tableName = c.options.TableName
 		engine = "ReplacingMergeTree(apply_time)"
 	}
-	if !c.options.Replicated && len(c.options.ClusterName) > 0 {
-		tableName += " ON CLUSTER " + c.options.ClusterName
-		engine = "ReplicatedReplacingMergeTree('/clickhouse/tables/{shard}/" +
-			c.options.ClusterName + "_" + c.options.TableName + "', '{replica}', apply_time)"
-	}
 
 	q = fmt.Sprintf(
 		`
