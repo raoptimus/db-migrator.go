@@ -4,5 +4,6 @@ type Options struct {
 	TableName   string
 	SchemaName  string
 	ClusterName string
+	Replicated  bool
 	ShardName   string
 }

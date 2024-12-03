@@ -1,6 +1,7 @@
-CREATE DATABASE IF NOT EXISTS raw ON CLUSTER test_cluster;
+CREATE DATABASE IF NOT EXISTS raw
+ENGINE = Replicated('/clickhouse/databases/{shard}/raw', '{shard}', '{replica}');
 
-CREATE TABLE raw.test ON CLUSTER test_cluster (
+CREATE TABLE IF NOT EXISTS raw.test (
     time DateTime DEFAULT now(),
     value UInt32
 )

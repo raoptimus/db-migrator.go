@@ -17,7 +17,7 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 		t.Skip("skipping integration test")
 	}
 
-	if os.Getenv("CLICKHOUSE_CLUSTER_DSN1") == "" {
+	if os.Getenv("CLICKHOUSE_CLUSTER_DSN") == "" {
 		if err := godotenv.Load("../../.env"); err != nil {
 			require.NoError(t, err, "Load environments")
 		}
@@ -25,9 +25,9 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 
 	// region data provider
 	tests := []struct {
-		name               string
-		countMigrationsSQL string
-		options            *Options
+		name        string
+		selectQuery string
+		options     *Options
 	}{
 		{
 			name: "postgres",
@@ -62,10 +62,22 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 		{
 			name: "clickhouse_cluster",
 			options: &Options{
-				DSN:         os.Getenv("CLICKHOUSE_CLUSTER_DSN1"),
+				DSN:         os.Getenv("CLICKHOUSE_CLUSTER_DSN"),
 				Directory:   migrationsPathAbs(os.Getenv("CLICKHOUSE_CLUSTER_MIGRATIONS_PATH")),
 				TableName:   "migration",
 				ClusterName: os.Getenv("CLICKHOUSE_CLUSTER_NAME"),
+				Compact:     true,
+				Interactive: false,
+			},
+		},
+		{
+			name:        "clickhouse_cluster_replicated",
+			selectQuery: "select * from raw.test",
+			options: &Options{
+				DSN:         os.Getenv("CLICKHOUSE_CLUSTER_R_DSN"),
+				Replicated:  true,
+				Directory:   migrationsPathAbs(os.Getenv("CLICKHOUSE_CLUSTER_R_MIGRATIONS_PATH")),
+				TableName:   "migration",
 				Compact:     true,
 				Interactive: false,
 			},
@@ -94,7 +106,7 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 			err = up.Run(ctx, "1") // migration with error
 			assert.Error(t, err)
 			assertEqualRowsCount(t, ctx, dbServ.repo, 3)
-			err = dbServ.repo.ExecQuery(ctx, "select * from test") // checks table exists
+			err = dbServ.repo.ExecQuery(ctx, tt.selectQuery) // checks table exists
 			assert.NoError(t, err)
 
 			err = down.Run(ctx, "all")
@@ -105,9 +117,9 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 }
 
 func TestIntegrationDBService_Upgrade_AlreadyExistsMigration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration test")
-	}
+	//if testing.Short() {
+	t.Skip("skipping integration test")
+	//}
 	ctx := context.Background()
 	opts := Options{
 		DSN:         os.Getenv("POSTGRES_DSN"),

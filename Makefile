@@ -125,3 +125,6 @@ gen-mocks-dry-run: install-mockery ## Run mockery --dry-run=true
 
 start:
 	@docker-compose -f "docker-compose.yml" -f "docker-compose.dev.yml" up -d
+
+stop:
+	@docker-compose -f "docker-compose.yml" down --remove-orphans

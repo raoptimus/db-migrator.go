@@ -1,0 +1,1 @@
+ALTER TABLE raw.test DROP COLUMN text;

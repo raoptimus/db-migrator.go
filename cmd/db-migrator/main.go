@@ -152,6 +152,14 @@ func flags(options *migrator.Options) []cli.Flag {
 			Destination: &options.ClusterName,
 		},
 		&cli.BoolFlag{
+			Name:        "migrationReplicated",
+			Sources:     cli.EnvVars("MIGRATION_REPLICATED"),
+			Aliases:     []string{"cr"},
+			Value:       false,
+			Usage:       "Using replicated experimental function to clickhouse for history table of migrates",
+			Destination: &options.Replicated,
+		},
+		&cli.BoolFlag{
 			Name:        "compact",
 			Sources:     cli.EnvVars("COMPACT"),
 			Aliases:     []string{"c"},
