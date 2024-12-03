@@ -3,3 +3,7 @@ services:
     ports:
       - 9000:9000
       - 8123:8123
+  clickhouse-r-1:
+    ports:
+      - 19000:9000
+      - 18123:8123

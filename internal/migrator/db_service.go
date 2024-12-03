@@ -33,6 +33,7 @@ type (
 		Directory          string
 		TableName          string
 		ClusterName        string
+		Replicated         bool
 		Compact            bool
 		Interactive        bool
 		MaxSQLOutputLength int
@@ -128,6 +129,7 @@ func (s *DBService) migrationService() (*service.Migration, error) {
 			&repository.Options{
 				TableName:   s.options.TableName,
 				ClusterName: s.options.ClusterName,
+				Replicated:  s.options.Replicated,
 			},
 		)
 		if err != nil {

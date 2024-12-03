@@ -1,3 +1,3 @@
-ALTER TABLE test ON CLUSTER test_cluster
+ALTER TABLE raw.test ON CLUSTER test_cluster
 	DROP COLUMN text;
 

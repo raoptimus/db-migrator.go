@@ -1,0 +1,15 @@
+<clickhouse>
+<logger>
+    <level>error</level>
+    <console>1</console>
+    <size>10M</size>
+    <count>3</count>
+</logger>
+<listen_host>0.0.0.0</listen_host>
+<http_port>8123</http_port>
+<tcp_port>9000</tcp_port>
+
+<distributed_ddl>
+    <path>/clickhouse/task_queue/ddl</path>
+</distributed_ddl>
+</clickhouse>

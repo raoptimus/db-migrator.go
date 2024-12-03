@@ -42,7 +42,7 @@ func TestMigrateService_ClickHouseCluster_UpDown(t *testing.T) {
 
 func createClickhouse1ClusterMigrator() (*Service, error) {
 	return New(&Options{
-		DSN:         os.Getenv("CLICKHOUSE_CLUSTER_DSN1"),
+		DSN:         os.Getenv("CLICKHOUSE_CLUSTER_DSN"),
 		Directory:   os.Getenv("CLICKHOUSE_CLUSTER_MIGRATIONS_PATH"),
 		TableName:   "migration",
 		ClusterName: os.Getenv("CLICKHOUSE_CLUSTER_NAME"),

@@ -26,12 +26,16 @@ services:
       - clickhouse
       - clickhouse1
       - clickhouse2
+      - clickhouse-r-1
+      - clickhouse-r-2
       - postgres
       - mysql
     links:
       - clickhouse
       - clickhouse1
       - clickhouse2
+      - clickhouse-r-1
+      - clickhouse-r-2
       - postgres
       - mysql
     volumes:
@@ -62,3 +66,27 @@ services:
       - "./docker/volume/clickhouse-cluster/config/clickhouse2:/etc/clickhouse-server/config.d/"
     depends_on:
       - clickhouse-keeper
+
+  clickhouse-keeper-r:
+    image: clickhouse/clickhouse-keeper:23.11-alpine
+    restart: on-failure
+    volumes:
+      - "./docker/volume/clickhouse-cluster-replicated/config/keeper1/keeper_config.xml:/etc/clickhouse-keeper/keeper_config.xml"
+
+  clickhouse-r-1:
+    image: clickhouse/clickhouse-server:23.11-alpine
+    restart: on-failure
+    volumes:
+      - "./docker/volume/clickhouse-cluster-replicated/config/clickhouse1:/etc/clickhouse-server/config.d/"
+      - "./docker/volume/clickhouse-cluster-replicated/config/clickhouse1/users.xml:/etc/clickhouse-server/users.d/users.xml"
+    depends_on:
+      - clickhouse-keeper-r
+
+  clickhouse-r-2:
+    image: clickhouse/clickhouse-server:23.11-alpine
+    restart: on-failure
+    volumes:
+      - "./docker/volume/clickhouse-cluster-replicated/config/clickhouse2:/etc/clickhouse-server/config.d/"
+      - "./docker/volume/clickhouse-cluster-replicated/config/clickhouse2/users.xml:/etc/clickhouse-server/users.d/users.xml"
+    depends_on:
+      - clickhouse-keeper-r

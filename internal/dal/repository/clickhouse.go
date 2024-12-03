@@ -138,41 +138,41 @@ func (c *Clickhouse) ExecQueryTransaction(ctx context.Context, txFn func(ctx con
 
 // CreateMigrationHistoryTable creates a new migration history table.
 func (c *Clickhouse) CreateMigrationHistoryTable(ctx context.Context) error {
-	var q string
-	if c.options.ClusterName == "" {
-		q = fmt.Sprintf(
-			`
+	var (
+		q         string
+		engine    string
+		tableName string
+	)
+
+	switch {
+	case !c.options.Replicated && len(c.options.ClusterName) > 0:
+		tableName = c.options.TableName + " ON CLUSTER " + c.options.ClusterName
+		engine = "ReplicatedReplacingMergeTree('/clickhouse/tables/{shard}/" +
+			c.options.ClusterName + "_" + c.options.TableName + "', '{replica}', apply_time)"
+	case c.options.Replicated:
+		tableName = c.options.TableName
+		engine = "ReplicatedReplacingMergeTree('/clickhouse/tables/{shard}/" +
+			c.options.ClusterName + "_" + c.options.TableName + "', '{replica}', apply_time)"
+	default:
+		tableName = c.options.TableName
+		engine = "ReplacingMergeTree(apply_time)"
+	}
+
+	q = fmt.Sprintf(
+		`
 			CREATE TABLE %s (
 				version String, 
 				date Date DEFAULT toDate(apply_time),
 				apply_time UInt32,
 				is_deleted UInt8
-			) ENGINE = ReplacingMergeTree(apply_time)
+			) ENGINE = %s
 			PRIMARY KEY (version)
 			PARTITION BY (toYYYYMM(date))
 			ORDER BY (version)
 			SETTINGS index_granularity=8192
 			`,
-			c.options.TableName,
-		)
-	} else {
-		q = fmt.Sprintf(
-			`
-			CREATE TABLE %[1]s ON CLUSTER %[2]s (
-				version String, 
-				date Date DEFAULT toDate(apply_time),
-				apply_time UInt32,
-				is_deleted UInt8
-			) ENGINE = ReplicatedReplacingMergeTree('/clickhouse/tables/{shard}/%[2]s_%[1]s', '{replica}', apply_time)
-			PRIMARY KEY (version)
-			PARTITION BY (toYYYYMM(date))
-			ORDER BY (version)
-			SETTINGS index_granularity=8192
-			`,
-			c.options.TableName,
-			c.options.ClusterName,
-		)
-	}
+		tableName, engine,
+	)
 
 	if _, err := c.conn.ExecContext(ctx, q); err != nil {
 		return errors.Wrap(c.dbError(err, q), "create migration history table")
@@ -244,7 +244,7 @@ func (c *Clickhouse) insertMigration(ctx context.Context, version string, isDele
 // optimizeTable optimizes tables.
 func (c *Clickhouse) optimizeTable(ctx context.Context) error {
 	var q string
-	if c.options.ClusterName == "" {
+	if c.options.Replicated || c.options.ClusterName == "" {
 		q = fmt.Sprintf("OPTIMIZE TABLE %s FINAL", c.options.TableName)
 	} else {
 		q = fmt.Sprintf("OPTIMIZE TABLE %s ON CLUSTER %s FINAL", c.options.TableName, c.options.ClusterName)
