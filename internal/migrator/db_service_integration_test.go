@@ -30,7 +30,8 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 		options     *Options
 	}{
 		{
-			name: "postgres",
+			name:        "postgres",
+			selectQuery: "select * from test",
 			options: &Options{
 				DSN:         os.Getenv("POSTGRES_DSN"),
 				Directory:   migrationsPathAbs(os.Getenv("POSTGRES_MIGRATIONS_PATH")),
@@ -40,7 +41,8 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 			},
 		},
 		{
-			name: "mysql",
+			name:        "mysql",
+			selectQuery: "select * from test",
 			options: &Options{
 				DSN:         os.Getenv("MYSQL_DSN"),
 				Directory:   migrationsPathAbs(os.Getenv("MYSQL_MIGRATIONS_PATH")),
@@ -50,7 +52,8 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 			},
 		},
 		{
-			name: "clickhouse",
+			name:        "clickhouse",
+			selectQuery: "select * from test",
 			options: &Options{
 				DSN:         os.Getenv("CLICKHOUSE_DSN"),
 				Directory:   migrationsPathAbs(os.Getenv("CLICKHOUSE_MIGRATIONS_PATH")),
@@ -60,7 +63,8 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 			},
 		},
 		{
-			name: "clickhouse_cluster",
+			name:        "clickhouse_cluster",
+			selectQuery: "select * from raw.test",
 			options: &Options{
 				DSN:         os.Getenv("CLICKHOUSE_CLUSTER_DSN"),
 				Directory:   migrationsPathAbs(os.Getenv("CLICKHOUSE_CLUSTER_MIGRATIONS_PATH")),
