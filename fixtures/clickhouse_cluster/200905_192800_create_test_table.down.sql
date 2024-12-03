@@ -1,1 +1,1 @@
-DROP TABLE test ON CLUSTER test_cluster;
+DROP TABLE raw.test ON CLUSTER test_cluster;
