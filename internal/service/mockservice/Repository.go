@@ -203,6 +203,59 @@ func (_c *Repository_ExecQueryTransaction_Call) RunAndReturn(run func(context.Co
 	return _c
 }
 
+// ExistsMigration provides a mock function with given fields: ctx, version
+func (_m *Repository) ExistsMigration(ctx context.Context, version string) (bool, error) {
+	ret := _m.Called(ctx, version)
+
+	var r0 bool
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (bool, error)); ok {
+		return rf(ctx, version)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) bool); ok {
+		r0 = rf(ctx, version)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, version)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Repository_ExistsMigration_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ExistsMigration'
+type Repository_ExistsMigration_Call struct {
+	*mock.Call
+}
+
+// ExistsMigration is a helper method to define mock.On call
+//   - ctx context.Context
+//   - version string
+func (_e *Repository_Expecter) ExistsMigration(ctx interface{}, version interface{}) *Repository_ExistsMigration_Call {
+	return &Repository_ExistsMigration_Call{Call: _e.mock.On("ExistsMigration", ctx, version)}
+}
+
+func (_c *Repository_ExistsMigration_Call) Run(run func(ctx context.Context, version string)) *Repository_ExistsMigration_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *Repository_ExistsMigration_Call) Return(_a0 bool, _a1 error) *Repository_ExistsMigration_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *Repository_ExistsMigration_Call) RunAndReturn(run func(context.Context, string) (bool, error)) *Repository_ExistsMigration_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ForceSafely provides a mock function with given fields:
 func (_m *Repository) ForceSafely() bool {
 	ret := _m.Called()

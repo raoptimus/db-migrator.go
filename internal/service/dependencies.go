@@ -43,7 +43,7 @@ type File interface {
 
 //go:generate mockery --name=Repository --outpkg=mockservice --output=./mockservice
 type Repository interface {
-	// ExistsMigration return true if version of migration exists
+	// ExistsMigration returns true if version of migration exists
 	ExistsMigration(ctx context.Context, version string) (bool, error)
 	// Migrations returns applied migrations history.
 	Migrations(ctx context.Context, limit int) (entity.Migrations, error)

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/raoptimus/db-migrator.go/internal/migrator"
+	"github.com/raoptimus/db-migrator.go/internal/validator"
 )
 
 type (
@@ -40,6 +41,9 @@ func NewDBService(opts *Options) *DBService {
 
 // Upgrade apply changes to db. apply specific version of migration.
 func (d *DBService) Upgrade(ctx context.Context, version, sql string, safety bool) error {
+	if err := validator.ValidateVersion(version); err != nil {
+		return err
+	}
 	ms, err := d.dbs.MigrationService()
 	if err != nil {
 		return err
@@ -59,6 +63,9 @@ func (d *DBService) Upgrade(ctx context.Context, version, sql string, safety boo
 
 // Downgrade revert changes to db. revert specific version of migration.
 func (d *DBService) Downgrade(ctx context.Context, version, sql string, safety bool) error {
+	if err := validator.ValidateVersion(version); err != nil {
+		return err
+	}
 	ms, err := d.dbs.MigrationService()
 	if err != nil {
 		return err

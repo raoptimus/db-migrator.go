@@ -19,6 +19,7 @@ import (
 	"github.com/pkg/errors"
 	_ "github.com/raoptimus/db-migrator.go/internal/console"
 	"github.com/raoptimus/db-migrator.go/internal/dal/entity"
+	"github.com/raoptimus/db-migrator.go/internal/validator"
 	"github.com/raoptimus/db-migrator.go/pkg/sqlio"
 )
 
@@ -122,6 +123,9 @@ func (m *Migration) NewMigrations(ctx context.Context) (entity.Migrations, error
 
 	for _, file := range files {
 		baseFilename = filepath.Base(file)
+		if err := validator.ValidateFileName(baseFilename); err != nil {
+			return nil, errors.Wrap(err, baseFilename)
+		}
 		groups := regexpFileName.FindStringSubmatch(baseFilename)
 		if len(groups) != regexpFileNameGroupCount {
 			return nil, fmt.Errorf("file name %s is invalid", baseFilename)
