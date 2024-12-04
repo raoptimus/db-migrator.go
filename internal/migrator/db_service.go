@@ -10,6 +10,7 @@ package migrator
 
 import (
 	"net/url"
+	"strings"
 
 	"github.com/raoptimus/db-migrator.go/internal/action"
 	"github.com/raoptimus/db-migrator.go/internal/builder"
@@ -133,7 +134,8 @@ func (s *DBService) MigrationService() (*service.Migration, error) {
 		}
 	}
 
-	dsn, err := url.Parse(s.options.DSN)
+	udsn, _, _ := strings.Cut(s.options.DSN, "@")
+	dsn, err := url.Parse(udsn + "@")
 	if err != nil {
 		return nil, err
 	}
