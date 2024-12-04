@@ -172,6 +172,7 @@ func (p *Postgres) DropMigrationHistoryTable(ctx context.Context) error {
 	if _, err := p.conn.ExecContext(ctx, q); err != nil {
 		return errors.Wrap(p.dbError(err, q), "drop migration history table")
 	}
+
 	return nil
 }
 
@@ -191,7 +192,27 @@ func (p *Postgres) MigrationsCount(ctx context.Context) (int, error) {
 	if err := rows.Err(); err != nil {
 		return 0, p.dbError(err, q)
 	}
+
 	return count, nil
+}
+
+func (p *Postgres) ExistsMigration(ctx context.Context, version string) (bool, error) {
+	q := fmt.Sprintf(`SELECT EXISTS(SELECT 1 FROM %s WHERE version = $1)`, p.TableNameWithSchema())
+	rows, err := p.conn.QueryContext(ctx, q, version)
+	if err != nil {
+		return false, err
+	}
+	var exists bool
+	if rows.Next() {
+		if err := rows.Scan(&exists); err != nil {
+			return false, p.dbError(err, q)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return false, p.dbError(err, q)
+	}
+
+	return exists, nil
 }
 
 func (p *Postgres) TableNameWithSchema() string {

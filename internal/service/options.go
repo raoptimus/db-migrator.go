@@ -12,4 +12,7 @@ type Options struct {
 	MaxSQLOutputLength int
 	Directory          string
 	Compact            bool
+
+	Username string
+	Password string
 }

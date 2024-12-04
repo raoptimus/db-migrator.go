@@ -9,6 +9,9 @@
 package migrator
 
 import (
+	"net/url"
+	"strings"
+
 	"github.com/raoptimus/db-migrator.go/internal/action"
 	"github.com/raoptimus/db-migrator.go/internal/builder"
 	"github.com/raoptimus/db-migrator.go/internal/dal/connection"
@@ -21,12 +24,12 @@ import (
 
 type (
 	DBService struct {
-		options              *Options
-		fileNameBuilder      FileNameBuilder
-		migrationServiceFunc func() (*service.Migration, error)
+		options         *Options
+		fileNameBuilder FileNameBuilder
 
-		conn *connection.Connection
-		repo *repository.Repository
+		conn    *connection.Connection
+		repo    *repository.Repository
+		service *service.Migration
 	}
 	Options struct {
 		DSN                string
@@ -42,12 +45,10 @@ type (
 
 func New(options *Options) *DBService {
 	fb := builder.NewFileName(iohelp.StdFile, options.Directory)
-	dbs := &DBService{
+	return &DBService{
 		options:         options,
 		fileNameBuilder: fb,
 	}
-	dbs.migrationServiceFunc = dbs.migrationService
-	return dbs
 }
 
 func (s *DBService) Create() *action.Create {
@@ -61,7 +62,7 @@ func (s *DBService) Create() *action.Create {
 }
 
 func (s *DBService) Upgrade() (*action.Upgrade, error) {
-	serv, err := s.migrationServiceFunc()
+	serv, err := s.MigrationService()
 	if err != nil {
 		return nil, err
 	}
@@ -75,56 +76,72 @@ func (s *DBService) Upgrade() (*action.Upgrade, error) {
 }
 
 func (s *DBService) Downgrade() (*action.Downgrade, error) {
-	serv, err := s.migrationServiceFunc()
+	serv, err := s.MigrationService()
 	if err != nil {
 		return nil, err
 	}
+
 	return action.NewDowngrade(serv, s.fileNameBuilder, s.options.Interactive), nil
 }
 
 func (s *DBService) To() (*action.To, error) {
-	serv, err := s.migrationServiceFunc()
+	serv, err := s.MigrationService()
 	if err != nil {
 		return nil, err
 	}
+
 	return action.NewTo(serv, s.fileNameBuilder, s.options.Interactive), nil
 }
 
 func (s *DBService) History() (*action.History, error) {
-	serv, err := s.migrationServiceFunc()
+	serv, err := s.MigrationService()
 	if err != nil {
 		return nil, err
 	}
+
 	return action.NewHistory(serv), nil
 }
 
 func (s *DBService) HistoryNew() (*action.HistoryNew, error) {
-	serv, err := s.migrationServiceFunc()
+	serv, err := s.MigrationService()
 	if err != nil {
 		return nil, err
 	}
+
 	return action.NewHistoryNew(serv), nil
 }
 
 func (s *DBService) Redo() (*action.Redo, error) {
-	serv, err := s.migrationServiceFunc()
+	serv, err := s.MigrationService()
 	if err != nil {
 		return nil, err
 	}
+
 	return action.NewRedo(serv, s.fileNameBuilder, s.options.Interactive), nil
 }
 
-func (s *DBService) migrationService() (*service.Migration, error) {
+func (s *DBService) MigrationService() (*service.Migration, error) {
+	if s.service != nil {
+		return s.service, nil
+	}
+
+	var err error
+
 	if s.conn == nil {
-		conn, err := connection.New(s.options.DSN)
+		s.conn, err = connection.New(s.options.DSN)
 		if err != nil {
 			return nil, err
 		}
-		s.conn = conn
+	}
+
+	udsn, _, _ := strings.Cut(s.options.DSN, "@")
+	dsn, err := url.Parse(udsn + "@")
+	if err != nil {
+		return nil, err
 	}
 
 	if s.repo == nil {
-		repo, err := repository.New(
+		s.repo, err = repository.New(
 			s.conn,
 			&repository.Options{
 				TableName:   s.options.TableName,
@@ -135,17 +152,23 @@ func (s *DBService) migrationService() (*service.Migration, error) {
 		if err != nil {
 			return nil, err
 		}
-		s.repo = repo
 	}
 
-	return service.NewMigration(
+	pass, _ := dsn.User.Password()
+
+	s.service = service.NewMigration(
 		&service.Options{
 			MaxSQLOutputLength: s.options.MaxSQLOutputLength,
 			Directory:          s.options.Directory,
 			Compact:            s.options.Compact,
+
+			Username: dsn.User.Username(),
+			Password: pass,
 		},
 		console.Std,
 		iohelp.StdFile,
 		s.repo,
-	), nil
+	)
+
+	return s.service, nil
 }

@@ -179,7 +179,27 @@ func (m *MySQL) MigrationsCount(ctx context.Context) (int, error) {
 	if err := rows.Err(); err != nil {
 		return 0, m.dbError(err, q)
 	}
+
 	return count, nil
+}
+
+func (m *MySQL) ExistsMigration(ctx context.Context, version string) (bool, error) {
+	q := fmt.Sprintf(`SELECT 1 FROM %s WHERE version = ?`, m.TableNameWithSchema())
+	rows, err := m.conn.QueryContext(ctx, q, version)
+	if err != nil {
+		return false, err
+	}
+	var exists int
+	if rows.Next() {
+		if err := rows.Scan(&exists); err != nil {
+			return false, m.dbError(err, q)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return false, m.dbError(err, q)
+	}
+
+	return exists == 1, nil
 }
 
 func (m *MySQL) TableNameWithSchema() string {

@@ -20,6 +20,7 @@ type adapter interface {
 	DropMigrationHistoryTable(ctx context.Context) error
 	CreateMigrationHistoryTable(ctx context.Context) error
 	MigrationsCount(ctx context.Context) (int, error)
+	ExistsMigration(ctx context.Context, version string) (bool, error)
 	TableNameWithSchema() string
 	ForceSafely() bool
 }
@@ -62,6 +63,10 @@ func (r *Repository) CreateMigrationHistoryTable(ctx context.Context) error {
 
 func (r *Repository) MigrationsCount(ctx context.Context) (int, error) {
 	return r.adapter.MigrationsCount(ctx)
+}
+
+func (r *Repository) ExistsMigration(ctx context.Context, version string) (bool, error) {
+	return r.adapter.ExistsMigration(ctx, version)
 }
 
 func (r *Repository) TableNameWithSchema() string {

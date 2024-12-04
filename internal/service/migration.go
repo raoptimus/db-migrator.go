@@ -19,6 +19,7 @@ import (
 	"github.com/pkg/errors"
 	_ "github.com/raoptimus/db-migrator.go/internal/console"
 	"github.com/raoptimus/db-migrator.go/internal/dal/entity"
+	"github.com/raoptimus/db-migrator.go/internal/validator"
 	"github.com/raoptimus/db-migrator.go/pkg/sqlio"
 )
 
@@ -122,6 +123,9 @@ func (m *Migration) NewMigrations(ctx context.Context) (entity.Migrations, error
 
 	for _, file := range files {
 		baseFilename = filepath.Base(file)
+		if err := validator.ValidateFileName(baseFilename); err != nil {
+			return nil, errors.Wrap(err, baseFilename)
+		}
 		groups := regexpFileName.FindStringSubmatch(baseFilename)
 		if len(groups) != regexpFileNameGroupCount {
 			return nil, fmt.Errorf("file name %s is invalid", baseFilename)
@@ -155,8 +159,7 @@ func (m *Migration) ApplySQL(
 	ctx context.Context,
 	safely bool,
 	version,
-	upSQL,
-	downSQL string,
+	upSQL string,
 ) error {
 	if version == baseMigration {
 		return ErrMigrationVersionReserved
@@ -176,6 +179,7 @@ func (m *Migration) ApplySQL(
 	}
 	// todo: save downSQL
 	m.console.Successf("*** applied %s (time: %.3fs)\n", version, elapsedTime.Seconds())
+
 	return nil
 }
 
@@ -183,7 +187,6 @@ func (m *Migration) RevertSQL(
 	ctx context.Context,
 	safely bool,
 	version,
-	upSQL,
 	downSQL string,
 ) error {
 	if version == baseMigration {
@@ -203,6 +206,7 @@ func (m *Migration) RevertSQL(
 		return err
 	}
 	m.console.Warnf("*** reverted %s (time: %.3fs)\n", version, elapsedTime.Seconds())
+
 	return nil
 }
 
@@ -253,8 +257,8 @@ func (m *Migration) RevertFile(ctx context.Context, entity *entity.Migration, fi
 	if err := m.repo.RemoveMigration(ctx, entity.Version); err != nil {
 		return err
 	}
-	m.console.Warnf("*** reverted %s (time: %.3fs)\n",
-		entity.Version, elapsedTime.Seconds())
+	m.console.Warnf("*** reverted %s (time: %.3fs)\n", entity.Version, elapsedTime.Seconds())
+
 	return nil
 }
 
@@ -292,15 +296,23 @@ func (m *Migration) EndCommand(start time.Time) {
 	}
 }
 
+func (m *Migration) Exists(ctx context.Context, version string) (bool, error) {
+	return m.repo.ExistsMigration(ctx, version)
+}
+
 func (m *Migration) apply(ctx context.Context, scanner *sqlio.Scanner, safely bool) error {
 	processScanFunc := func(ctx context.Context) error {
-		var q string
+		var sql string
 		for scanner.Scan() {
-			q = scanner.SQL()
-			if q == "" {
+			sql = scanner.SQL()
+			if sql == "" {
 				continue
 			}
-			if err := m.ExecQuery(ctx, q); err != nil {
+
+			sql = strings.ReplaceAll(sql, "{username}", m.options.Username)
+			sql = strings.ReplaceAll(sql, "{password}", m.options.Password)
+
+			if err := m.ExecQuery(ctx, sql); err != nil {
 				return err
 			}
 		}
@@ -330,5 +342,6 @@ func (m *Migration) scannerByFile(fileName string) (*sqlio.Scanner, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "migration file %s does not read", fileName)
 	}
+
 	return sqlio.NewScanner(f), nil
 }

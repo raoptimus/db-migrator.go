@@ -209,6 +209,25 @@ func (c *Clickhouse) MigrationsCount(ctx context.Context) (int, error) {
 	return count, nil
 }
 
+func (c *Clickhouse) ExistsMigration(ctx context.Context, version string) (bool, error) {
+	q := fmt.Sprintf(`SELECT 1 FROM %s WHERE version = ? AND is_deleted = 0`, c.TableNameWithSchema())
+	rows, err := c.conn.QueryContext(ctx, q, version)
+	if err != nil {
+		return false, err
+	}
+	var exists int
+	if rows.Next() {
+		if err := rows.Scan(&exists); err != nil {
+			return false, c.dbError(err, q)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return false, c.dbError(err, q)
+	}
+
+	return exists == 1, nil
+}
+
 func (c *Clickhouse) TableNameWithSchema() string {
 	return c.options.SchemaName + "." + c.options.TableName
 }
