@@ -127,6 +127,14 @@ func flags(options *migrator.Options) []cli.Flag {
 			Usage:       "DB connection string",
 			Destination: &options.DSN,
 		},
+		&cli.IntFlag{
+			Name:        "maxConnAttempts",
+			Sources:     cli.EnvVars("MAX_CONN_ATTEMPTS"),
+			Aliases:     []string{"ma"},
+			Usage:       "Maximum number of connection attempts",
+			Destination: &options.MaxConnAttempts,
+			Value:       1,
+		},
 		&cli.StringFlag{
 			Name:        "migrationPath",
 			Sources:     cli.EnvVars("MIGRATION_PATH"),
