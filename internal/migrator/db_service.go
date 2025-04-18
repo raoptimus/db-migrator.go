@@ -185,7 +185,7 @@ func (s *DBService) tryConnectionToDB() error {
 
 	var err error
 
-	for i := int64(0); i < s.options.MaxConnAttempts; i++ {
+	for i := range s.options.MaxConnAttempts {
 		if i > 0 && i < s.options.MaxConnAttempts-1 {
 			time.Sleep(durationBeforeNextConnAttempt)
 		}
