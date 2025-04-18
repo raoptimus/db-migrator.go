@@ -193,6 +193,9 @@ func (s *DBService) tryConnectionToDB() error {
 		if err != nil {
 			continue
 		}
+		if err = s.conn.Ping(); err != nil {
+			continue
+		}
 
 		break
 	}
