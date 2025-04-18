@@ -11,6 +11,7 @@ package migrator
 import (
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/raoptimus/db-migrator.go/internal/action"
 	"github.com/raoptimus/db-migrator.go/internal/builder"
@@ -20,6 +21,11 @@ import (
 	"github.com/raoptimus/db-migrator.go/pkg/console"
 	"github.com/raoptimus/db-migrator.go/pkg/iohelp"
 	"github.com/raoptimus/db-migrator.go/pkg/timex"
+)
+
+const (
+	minConnAttempts               = 1
+	durationBeforeNextConnAttempt = 1 * time.Second
 )
 
 type (
@@ -33,6 +39,7 @@ type (
 	}
 	Options struct {
 		DSN                string
+		MaxConnAttempts    int64
 		Directory          string
 		TableName          string
 		ClusterName        string
@@ -45,6 +52,9 @@ type (
 
 func New(options *Options) *DBService {
 	fb := builder.NewFileName(iohelp.StdFile, options.Directory)
+	if options.MaxConnAttempts < minConnAttempts {
+		options.MaxConnAttempts = minConnAttempts
+	}
 	return &DBService{
 		options:         options,
 		fileNameBuilder: fb,
@@ -125,13 +135,8 @@ func (s *DBService) MigrationService() (*service.Migration, error) {
 		return s.service, nil
 	}
 
-	var err error
-
-	if s.conn == nil {
-		s.conn, err = connection.New(s.options.DSN)
-		if err != nil {
-			return nil, err
-		}
+	if err := s.tryConnectionToDB(); err != nil {
+		return nil, err
 	}
 
 	udsn, _, _ := strings.Cut(s.options.DSN, "@")
@@ -171,4 +176,24 @@ func (s *DBService) MigrationService() (*service.Migration, error) {
 	)
 
 	return s.service, nil
+}
+
+func (s *DBService) tryConnectionToDB() error {
+	if s.conn != nil {
+		return nil
+	}
+
+	var err error
+
+	for i := range s.options.MaxConnAttempts {
+		if i > 0 && i < s.options.MaxConnAttempts-1 {
+			time.Sleep(durationBeforeNextConnAttempt)
+		}
+		s.conn, err = connection.New(s.options.DSN)
+		if err != nil {
+			continue
+		}
+	}
+
+	return err
 }
