@@ -193,6 +193,8 @@ func (s *DBService) tryConnectionToDB() error {
 		if err != nil {
 			continue
 		}
+
+		break
 	}
 
 	return err
