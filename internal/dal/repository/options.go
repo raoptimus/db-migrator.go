@@ -5,5 +5,4 @@ type Options struct {
 	SchemaName  string
 	ClusterName string
 	Replicated  bool
-	ShardName   string
 }

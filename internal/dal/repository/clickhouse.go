@@ -41,7 +41,7 @@ func (c *Clickhouse) Migrations(ctx context.Context, limit int) (entity.Migratio
 			WHERE is_deleted = 0 
 			ORDER BY apply_time DESC, version DESC
 			LIMIT ?`,
-			c.options.TableName,
+			c.dTableNameWithSchema(),
 		)
 		migrations entity.Migrations
 	)
@@ -86,7 +86,7 @@ func (c *Clickhouse) HasMigrationHistoryTable(ctx context.Context) (exists bool,
 		rows *sql.Rows
 	)
 
-	rows, err = c.conn.QueryContext(ctx, q, c.options.TableName)
+	rows, err = c.conn.QueryContext(ctx, q, c.dTableName())
 	if err != nil {
 		return false, errors.Wrap(c.dbError(err, q), "get table schema")
 	}
@@ -140,27 +140,34 @@ func (c *Clickhouse) ExecQueryTransaction(ctx context.Context, txFn func(ctx con
 func (c *Clickhouse) CreateMigrationHistoryTable(ctx context.Context) error {
 	var (
 		q         string
+		extQ      string
 		engine    string
-		tableName string
+		onCluster string
 	)
 
 	switch {
-	case !c.options.Replicated && len(c.options.ClusterName) > 0:
-		tableName = c.options.TableName + " ON CLUSTER " + c.options.ClusterName
+	case c.isUsedCluster():
+		onCluster = " ON CLUSTER " + c.options.ClusterName
 		engine = "ReplicatedReplacingMergeTree('/clickhouse/tables/{shard}/" +
 			c.options.ClusterName + "_" + c.options.TableName + "', '{replica}', apply_time)"
+		extQ = fmt.Sprintf(`
+				CREATE TABLE %[1]s.d_%[2]s ON CLUSTER %[0]s AS %[1]s.%[2]s
+				ENGINE = Distributed('%[0]s', '%[1]s', %[2]s, cityHash64(toString(version)))
+			`,
+			c.options.ClusterName,
+			c.options.SchemaName,
+			c.options.TableName,
+		)
 	case c.options.Replicated:
-		tableName = c.options.TableName
 		engine = "ReplicatedReplacingMergeTree('/clickhouse/tables/{shard}/" +
 			c.options.ClusterName + "_" + c.options.TableName + "', '{replica}', apply_time)"
 	default:
-		tableName = c.options.TableName
 		engine = "ReplacingMergeTree(apply_time)"
 	}
 
 	q = fmt.Sprintf(
 		`
-			CREATE TABLE %s (
+			CREATE TABLE %s %s (
 				version String, 
 				date Date DEFAULT toDate(apply_time),
 				apply_time UInt32,
@@ -171,11 +178,21 @@ func (c *Clickhouse) CreateMigrationHistoryTable(ctx context.Context) error {
 			ORDER BY (version)
 			SETTINGS index_granularity=8192
 			`,
-		tableName, engine,
+		c.TableNameWithSchema(),
+		onCluster,
+		engine,
 	)
 
 	if _, err := c.conn.ExecContext(ctx, q); err != nil {
 		return errors.Wrap(c.dbError(err, q), "create migration history table")
+	}
+
+	if len(extQ) == 0 {
+		return nil
+	}
+
+	if _, err := c.conn.ExecContext(ctx, extQ); err != nil {
+		return errors.Wrap(c.dbError(err, extQ), "create migration history table")
 	}
 
 	return nil
@@ -183,16 +200,33 @@ func (c *Clickhouse) CreateMigrationHistoryTable(ctx context.Context) error {
 
 // DropMigrationHistoryTable drops the migration history table.
 func (c *Clickhouse) DropMigrationHistoryTable(ctx context.Context) error {
-	q := fmt.Sprintf(`DROP TABLE %s`, c.options.TableName)
+	if err := c.dropTable(ctx, c.TableNameWithSchema()); err != nil {
+		return err
+	}
+
+	if !c.isUsedCluster() {
+		return nil
+	}
+
+	if err := c.dropTable(ctx, c.dTableNameWithSchema()); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Clickhouse) dropTable(ctx context.Context, tableName string) error {
+	q := fmt.Sprintf(`DROP TABLE %s`, tableName)
 	if _, err := c.conn.ExecContext(ctx, q); err != nil {
 		return errors.Wrap(c.dbError(err, q), "drop migration history table")
 	}
+
 	return nil
 }
 
 // MigrationsCount returns the number of migrations
 func (c *Clickhouse) MigrationsCount(ctx context.Context) (int, error) {
-	q := fmt.Sprintf(`SELECT count(*) FROM %s WHERE is_deleted = 0`, c.options.TableName)
+	q := fmt.Sprintf(`SELECT count(*) FROM %s WHERE is_deleted = 0`, c.dTableNameWithSchema())
 	rows, err := c.conn.QueryContext(ctx, q)
 	if err != nil {
 		return 0, err
@@ -210,7 +244,7 @@ func (c *Clickhouse) MigrationsCount(ctx context.Context) (int, error) {
 }
 
 func (c *Clickhouse) ExistsMigration(ctx context.Context, version string) (bool, error) {
-	q := fmt.Sprintf(`SELECT 1 FROM %s WHERE version = ? AND is_deleted = 0`, c.TableNameWithSchema())
+	q := fmt.Sprintf(`SELECT 1 FROM %s WHERE version = ? AND is_deleted = 0`, c.dTableNameWithSchema())
 	rows, err := c.conn.QueryContext(ctx, q, version)
 	if err != nil {
 		return false, err
@@ -236,12 +270,28 @@ func (c *Clickhouse) ForceSafely() bool {
 	return false
 }
 
+func (c *Clickhouse) dTableName() string {
+	if c.isUsedCluster() {
+		return "_d" + c.options.TableName
+	}
+
+	return c.options.TableName
+}
+
+func (c *Clickhouse) dTableNameWithSchema() string {
+	return c.options.SchemaName + "." + c.dTableName()
+}
+
+func (c *Clickhouse) isUsedCluster() bool {
+	return !c.options.Replicated && len(c.options.ClusterName) > 0
+}
+
 // insertMigration inserts migration record.
 func (c *Clickhouse) insertMigration(ctx context.Context, version string, isDeleted bool) error {
 	q := fmt.Sprintf(`
 		INSERT INTO %s (version, apply_time, is_deleted) 
 		VALUES(?, ?, ?)`,
-		c.options.TableName,
+		c.dTableNameWithSchema(),
 	)
 
 	//nolint:gosec // overflow ok
