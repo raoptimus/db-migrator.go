@@ -4,8 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/pkg/errors"
 	"github.com/raoptimus/db-migrator.go/internal/dal/repository/mockrepository"
-	"github.com/raoptimus/db-migrator.go/pkg/testhelp"
+	"github.com/raoptimus/db-migrator.go/pkg/thelp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -31,11 +32,11 @@ func TestClickhouse_CreateMigrationHistoryTable_Successfully(t *testing.T) {
 	`
 	conn := mockrepository.NewConnection(t)
 	conn.EXPECT().
-		ExecContext(ctx, mock.MatchedBy(testhelper.CompareSQL(expectedSQL))).
+		ExecContext(ctx, mock.MatchedBy(thelp.CompareSQL(expectedSQL))).
 		Return(nil, nil).
 		Once()
 	conn.EXPECT().
-		ExecContext(ctx, mock.MatchedBy(testhelper.CompareSQL(expectedSQL2))).
+		ExecContext(ctx, mock.MatchedBy(thelp.CompareSQL(expectedSQL2))).
 		Return(nil, nil).
 		Once()
 
@@ -47,4 +48,31 @@ func TestClickhouse_CreateMigrationHistoryTable_Successfully(t *testing.T) {
 	})
 	err := repo.CreateMigrationHistoryTable(ctx)
 	assert.NoError(t, err)
+}
+
+func TestClickhouse_Migrations_Faillure(t *testing.T) {
+	ctx := context.Background()
+
+	expectedSQL := `
+		SELECT version, apply_time 
+		FROM default.d_migrates 
+		WHERE is_deleted = 0 
+		ORDER BY apply_time DESC, version DESC 
+		LIMIT ?
+	`
+
+	conn := mockrepository.NewConnection(t)
+	conn.EXPECT().
+		QueryContext(ctx, mock.MatchedBy(thelp.CompareSQL(expectedSQL)), 1).
+		Return(nil, errors.New("oops")).
+		Once()
+
+	repo := NewClickhouse(conn, &Options{
+		TableName:   "migrates",
+		SchemaName:  "default",
+		ClusterName: "test_cluster",
+		Replicated:  false,
+	})
+	_, err := repo.Migrations(ctx, 1)
+	assert.Error(t, err)
 }

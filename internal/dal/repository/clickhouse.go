@@ -273,7 +273,7 @@ func (c *Clickhouse) ForceSafely() bool {
 
 func (c *Clickhouse) dTableName() string {
 	if c.isUsedCluster() {
-		return "_d" + c.options.TableName
+		return "d_" + c.options.TableName
 	}
 
 	return c.options.TableName

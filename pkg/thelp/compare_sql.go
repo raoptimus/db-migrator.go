@@ -1,4 +1,4 @@
-package testhelper
+package thelp
 
 import (
 	"regexp"
@@ -15,7 +15,9 @@ func CompareSQL(expected string) func(actual string) bool {
 	return func(actual string) bool {
 		expected = CleanSQL(expected)
 		actual = CleanSQL(actual)
-		return expected == actual
+		result := expected == actual
+
+		return result
 	}
 }
 

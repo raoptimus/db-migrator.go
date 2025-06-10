@@ -6,5 +6,5 @@ use (
 	pkg/iohelp
 	pkg/sqlio
 	pkg/timex
-	pkg/testhelp
+	pkg/thelp
 )
