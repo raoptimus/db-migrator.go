@@ -26,6 +26,10 @@ func (_m *MigrationService) EXPECT() *MigrationService_Expecter {
 func (_m *MigrationService) ApplyFile(ctx context.Context, _a1 *entity.Migration, fileName string, safely bool) error {
 	ret := _m.Called(ctx, _a1, fileName, safely)
 
+	if len(ret) == 0 {
+		panic("no return value specified for ApplyFile")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, *entity.Migration, string, bool) error); ok {
 		r0 = rf(ctx, _a1, fileName, safely)
@@ -70,6 +74,10 @@ func (_c *MigrationService_ApplyFile_Call) RunAndReturn(run func(context.Context
 // Migrations provides a mock function with given fields: ctx, limit
 func (_m *MigrationService) Migrations(ctx context.Context, limit int) (entity.Migrations, error) {
 	ret := _m.Called(ctx, limit)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Migrations")
+	}
 
 	var r0 entity.Migrations
 	var r1 error
@@ -126,6 +134,10 @@ func (_c *MigrationService_Migrations_Call) RunAndReturn(run func(context.Contex
 func (_m *MigrationService) NewMigrations(ctx context.Context) (entity.Migrations, error) {
 	ret := _m.Called(ctx)
 
+	if len(ret) == 0 {
+		panic("no return value specified for NewMigrations")
+	}
+
 	var r0 entity.Migrations
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context) (entity.Migrations, error)); ok {
@@ -180,6 +192,10 @@ func (_c *MigrationService_NewMigrations_Call) RunAndReturn(run func(context.Con
 func (_m *MigrationService) RevertFile(ctx context.Context, _a1 *entity.Migration, fileName string, safely bool) error {
 	ret := _m.Called(ctx, _a1, fileName, safely)
 
+	if len(ret) == 0 {
+		panic("no return value specified for RevertFile")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, *entity.Migration, string, bool) error); ok {
 		r0 = rf(ctx, _a1, fileName, safely)
@@ -221,13 +237,12 @@ func (_c *MigrationService_RevertFile_Call) RunAndReturn(run func(context.Contex
 	return _c
 }
 
-type mockConstructorTestingTNewMigrationService interface {
+// NewMigrationService creates a new instance of MigrationService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// The first argument is typically a *testing.T value.
+func NewMigrationService(t interface {
 	mock.TestingT
 	Cleanup(func())
-}
-
-// NewMigrationService creates a new instance of MigrationService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
-func NewMigrationService(t mockConstructorTestingTNewMigrationService) *MigrationService {
+}) *MigrationService {
 	mock := &MigrationService{}
 	mock.Mock.Test(t)
 

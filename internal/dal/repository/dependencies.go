@@ -7,7 +7,7 @@ import (
 	"github.com/raoptimus/db-migrator.go/internal/dal/connection"
 )
 
-//go:generate mockery --name=Connection --outpkg=mockrepository --output=./mockrepository
+//go:generate mockery
 type Connection interface {
 	DSN() string
 	Driver() connection.Driver

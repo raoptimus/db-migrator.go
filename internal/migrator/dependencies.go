@@ -7,7 +7,7 @@ import (
 	"github.com/raoptimus/db-migrator.go/internal/dal/connection"
 )
 
-//go:generate mockery --name=Connection --outpkg=mockmigrator --output=./mockmigrator
+//go:generate mockery
 type Connection interface {
 	DSN() string
 	Driver() connection.Driver
@@ -17,7 +17,7 @@ type Connection interface {
 	Transaction(ctx context.Context, txFn func(ctx context.Context) error) error
 }
 
-//go:generate mockery --name=FileNameBuilder --outpkg=mockmigrator --output=./mockmigrator
+//go:generate mockery
 type FileNameBuilder interface {
 	// Up builds a file name for migration update
 	Up(version string, forceSafely bool) (fname string, safely bool)

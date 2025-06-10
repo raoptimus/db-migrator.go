@@ -1,2 +1,14 @@
-disable-version-string: True
 with-expecter: True
+resolve-type-alias: False
+issue-845-fix: True
+print: True
+disable-version-string: True
+packages:
+  "./":
+    config:
+      recursive: True
+      all: True
+      mockname: "{{ .InterfaceName }}"
+      outpkg: "mock{{ .PackageName }}"
+      filename: "{{ .InterfaceName | snakecase }}.go"
+      dir: "{{ .InterfaceDirRelative }}/mock{{ .PackageName }}"

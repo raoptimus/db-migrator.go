@@ -15,7 +15,7 @@ import (
 	"github.com/raoptimus/db-migrator.go/internal/dal/entity"
 )
 
-//go:generate mockery --name=Console --outpkg=mockaction --output=./mockaction
+//go:generate mockery
 type Console interface {
 	Confirm(s string) bool
 	Info(message string)
@@ -34,14 +34,14 @@ type Console interface {
 	NumberPlural(count int, one, many string) string
 }
 
-//go:generate mockery --name=File --outpkg=mockservice --output=./mockservice
+//go:generate mockery
 type File interface {
 	Exists(fileName string) (bool, error)
 	Open(filename string) (io.ReadCloser, error)
 	ReadAll(filename string) ([]byte, error)
 }
 
-//go:generate mockery --name=Repository --outpkg=mockservice --output=./mockservice
+//go:generate mockery
 type Repository interface {
 	// ExistsMigration returns true if version of migration exists
 	ExistsMigration(ctx context.Context, version string) (bool, error)

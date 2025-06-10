@@ -14,7 +14,7 @@ import (
 	"github.com/raoptimus/db-migrator.go/internal/dal/entity"
 )
 
-//go:generate mockery --name=Console --outpkg=mockaction --output=./mockaction
+//go:generate mockery
 type Console interface {
 	Confirm(s string) bool
 	Info(message string)
@@ -33,13 +33,13 @@ type Console interface {
 	NumberPlural(count int, one, many string) string
 }
 
-//go:generate mockery --name=File --outpkg=mockaction --output=./mockaction
+//go:generate mockery
 type File interface {
 	Create(filename string) error
 	Exists(path string) (bool, error)
 }
 
-//go:generate mockery --name=FileNameBuilder --outpkg=mockaction --output=./mockaction
+//go:generate mockery
 type FileNameBuilder interface {
 	// Up builds a file name for migration update
 	Up(version string, forceSafely bool) (fname string, safely bool)
@@ -47,7 +47,7 @@ type FileNameBuilder interface {
 	Down(version string, forceSafely bool) (fname string, safely bool)
 }
 
-//go:generate mockery --name=MigrationService --outpkg=mockaction --output=./mockaction
+//go:generate mockery
 type MigrationService interface {
 	// Migrations returns an entities of migrations
 	Migrations(ctx context.Context, limit int) (entity.Migrations, error)

@@ -26,6 +26,10 @@ func (_m *Repository) EXPECT() *Repository_Expecter {
 func (_m *Repository) CreateMigrationHistoryTable(ctx context.Context) error {
 	ret := _m.Called(ctx)
 
+	if len(ret) == 0 {
+		panic("no return value specified for CreateMigrationHistoryTable")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context) error); ok {
 		r0 = rf(ctx)
@@ -68,6 +72,10 @@ func (_c *Repository_CreateMigrationHistoryTable_Call) RunAndReturn(run func(con
 func (_m *Repository) DropMigrationHistoryTable(ctx context.Context) error {
 	ret := _m.Called(ctx)
 
+	if len(ret) == 0 {
+		panic("no return value specified for DropMigrationHistoryTable")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context) error); ok {
 		r0 = rf(ctx)
@@ -107,14 +115,18 @@ func (_c *Repository_DropMigrationHistoryTable_Call) RunAndReturn(run func(conte
 }
 
 // ExecQuery provides a mock function with given fields: ctx, query, args
-func (_m *Repository) ExecQuery(ctx context.Context, query string, args ...interface{}) error {
+func (_m *Repository) ExecQuery(ctx context.Context, query string, args ...any) error {
 	var _ca []interface{}
 	_ca = append(_ca, ctx, query)
 	_ca = append(_ca, args...)
 	ret := _m.Called(_ca...)
 
+	if len(ret) == 0 {
+		panic("no return value specified for ExecQuery")
+	}
+
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, ...interface{}) error); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...any) error); ok {
 		r0 = rf(ctx, query, args...)
 	} else {
 		r0 = ret.Error(0)
@@ -131,18 +143,18 @@ type Repository_ExecQuery_Call struct {
 // ExecQuery is a helper method to define mock.On call
 //   - ctx context.Context
 //   - query string
-//   - args ...interface{}
+//   - args ...any
 func (_e *Repository_Expecter) ExecQuery(ctx interface{}, query interface{}, args ...interface{}) *Repository_ExecQuery_Call {
 	return &Repository_ExecQuery_Call{Call: _e.mock.On("ExecQuery",
 		append([]interface{}{ctx, query}, args...)...)}
 }
 
-func (_c *Repository_ExecQuery_Call) Run(run func(ctx context.Context, query string, args ...interface{})) *Repository_ExecQuery_Call {
+func (_c *Repository_ExecQuery_Call) Run(run func(ctx context.Context, query string, args ...any)) *Repository_ExecQuery_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]interface{}, len(args)-2)
+		variadicArgs := make([]any, len(args)-2)
 		for i, a := range args[2:] {
 			if a != nil {
-				variadicArgs[i] = a.(interface{})
+				variadicArgs[i] = a.(any)
 			}
 		}
 		run(args[0].(context.Context), args[1].(string), variadicArgs...)
@@ -155,7 +167,7 @@ func (_c *Repository_ExecQuery_Call) Return(_a0 error) *Repository_ExecQuery_Cal
 	return _c
 }
 
-func (_c *Repository_ExecQuery_Call) RunAndReturn(run func(context.Context, string, ...interface{}) error) *Repository_ExecQuery_Call {
+func (_c *Repository_ExecQuery_Call) RunAndReturn(run func(context.Context, string, ...any) error) *Repository_ExecQuery_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -163,6 +175,10 @@ func (_c *Repository_ExecQuery_Call) RunAndReturn(run func(context.Context, stri
 // ExecQueryTransaction provides a mock function with given fields: ctx, fnTx
 func (_m *Repository) ExecQueryTransaction(ctx context.Context, fnTx func(context.Context) error) error {
 	ret := _m.Called(ctx, fnTx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ExecQueryTransaction")
+	}
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, func(context.Context) error) error); ok {
@@ -206,6 +222,10 @@ func (_c *Repository_ExecQueryTransaction_Call) RunAndReturn(run func(context.Co
 // ExistsMigration provides a mock function with given fields: ctx, version
 func (_m *Repository) ExistsMigration(ctx context.Context, version string) (bool, error) {
 	ret := _m.Called(ctx, version)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ExistsMigration")
+	}
 
 	var r0 bool
 	var r1 error
@@ -256,9 +276,13 @@ func (_c *Repository_ExistsMigration_Call) RunAndReturn(run func(context.Context
 	return _c
 }
 
-// ForceSafely provides a mock function with given fields:
+// ForceSafely provides a mock function with no fields
 func (_m *Repository) ForceSafely() bool {
 	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for ForceSafely")
+	}
 
 	var r0 bool
 	if rf, ok := ret.Get(0).(func() bool); ok {
@@ -300,6 +324,10 @@ func (_c *Repository_ForceSafely_Call) RunAndReturn(run func() bool) *Repository
 // HasMigrationHistoryTable provides a mock function with given fields: ctx
 func (_m *Repository) HasMigrationHistoryTable(ctx context.Context) (bool, error) {
 	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for HasMigrationHistoryTable")
+	}
 
 	var r0 bool
 	var r1 error
@@ -353,6 +381,10 @@ func (_c *Repository_HasMigrationHistoryTable_Call) RunAndReturn(run func(contex
 func (_m *Repository) InsertMigration(ctx context.Context, version string) error {
 	ret := _m.Called(ctx, version)
 
+	if len(ret) == 0 {
+		panic("no return value specified for InsertMigration")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
 		r0 = rf(ctx, version)
@@ -395,6 +427,10 @@ func (_c *Repository_InsertMigration_Call) RunAndReturn(run func(context.Context
 // Migrations provides a mock function with given fields: ctx, limit
 func (_m *Repository) Migrations(ctx context.Context, limit int) (entity.Migrations, error) {
 	ret := _m.Called(ctx, limit)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Migrations")
+	}
 
 	var r0 entity.Migrations
 	var r1 error
@@ -451,6 +487,10 @@ func (_c *Repository_Migrations_Call) RunAndReturn(run func(context.Context, int
 func (_m *Repository) MigrationsCount(ctx context.Context) (int, error) {
 	ret := _m.Called(ctx)
 
+	if len(ret) == 0 {
+		panic("no return value specified for MigrationsCount")
+	}
+
 	var r0 int
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context) (int, error)); ok {
@@ -503,6 +543,10 @@ func (_c *Repository_MigrationsCount_Call) RunAndReturn(run func(context.Context
 func (_m *Repository) RemoveMigration(ctx context.Context, version string) error {
 	ret := _m.Called(ctx, version)
 
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveMigration")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
 		r0 = rf(ctx, version)
@@ -542,9 +586,13 @@ func (_c *Repository_RemoveMigration_Call) RunAndReturn(run func(context.Context
 	return _c
 }
 
-// TableNameWithSchema provides a mock function with given fields:
+// TableNameWithSchema provides a mock function with no fields
 func (_m *Repository) TableNameWithSchema() string {
 	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for TableNameWithSchema")
+	}
 
 	var r0 string
 	if rf, ok := ret.Get(0).(func() string); ok {
@@ -583,13 +631,12 @@ func (_c *Repository_TableNameWithSchema_Call) RunAndReturn(run func() string) *
 	return _c
 }
 
-type mockConstructorTestingTNewRepository interface {
+// NewRepository creates a new instance of Repository. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// The first argument is typically a *testing.T value.
+func NewRepository(t interface {
 	mock.TestingT
 	Cleanup(func())
-}
-
-// NewRepository creates a new instance of Repository. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
-func NewRepository(t mockConstructorTestingTNewRepository) *Repository {
+}) *Repository {
 	mock := &Repository{}
 	mock.Mock.Test(t)
 

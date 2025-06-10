@@ -39,7 +39,7 @@ type (
 	}
 	Options struct {
 		DSN                string
-		MaxConnAttempts    int64
+		MaxConnAttempts    int
 		Directory          string
 		TableName          string
 		ClusterName        string
