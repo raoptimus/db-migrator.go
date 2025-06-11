@@ -50,7 +50,7 @@ func TestClickhouse_CreateMigrationHistoryTable_Successfully(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestClickhouse_Migrations_Faillure(t *testing.T) {
+func TestClickhouse_Migrations_Failure(t *testing.T) {
 	ctx := context.Background()
 
 	expectedSQL := `
@@ -74,5 +74,53 @@ func TestClickhouse_Migrations_Faillure(t *testing.T) {
 		Replicated:  false,
 	})
 	_, err := repo.Migrations(ctx, 1)
+	assert.Error(t, err)
+}
+
+func TestClickhouse_ExistsMigration_Failure(t *testing.T) {
+	ctx := context.Background()
+
+	expectedSQL := `
+		SELECT 1 FROM default.d_migrates WHERE version = ? AND is_deleted = 0
+	`
+
+	conn := mockrepository.NewConnection(t)
+	conn.EXPECT().
+		QueryContext(ctx, mock.MatchedBy(thelp.CompareSQL(expectedSQL)), "20250611_104500_test").
+		Return(nil, errors.New("oops")).
+		Once()
+
+	repo := NewClickhouse(conn, &Options{
+		TableName:   "migrates",
+		SchemaName:  "default",
+		ClusterName: "test_cluster",
+		Replicated:  false,
+	})
+	_, err := repo.ExistsMigration(ctx, "20250611_104500_test")
+	assert.Error(t, err)
+}
+
+func TestClickhouse_HasMigrationHistoryTable_Failure(t *testing.T) {
+	ctx := context.Background()
+
+	expectedSQL := `
+		SELECT database, table 
+		FROM system.columns 
+		WHERE table = ? AND database = currentDatabase()
+	`
+
+	conn := mockrepository.NewConnection(t)
+	conn.EXPECT().
+		QueryContext(ctx, mock.MatchedBy(thelp.CompareSQL(expectedSQL)), "d_migrates").
+		Return(nil, errors.New("oops")).
+		Once()
+
+	repo := NewClickhouse(conn, &Options{
+		TableName:   "migrates",
+		SchemaName:  "default",
+		ClusterName: "test_cluster",
+		Replicated:  false,
+	})
+	_, err := repo.HasMigrationHistoryTable(ctx)
 	assert.Error(t, err)
 }

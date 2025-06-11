@@ -33,7 +33,7 @@ type (
 		options         *Options
 		fileNameBuilder FileNameBuilder
 
-		conn    *connection.Connection
+		conn    Connection
 		repo    *repository.Repository
 		service *service.Migration
 	}
