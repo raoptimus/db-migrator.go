@@ -15,7 +15,7 @@ import (
 
 	_ "github.com/lib/pq"
 	"github.com/raoptimus/db-migrator.go/internal/migrator"
-	"github.com/raoptimus/db-migrator.go/pkg/console"
+	"github.com/raoptimus/db-migrator.go/internal/util/console"
 	"github.com/urfave/cli/v3"
 )
 

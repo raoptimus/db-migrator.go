@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/go-sql-driver/mysql"
+	"github.com/pkg/errors"
 	"github.com/raoptimus/db-migrator.go/internal/dal/connection"
 	"github.com/raoptimus/db-migrator.go/internal/dal/entity"
 )
@@ -85,7 +87,7 @@ func create(conn Connection, options *Options) (adapter, error) {
 	case connection.DriverMySQL:
 		cfg, err := mysql.ParseDSN(conn.DSN())
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "parsing dsn")
 		}
 		repo := NewMySQL(conn, &Options{
 			TableName:  options.TableName,
@@ -109,11 +111,21 @@ func create(conn Connection, options *Options) (adapter, error) {
 		})
 		return repo, nil
 	case connection.DriverClickhouse:
+		opts, err := clickhouse.ParseDSN(conn.DSN())
+		if err != nil {
+			return nil, errors.Wrap(err, "parsing dsn")
+		}
+		var tableName string
+		if strings.Contains(options.TableName, ".") {
+			parts := strings.Split(options.TableName, ".")
+			tableName = parts[1]
+		} else {
+			tableName = options.TableName
+		}
 		repo := NewClickhouse(conn, &Options{
-			TableName:   options.TableName,
-			SchemaName:  options.SchemaName,
+			SchemaName:  opts.Auth.Database,
+			TableName:   tableName,
 			ClusterName: options.ClusterName,
-			ShardName:   options.ShardName,
 		})
 		return repo, nil
 	default:

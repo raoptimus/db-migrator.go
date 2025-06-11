@@ -1,3 +1,11 @@
+/**
+ * This file is part of the raoptimus/db-migrator.go library
+ *
+ * @copyright Copyright (c) Evgeniy Urvantsev
+ * @license https://github.com/raoptimus/db-migrator.go/blob/master/LICENSE.md
+ * @link https://github.com/raoptimus/db-migrator.go
+ */
+
 package console
 
 type Dummy struct {
@@ -13,47 +21,30 @@ func (c *Dummy) Confirm(s string) bool {
 }
 
 func (c *Dummy) Info(message string) {
-	return
 }
 func (c *Dummy) InfoLn(message string) {
-	return
 }
 func (c *Dummy) Infof(message string, a ...any) {
-	return
 }
-
 func (c *Dummy) Success(message string) {
-	return
 }
 func (c *Dummy) SuccessLn(message string) {
-	return
 }
 func (c *Dummy) Successf(message string, a ...any) {
-	return
 }
-
 func (c *Dummy) Warn(message string) {
-	return
 }
 func (c *Dummy) WarnLn(message string) {
-	return
 }
 func (c *Dummy) Warnf(message string, a ...any) {
-	return
 }
-
 func (c *Dummy) Error(message string) {
-	return
 }
 func (c *Dummy) ErrorLn(message string) {
-	return
 }
 func (c *Dummy) Errorf(message string, a ...any) {
-	return
 }
-
 func (c *Dummy) Fatal(err error) {
-	return
 }
 
 func (c *Dummy) NumberPlural(count int, one, many string) string {

@@ -21,6 +21,10 @@ func (_m *FileNameBuilder) EXPECT() *FileNameBuilder_Expecter {
 func (_m *FileNameBuilder) Down(version string, forceSafely bool) (string, bool) {
 	ret := _m.Called(version, forceSafely)
 
+	if len(ret) == 0 {
+		panic("no return value specified for Down")
+	}
+
 	var r0 string
 	var r1 bool
 	if rf, ok := ret.Get(0).(func(string, bool) (string, bool)); ok {
@@ -74,6 +78,10 @@ func (_c *FileNameBuilder_Down_Call) RunAndReturn(run func(string, bool) (string
 func (_m *FileNameBuilder) Up(version string, forceSafely bool) (string, bool) {
 	ret := _m.Called(version, forceSafely)
 
+	if len(ret) == 0 {
+		panic("no return value specified for Up")
+	}
+
 	var r0 string
 	var r1 bool
 	if rf, ok := ret.Get(0).(func(string, bool) (string, bool)); ok {
@@ -123,13 +131,12 @@ func (_c *FileNameBuilder_Up_Call) RunAndReturn(run func(string, bool) (string, 
 	return _c
 }
 
-type mockConstructorTestingTNewFileNameBuilder interface {
+// NewFileNameBuilder creates a new instance of FileNameBuilder. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// The first argument is typically a *testing.T value.
+func NewFileNameBuilder(t interface {
 	mock.TestingT
 	Cleanup(func())
-}
-
-// NewFileNameBuilder creates a new instance of FileNameBuilder. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
-func NewFileNameBuilder(t mockConstructorTestingTNewFileNameBuilder) *FileNameBuilder {
+}) *FileNameBuilder {
 	mock := &FileNameBuilder{}
 	mock.Mock.Test(t)
 

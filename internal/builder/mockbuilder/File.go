@@ -21,6 +21,10 @@ func (_m *File) EXPECT() *File_Expecter {
 func (_m *File) Exists(fileName string) (bool, error) {
 	ret := _m.Called(fileName)
 
+	if len(ret) == 0 {
+		panic("no return value specified for Exists")
+	}
+
 	var r0 bool
 	var r1 error
 	if rf, ok := ret.Get(0).(func(string) (bool, error)); ok {
@@ -69,13 +73,12 @@ func (_c *File_Exists_Call) RunAndReturn(run func(string) (bool, error)) *File_E
 	return _c
 }
 
-type mockConstructorTestingTNewFile interface {
+// NewFile creates a new instance of File. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// The first argument is typically a *testing.T value.
+func NewFile(t interface {
 	mock.TestingT
 	Cleanup(func())
-}
-
-// NewFile creates a new instance of File. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
-func NewFile(t mockConstructorTestingTNewFile) *File {
+}) *File {
 	mock := &File{}
 	mock.Mock.Test(t)
 

@@ -25,9 +25,13 @@ func (_m *Connection) EXPECT() *Connection_Expecter {
 	return &Connection_Expecter{mock: &_m.Mock}
 }
 
-// DSN provides a mock function with given fields:
+// DSN provides a mock function with no fields
 func (_m *Connection) DSN() string {
 	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for DSN")
+	}
 
 	var r0 string
 	if rf, ok := ret.Get(0).(func() string); ok {
@@ -66,9 +70,13 @@ func (_c *Connection_DSN_Call) RunAndReturn(run func() string) *Connection_DSN_C
 	return _c
 }
 
-// Driver provides a mock function with given fields:
+// Driver provides a mock function with no fields
 func (_m *Connection) Driver() connection.Driver {
 	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Driver")
+	}
 
 	var r0 connection.Driver
 	if rf, ok := ret.Get(0).(func() connection.Driver); ok {
@@ -108,18 +116,22 @@ func (_c *Connection_Driver_Call) RunAndReturn(run func() connection.Driver) *Co
 }
 
 // ExecContext provides a mock function with given fields: ctx, query, args
-func (_m *Connection) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+func (_m *Connection) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
 	var _ca []interface{}
 	_ca = append(_ca, ctx, query)
 	_ca = append(_ca, args...)
 	ret := _m.Called(_ca...)
 
+	if len(ret) == 0 {
+		panic("no return value specified for ExecContext")
+	}
+
 	var r0 sql.Result
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, ...interface{}) (sql.Result, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...any) (sql.Result, error)); ok {
 		return rf(ctx, query, args...)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, ...interface{}) sql.Result); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...any) sql.Result); ok {
 		r0 = rf(ctx, query, args...)
 	} else {
 		if ret.Get(0) != nil {
@@ -127,7 +139,7 @@ func (_m *Connection) ExecContext(ctx context.Context, query string, args ...int
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, ...interface{}) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, string, ...any) error); ok {
 		r1 = rf(ctx, query, args...)
 	} else {
 		r1 = ret.Error(1)
@@ -144,18 +156,18 @@ type Connection_ExecContext_Call struct {
 // ExecContext is a helper method to define mock.On call
 //   - ctx context.Context
 //   - query string
-//   - args ...interface{}
+//   - args ...any
 func (_e *Connection_Expecter) ExecContext(ctx interface{}, query interface{}, args ...interface{}) *Connection_ExecContext_Call {
 	return &Connection_ExecContext_Call{Call: _e.mock.On("ExecContext",
 		append([]interface{}{ctx, query}, args...)...)}
 }
 
-func (_c *Connection_ExecContext_Call) Run(run func(ctx context.Context, query string, args ...interface{})) *Connection_ExecContext_Call {
+func (_c *Connection_ExecContext_Call) Run(run func(ctx context.Context, query string, args ...any)) *Connection_ExecContext_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]interface{}, len(args)-2)
+		variadicArgs := make([]any, len(args)-2)
 		for i, a := range args[2:] {
 			if a != nil {
-				variadicArgs[i] = a.(interface{})
+				variadicArgs[i] = a.(any)
 			}
 		}
 		run(args[0].(context.Context), args[1].(string), variadicArgs...)
@@ -168,14 +180,18 @@ func (_c *Connection_ExecContext_Call) Return(_a0 sql.Result, _a1 error) *Connec
 	return _c
 }
 
-func (_c *Connection_ExecContext_Call) RunAndReturn(run func(context.Context, string, ...interface{}) (sql.Result, error)) *Connection_ExecContext_Call {
+func (_c *Connection_ExecContext_Call) RunAndReturn(run func(context.Context, string, ...any) (sql.Result, error)) *Connection_ExecContext_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// Ping provides a mock function with given fields:
+// Ping provides a mock function with no fields
 func (_m *Connection) Ping() error {
 	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Ping")
+	}
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func() error); ok {
@@ -215,18 +231,22 @@ func (_c *Connection_Ping_Call) RunAndReturn(run func() error) *Connection_Ping_
 }
 
 // QueryContext provides a mock function with given fields: ctx, query, args
-func (_m *Connection) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+func (_m *Connection) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
 	var _ca []interface{}
 	_ca = append(_ca, ctx, query)
 	_ca = append(_ca, args...)
 	ret := _m.Called(_ca...)
 
+	if len(ret) == 0 {
+		panic("no return value specified for QueryContext")
+	}
+
 	var r0 *sql.Rows
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, ...interface{}) (*sql.Rows, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...any) (*sql.Rows, error)); ok {
 		return rf(ctx, query, args...)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, ...interface{}) *sql.Rows); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...any) *sql.Rows); ok {
 		r0 = rf(ctx, query, args...)
 	} else {
 		if ret.Get(0) != nil {
@@ -234,7 +254,7 @@ func (_m *Connection) QueryContext(ctx context.Context, query string, args ...in
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, ...interface{}) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, string, ...any) error); ok {
 		r1 = rf(ctx, query, args...)
 	} else {
 		r1 = ret.Error(1)
@@ -251,18 +271,18 @@ type Connection_QueryContext_Call struct {
 // QueryContext is a helper method to define mock.On call
 //   - ctx context.Context
 //   - query string
-//   - args ...interface{}
+//   - args ...any
 func (_e *Connection_Expecter) QueryContext(ctx interface{}, query interface{}, args ...interface{}) *Connection_QueryContext_Call {
 	return &Connection_QueryContext_Call{Call: _e.mock.On("QueryContext",
 		append([]interface{}{ctx, query}, args...)...)}
 }
 
-func (_c *Connection_QueryContext_Call) Run(run func(ctx context.Context, query string, args ...interface{})) *Connection_QueryContext_Call {
+func (_c *Connection_QueryContext_Call) Run(run func(ctx context.Context, query string, args ...any)) *Connection_QueryContext_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]interface{}, len(args)-2)
+		variadicArgs := make([]any, len(args)-2)
 		for i, a := range args[2:] {
 			if a != nil {
-				variadicArgs[i] = a.(interface{})
+				variadicArgs[i] = a.(any)
 			}
 		}
 		run(args[0].(context.Context), args[1].(string), variadicArgs...)
@@ -275,7 +295,7 @@ func (_c *Connection_QueryContext_Call) Return(_a0 *sql.Rows, _a1 error) *Connec
 	return _c
 }
 
-func (_c *Connection_QueryContext_Call) RunAndReturn(run func(context.Context, string, ...interface{}) (*sql.Rows, error)) *Connection_QueryContext_Call {
+func (_c *Connection_QueryContext_Call) RunAndReturn(run func(context.Context, string, ...any) (*sql.Rows, error)) *Connection_QueryContext_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -283,6 +303,10 @@ func (_c *Connection_QueryContext_Call) RunAndReturn(run func(context.Context, s
 // Transaction provides a mock function with given fields: ctx, txFn
 func (_m *Connection) Transaction(ctx context.Context, txFn func(context.Context) error) error {
 	ret := _m.Called(ctx, txFn)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Transaction")
+	}
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, func(context.Context) error) error); ok {
@@ -323,13 +347,12 @@ func (_c *Connection_Transaction_Call) RunAndReturn(run func(context.Context, fu
 	return _c
 }
 
-type mockConstructorTestingTNewConnection interface {
+// NewConnection creates a new instance of Connection. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// The first argument is typically a *testing.T value.
+func NewConnection(t interface {
 	mock.TestingT
 	Cleanup(func())
-}
-
-// NewConnection creates a new instance of Connection. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
-func NewConnection(t mockConstructorTestingTNewConnection) *Connection {
+}) *Connection {
 	mock := &Connection{}
 	mock.Mock.Test(t)
 

@@ -15,8 +15,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-const fileModeExecutable = 0o755
-
 type File struct{}
 
 var StdFile = NewFile()

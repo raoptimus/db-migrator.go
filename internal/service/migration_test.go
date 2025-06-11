@@ -18,7 +18,7 @@ import (
 	"github.com/raoptimus/db-migrator.go/internal/action/mockaction"
 	"github.com/raoptimus/db-migrator.go/internal/dal/entity"
 	"github.com/raoptimus/db-migrator.go/internal/service/mockservice"
-	"github.com/raoptimus/db-migrator.go/pkg/console"
+	"github.com/raoptimus/db-migrator.go/internal/util/console"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )

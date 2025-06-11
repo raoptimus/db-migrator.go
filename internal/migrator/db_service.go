@@ -18,9 +18,9 @@ import (
 	"github.com/raoptimus/db-migrator.go/internal/dal/connection"
 	"github.com/raoptimus/db-migrator.go/internal/dal/repository"
 	"github.com/raoptimus/db-migrator.go/internal/service"
-	"github.com/raoptimus/db-migrator.go/pkg/console"
-	"github.com/raoptimus/db-migrator.go/pkg/iohelp"
-	"github.com/raoptimus/db-migrator.go/pkg/timex"
+	"github.com/raoptimus/db-migrator.go/internal/util/console"
+	"github.com/raoptimus/db-migrator.go/internal/util/iohelp"
+	"github.com/raoptimus/db-migrator.go/internal/util/timex"
 )
 
 const (
@@ -33,13 +33,13 @@ type (
 		options         *Options
 		fileNameBuilder FileNameBuilder
 
-		conn    *connection.Connection
+		conn    Connection
 		repo    *repository.Repository
 		service *service.Migration
 	}
 	Options struct {
 		DSN                string
-		MaxConnAttempts    int64
+		MaxConnAttempts    int
 		Directory          string
 		TableName          string
 		ClusterName        string
