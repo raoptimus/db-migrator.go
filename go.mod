@@ -8,10 +8,6 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 	github.com/pkg/errors v0.9.1
-	github.com/raoptimus/db-migrator.go/pkg/console v0.0.0-20240503100150-5445e535daaf
-	github.com/raoptimus/db-migrator.go/pkg/iohelp v0.0.0-20240503100150-5445e535daaf
-	github.com/raoptimus/db-migrator.go/pkg/sqlio v0.0.0-20240503100150-5445e535daaf
-	github.com/raoptimus/db-migrator.go/pkg/timex v0.0.0-20240503100150-5445e535daaf
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli/v3 v3.3.3
 )

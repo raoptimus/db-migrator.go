@@ -19,8 +19,8 @@ import (
 	"github.com/pkg/errors"
 	_ "github.com/raoptimus/db-migrator.go/internal/console"
 	"github.com/raoptimus/db-migrator.go/internal/dal/entity"
+	"github.com/raoptimus/db-migrator.go/internal/util/sqlio"
 	"github.com/raoptimus/db-migrator.go/internal/validator"
-	"github.com/raoptimus/db-migrator.go/pkg/sqlio"
 )
 
 const (

@@ -15,7 +15,7 @@ import (
 	"regexp"
 
 	"github.com/pkg/errors"
-	"github.com/raoptimus/db-migrator.go/pkg/timex"
+	"github.com/raoptimus/db-migrator.go/internal/util/timex"
 )
 
 const fileModeExecutable = 0o755

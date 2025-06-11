@@ -31,6 +31,21 @@ version:
 	@echo "GIT_TAG: ${GIT_TAG}"
 	@echo "GIT_COMMIT: ${GIT_COMMIT}"
 
+build-beta-docker-image: ## Build docker image
+	@#docker login -u "${DOCKER_ID_USER}" -p "${DOCKER_PASS}" docker.io
+	@docker build \
+		--platform linux/x86_64 \
+		--build-arg VERSION=${VERSION}-beta \
+		--build-arg GIT_BRANCH=${GIT_BRANCH} \
+		--build-arg GIT_COMMIT=${GIT_COMMIT} \
+		--build-arg GIT_TAG=${GIT_TAG} \
+		--build-arg GO_IMAGE_VERSION=${GO_IMAGE_VERSION} \
+		-f ./docker/image/build/Dockerfile \
+		-t ${DOCKER_ID_USER}/${DOCKER_IMAGE}:"${VERSION}-beta-alpine" \
+		-t ${DOCKER_ID_USER}/${DOCKER_IMAGE}:latest  ./
+
+	@docker push ${DOCKER_ID_USER}/${DOCKER_IMAGE}:"${VERSION}-beta-alpine"
+
 build-docker-image: ## Build docker image
 	@#docker login -u "${DOCKER_ID_USER}" -p "${DOCKER_PASS}" docker.io
 	@docker build \

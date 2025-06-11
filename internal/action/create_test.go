@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/raoptimus/db-migrator.go/internal/action/mockaction"
-	"github.com/raoptimus/db-migrator.go/pkg/timex"
+	"github.com/raoptimus/db-migrator.go/internal/util/timex"
 	"github.com/stretchr/testify/assert"
 )
 

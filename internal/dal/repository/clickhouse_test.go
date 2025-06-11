@@ -6,7 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/raoptimus/db-migrator.go/internal/dal/repository/mockrepository"
-	"github.com/raoptimus/db-migrator.go/pkg/thelp"
+	"github.com/raoptimus/db-migrator.go/internal/util/thelp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
