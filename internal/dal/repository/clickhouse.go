@@ -99,7 +99,7 @@ func (c *Clickhouse) HasMigrationHistoryTable(ctx context.Context) (exists bool,
 		}
 
 		//todo: scan columns to tableScheme
-		if table == c.options.TableName {
+		if table == c.dTableName() {
 			return true, nil
 		}
 	}
