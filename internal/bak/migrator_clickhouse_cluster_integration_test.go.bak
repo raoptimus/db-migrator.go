@@ -45,7 +45,7 @@ func createClickhouse1ClusterMigrator() (*Service, error) {
 		DSN:         os.Getenv("CLICKHOUSE_CLUSTER_DSN"),
 		Directory:   os.Getenv("CLICKHOUSE_CLUSTER_MIGRATIONS_PATH"),
 		TableName:   "migration",
-		ClusterName: os.Getenv("CLICKHOUSE_CLUSTER_NAME"),
+		ClusterName: os.Getenv("MIGRATION_CLUSTER_NAME"),
 		Compact:     false,
 		Interactive: false,
 	})
@@ -56,7 +56,7 @@ func createClickhouse2ClusterMigrator() (*Service, error) {
 		DSN:         os.Getenv("CLICKHOUSE_CLUSTER_DSN2"),
 		Directory:   os.Getenv("CLICKHOUSE_CLUSTER_MIGRATIONS_PATH"),
 		TableName:   "migration",
-		ClusterName: os.Getenv("CLICKHOUSE_CLUSTER_NAME"),
+		ClusterName: os.Getenv("MIGRATION_CLUSTER_NAME"),
 		Compact:     false,
 		Interactive: false,
 	})

@@ -69,7 +69,7 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 				DSN:         os.Getenv("CLICKHOUSE_CLUSTER_DSN"),
 				Directory:   migrationsPathAbs(os.Getenv("CLICKHOUSE_CLUSTER_MIGRATIONS_PATH")),
 				TableName:   "migration",
-				ClusterName: os.Getenv("CLICKHOUSE_CLUSTER_NAME"),
+				ClusterName: os.Getenv("MIGRATION_CLUSTER_NAME"),
 				Compact:     true,
 				Interactive: false,
 			},
