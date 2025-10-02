@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strconv"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/pkg/errors"
 	"github.com/raoptimus/db-migrator.go/internal/dal/entity"
+	"github.com/raoptimus/db-migrator.go/internal/sqlex"
 )
 
 type MySQL struct {
@@ -77,7 +77,7 @@ func (m *MySQL) HasMigrationHistoryTable(ctx context.Context) (exists bool, err 
 				WHERE table_name = ? AND table_schema = ?
 			)
 		`
-		rows *sql.Rows
+		rows sqlex.Rows
 	)
 
 	rows, err = m.conn.QueryContext(ctx, q, m.options.TableName, m.options.SchemaName)

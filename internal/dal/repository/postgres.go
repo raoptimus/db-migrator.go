@@ -2,13 +2,13 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
 	"github.com/raoptimus/db-migrator.go/internal/dal/entity"
+	"github.com/raoptimus/db-migrator.go/internal/sqlex"
 )
 
 const postgresDefaultSchema = "public"
@@ -79,7 +79,7 @@ func (p *Postgres) HasMigrationHistoryTable(ctx context.Context) (exists bool, e
 			LEFT JOIN pg_namespace d ON d.oid = c.relnamespace
 			WHERE (c.relname, d.nspname) = ($1, $2)
 		`
-		rows *sql.Rows
+		rows sqlex.Rows
 	)
 
 	rows, err = p.conn.QueryContext(ctx, q, p.options.TableName, p.options.SchemaName)

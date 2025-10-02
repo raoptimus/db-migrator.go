@@ -1,0 +1,105 @@
+/**
+ * This file is part of the raoptimus/db-migrator.go library
+ *
+ * @copyright Copyright (c) Evgeniy Urvantsev
+ * @license https://github.com/raoptimus/db-migrator.go/blob/master/LICENSE.md
+ * @link https://github.com/raoptimus/db-migrator.go
+ */
+
+package tarantool
+
+import (
+	"context"
+	"database/sql"
+	"database/sql/driver"
+	"net/url"
+
+	"github.com/pkg/errors"
+	"github.com/raoptimus/db-migrator.go/internal/sqlex"
+	"github.com/tarantool/go-tarantool/v2"
+)
+
+type DB struct {
+	conn *tarantool.Connection
+}
+
+func Open(dsn string) (*DB, error) {
+	dsnURL, err := url.Parse(dsn)
+	if err != nil {
+		return nil, errors.WithMessage(err, "parse DSN")
+	}
+	pass, _ := dsnURL.User.Password()
+	dialer := tarantool.NetDialer{
+		Address:  dsnURL.Host,
+		User:     dsnURL.User.Username(),
+		Password: pass,
+	}
+	opts := tarantool.Opts{
+		//Timeout: time.Second,
+	}
+	conn, err := tarantool.Connect(context.Background(), dialer, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return &DB{conn: conn}, nil
+}
+
+func (db *DB) Ping() error {
+	_, err := db.conn.Do(tarantool.NewPingRequest()).GetResponse()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *DB) QueryContext(ctx context.Context, query string, args ...any) (sqlex.Rows, error) {
+	req := tarantool.NewEvalRequest(query).Context(ctx)
+	if len(args) > 0 {
+		req = req.Args(args)
+	}
+	data, err := db.conn.
+		Do(req).
+		Get()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(data) == 1 {
+		if indata, ok := data[0].([]any); ok {
+			data = indata
+		}
+	}
+
+	return sqlex.NewRowsByData(data), nil
+}
+
+func (db *DB) ExecContext(ctx context.Context, query string, args ...any) (sqlex.Result, error) {
+	req := tarantool.NewEvalRequest(query).Context(ctx)
+	if len(args) > 0 {
+		req = req.Args(args)
+	}
+	_, err := db.conn.Do(req).Get()
+	if err != nil {
+		return nil, err
+	}
+
+	return driver.RowsAffected(-1), nil
+}
+
+func (db *DB) BeginTx(ctx context.Context, _ *sql.TxOptions) (*sql.Tx, error) {
+	_, err := db.conn.NewStream() //todo get stream
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = db.conn.
+		Do(tarantool.NewBeginRequest().Context(ctx).IsSync(true)).
+		GetResponse()
+	if err != nil {
+		return nil, err
+	}
+
+	return &sql.Tx{}, nil //todo
+}

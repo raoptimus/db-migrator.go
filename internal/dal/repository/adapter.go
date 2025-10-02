@@ -84,10 +84,15 @@ func (r *Repository) ForceSafely() bool {
 //nolint:ireturn,nolintlint // its ok
 func create(conn Connection, options *Options) (adapter, error) {
 	switch conn.Driver() {
+	case connection.DriverTarantool:
+		return NewTarantool(conn, &Options{
+			TableName:  options.TableName,
+			SchemaName: "",
+		}), nil
 	case connection.DriverMySQL:
 		cfg, err := mysql.ParseDSN(conn.DSN())
 		if err != nil {
-			return nil, errors.Wrap(err, "parsing dsn")
+			return nil, errors.WithMessage(err, "parsing dsn")
 		}
 		repo := NewMySQL(conn, &Options{
 			TableName:  options.TableName,
@@ -113,7 +118,7 @@ func create(conn Connection, options *Options) (adapter, error) {
 	case connection.DriverClickhouse:
 		opts, err := clickhouse.ParseDSN(conn.DSN())
 		if err != nil {
-			return nil, errors.Wrap(err, "parsing dsn")
+			return nil, errors.WithMessage(err, "parsing dsn")
 		}
 		var tableName string
 		if strings.Contains(options.TableName, ".") {

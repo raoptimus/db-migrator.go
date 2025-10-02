@@ -32,7 +32,7 @@ func main() {
 		Name:           "DB Service",
 		Usage:          "up/down/redo command for migrates the different db",
 		Version:        fmt.Sprintf("%s.rev[%s]", Version, GitCommit),
-		Commands:       commands(),
+		Commands:       commands(&options),
 		DefaultCommand: "help",
 		Flags:          flags(&options),
 		Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
@@ -47,7 +47,7 @@ func main() {
 	}
 }
 
-func commands() []*cli.Command {
+func commands(options *migrator.Options) []*cli.Command {
 	return []*cli.Command{
 		{
 			Name: "up",
@@ -84,6 +84,7 @@ func commands() []*cli.Command {
 			Action: func(ctx context.Context, cmd *cli.Command) error {
 				return dbService.Create().Run(ctx, cmd.Args().Get(0))
 			},
+			Flags: flags(options),
 		},
 		{
 			Name: "history",

@@ -1,3 +1,11 @@
+/**
+ * This file is part of the raoptimus/db-migrator.go library
+ *
+ * @copyright Copyright (c) Evgeniy Urvantsev
+ * @license https://github.com/raoptimus/db-migrator.go/blob/master/LICENSE.md
+ * @link https://github.com/raoptimus/db-migrator.go
+ */
+
 package validator
 
 import (
@@ -7,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+const maxTZ = 8 * time.Hour
 const patternVersion = `^(?P<Year>\d{2})(?P<Month>\d{2})(?P<Day>\d{2})\_(?P<Hour>\d{2})(?P<Minute>\d{2})(?P<Second>\d{2})\_[a-z][a-z0-9\_\-]+$`
 
 var (
@@ -32,7 +41,7 @@ func ValidateVersion(version string) error {
 		return errVersionIsNotValid
 	}
 
-	if dt.After(time.Now()) {
+	if dt.After(time.Now().Add(maxTZ)) {
 		return errVersionIsNotValid
 	}
 

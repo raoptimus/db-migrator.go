@@ -1,0 +1,1 @@
+box.space.test.truncate();

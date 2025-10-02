@@ -10,13 +10,13 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/pkg/errors"
 	"github.com/raoptimus/db-migrator.go/internal/dal/entity"
+	"github.com/raoptimus/db-migrator.go/internal/sqlex"
 )
 
 type Clickhouse struct {
@@ -81,7 +81,7 @@ func (c *Clickhouse) HasMigrationHistoryTable(ctx context.Context) (exists bool,
 			FROM system.columns 
 			WHERE table = ? AND database = currentDatabase()
 		`
-		rows *sql.Rows
+		rows sqlex.Rows
 	)
 
 	rows, err = c.conn.QueryContext(ctx, q, c.dTableName())

@@ -6,6 +6,7 @@ const (
 	DriverClickhouse Driver = "clickhouse"
 	DriverMySQL      Driver = "mysql"
 	DriverPostgres   Driver = "postgres"
+	DriverTarantool  Driver = "tarantool"
 )
 
 func (d Driver) String() string {

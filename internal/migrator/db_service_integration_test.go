@@ -86,6 +86,18 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 				Interactive: false,
 			},
 		},
+		{
+			name:        "tarantool",
+			selectQuery: "select * from raw.test",
+			options: &Options{
+				DSN:         os.Getenv("TARANTOOL_DSN"),
+				Replicated:  true,
+				Directory:   migrationsPathAbs(os.Getenv("TARANTOOL_MIGRATIONS_PATH")),
+				TableName:   "migration",
+				Compact:     true,
+				Interactive: false,
+			},
+		},
 	}
 	// endregion
 

@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/raoptimus/db-migrator.go/internal/sqlex"
+	"github.com/raoptimus/db-migrator.go/internal/sqlex/tarantool"
 )
 
 type ContextKey string
@@ -16,7 +18,7 @@ const contextKeyTX ContextKey = "tx"
 type Connection struct {
 	driver Driver
 	dsn    string
-	db     *sql.DB
+	db     SQLDB
 	ping   bool
 }
 
@@ -28,6 +30,8 @@ func New(dsn string) (*Connection, error) {
 		return postgres(dsn)
 	case strings.HasPrefix(dsn, "mysql://"):
 		return mysql(dsn)
+	case strings.HasPrefix(dsn, "tarantool://"):
+		return tarantoolConn(dsn)
 	default:
 		return nil, fmt.Errorf("driver \"%s\" doesn't support", dsn)
 	}
@@ -57,19 +61,13 @@ func (c *Connection) Ping() error {
 
 // QueryContext executes a query that returns rows, typically a SELECT.
 // The args are for any placeholder parameters in the query.
-func (c *Connection) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
-	if err := c.Ping(); err != nil {
-		return nil, err
-	}
+func (c *Connection) QueryContext(ctx context.Context, query string, args ...any) (sqlex.Rows, error) {
 	return c.db.QueryContext(ctx, query, args...)
 }
 
 // ExecContext executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.
-func (c *Connection) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
-	if err := c.Ping(); err != nil {
-		return nil, err
-	}
+func (c *Connection) ExecContext(ctx context.Context, query string, args ...any) (sqlex.Result, error) {
 	v := ctx.Value(contextKeyTX)
 	if v != nil {
 		if tx, ok := v.(*sql.Tx); ok {
@@ -110,7 +108,7 @@ func (c *Connection) Transaction(ctx context.Context, txFn func(ctx context.Cont
 	return tx.Commit()
 }
 
-// clickhouse returns repository with clickhouse configuration.
+// clickhouse returns connection with clickhouse configuration.
 func clickhouse(dsn string) (*Connection, error) {
 	db, err := sql.Open("clickhouse", dsn)
 	if err != nil {
@@ -120,11 +118,11 @@ func clickhouse(dsn string) (*Connection, error) {
 	return &Connection{
 		driver: DriverClickhouse,
 		dsn:    dsn,
-		db:     db,
+		db:     &sqlex.DB{DB: db},
 	}, nil
 }
 
-// postgres returns repository with postgres configuration.
+// postgres returns connection with postgres configuration.
 func postgres(dsn string) (*Connection, error) {
 	db, err := sql.Open(DriverPostgres.String(), dsn)
 	if err != nil {
@@ -134,11 +132,11 @@ func postgres(dsn string) (*Connection, error) {
 	return &Connection{
 		driver: DriverPostgres,
 		dsn:    dsn,
-		db:     db,
+		db:     &sqlex.DB{DB: db},
 	}, nil
 }
 
-// mysql returns repository with mysql configuration.
+// mysql returns connection with mysql configuration.
 func mysql(dsn string) (*Connection, error) {
 	db, err := sql.Open(DriverMySQL.String(), dsn[8:])
 	if err != nil {
@@ -147,6 +145,20 @@ func mysql(dsn string) (*Connection, error) {
 
 	return &Connection{
 		driver: DriverMySQL,
+		dsn:    dsn,
+		db:     &sqlex.DB{DB: db},
+	}, nil
+}
+
+// tarantool returns connection with tarantool configuration.
+func tarantoolConn(dsn string) (*Connection, error) {
+	db, err := tarantool.Open(dsn)
+	if err != nil {
+		return nil, errors.Wrap(err, "open tarantool connection")
+	}
+
+	return &Connection{
+		driver: DriverTarantool,
 		dsn:    dsn,
 		db:     db,
 	}, nil
