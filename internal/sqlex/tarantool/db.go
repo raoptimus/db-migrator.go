@@ -54,6 +54,7 @@ func (db *DB) Ping() error {
 	return nil
 }
 
+//nolint:ireturn,nolintlint // its ok
 func (db *DB) QueryContext(ctx context.Context, query string, args ...any) (sqlex.Rows, error) {
 	req := tarantool.NewEvalRequest(query).Context(ctx)
 	if len(args) > 0 {
@@ -75,6 +76,7 @@ func (db *DB) QueryContext(ctx context.Context, query string, args ...any) (sqle
 	return sqlex.NewRowsByData(data), nil
 }
 
+//nolint:ireturn,nolintlint // its ok
 func (db *DB) ExecContext(ctx context.Context, query string, args ...any) (sqlex.Result, error) {
 	req := tarantool.NewEvalRequest(query).Context(ctx)
 	if len(args) > 0 {
@@ -88,8 +90,9 @@ func (db *DB) ExecContext(ctx context.Context, query string, args ...any) (sqlex
 	return driver.RowsAffected(-1), nil
 }
 
-func (db *DB) BeginTx(ctx context.Context, _ *sql.TxOptions) (*sql.Tx, error) {
-	_, err := db.conn.NewStream() //todo get stream
+//nolint:ireturn,nolintlint // its ok
+func (db *DB) BeginTx(ctx context.Context, _ *sql.TxOptions) (sqlex.Tx, error) {
+	stream, err := db.conn.NewStream()
 	if err != nil {
 		return nil, err
 	}
@@ -101,5 +104,5 @@ func (db *DB) BeginTx(ctx context.Context, _ *sql.TxOptions) (*sql.Tx, error) {
 		return nil, err
 	}
 
-	return &sql.Tx{}, nil //todo
+	return NewTx(stream), nil
 }

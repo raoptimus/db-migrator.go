@@ -115,9 +115,6 @@ func TestMigration_RevertFile_ApplyReturnsBadError(t *testing.T) {
 
 	repo := mockservice.NewRepository(t)
 	repo.EXPECT().
-		ForceSafely().
-		Return(true)
-	repo.EXPECT().
 		ExecQueryTransaction(ctx, mock.Anything).
 		Return(badErr)
 

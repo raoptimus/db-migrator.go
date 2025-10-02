@@ -1,1 +1,1 @@
-box.space.test.delete('abc');
+box.space.test:delete('abc');

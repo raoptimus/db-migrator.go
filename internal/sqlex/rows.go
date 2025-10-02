@@ -94,8 +94,14 @@ func NewRowsByData(rows []interface{}) *RowsWithSlice {
 					rowTypeElem = rowType.Elem()
 				}
 
+				rowValOf := reflect.ValueOf(rowVal)
 				if rowTypeElem.Kind() == destTypeElem.Kind() {
-					reflect.ValueOf(destValPtr).Elem().Set(reflect.ValueOf(rowVal))
+					reflect.ValueOf(destValPtr).Elem().Set(rowValOf)
+					continue
+				}
+
+				if rowValOf.CanConvert(destTypeElem) {
+					reflect.ValueOf(destValPtr).Elem().Set(rowValOf.Convert(destTypeElem))
 				}
 			}
 

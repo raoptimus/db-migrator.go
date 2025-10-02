@@ -206,10 +206,6 @@ func (m *MySQL) TableNameWithSchema() string {
 	return m.options.SchemaName + "." + m.options.TableName
 }
 
-func (m *MySQL) ForceSafely() bool {
-	return false
-}
-
 // dbError returns DBError is err is db error else returns got error.
 func (m *MySQL) dbError(err error, q string) error {
 	var mysqlErr *mysql.MySQLError

@@ -276,51 +276,6 @@ func (_c *Repository_ExistsMigration_Call) RunAndReturn(run func(context.Context
 	return _c
 }
 
-// ForceSafely provides a mock function with no fields
-func (_m *Repository) ForceSafely() bool {
-	ret := _m.Called()
-
-	if len(ret) == 0 {
-		panic("no return value specified for ForceSafely")
-	}
-
-	var r0 bool
-	if rf, ok := ret.Get(0).(func() bool); ok {
-		r0 = rf()
-	} else {
-		r0 = ret.Get(0).(bool)
-	}
-
-	return r0
-}
-
-// Repository_ForceSafely_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ForceSafely'
-type Repository_ForceSafely_Call struct {
-	*mock.Call
-}
-
-// ForceSafely is a helper method to define mock.On call
-func (_e *Repository_Expecter) ForceSafely() *Repository_ForceSafely_Call {
-	return &Repository_ForceSafely_Call{Call: _e.mock.On("ForceSafely")}
-}
-
-func (_c *Repository_ForceSafely_Call) Run(run func()) *Repository_ForceSafely_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run()
-	})
-	return _c
-}
-
-func (_c *Repository_ForceSafely_Call) Return(_a0 bool) *Repository_ForceSafely_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *Repository_ForceSafely_Call) RunAndReturn(run func() bool) *Repository_ForceSafely_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // HasMigrationHistoryTable provides a mock function with given fields: ctx
 func (_m *Repository) HasMigrationHistoryTable(ctx context.Context) (bool, error) {
 	ret := _m.Called(ctx)

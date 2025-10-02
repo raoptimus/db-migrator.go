@@ -24,7 +24,6 @@ type adapter interface {
 	MigrationsCount(ctx context.Context) (int, error)
 	ExistsMigration(ctx context.Context, version string) (bool, error)
 	TableNameWithSchema() string
-	ForceSafely() bool
 }
 
 type Repository struct {
@@ -73,10 +72,6 @@ func (r *Repository) ExistsMigration(ctx context.Context, version string) (bool,
 
 func (r *Repository) TableNameWithSchema() string {
 	return r.adapter.TableNameWithSchema()
-}
-
-func (r *Repository) ForceSafely() bool {
-	return r.adapter.ForceSafely()
 }
 
 // create creates repository adapter

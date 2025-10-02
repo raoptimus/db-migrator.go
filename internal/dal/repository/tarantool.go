@@ -65,7 +65,7 @@ func (p *Tarantool) HasMigrationHistoryTable(ctx context.Context) (exists bool, 
 		return false, errors.Wrap(p.dbError(err, q), "get schema table")
 	}
 
-	for rows.Next() {
+	if rows.Next() {
 		if err := rows.Scan(&exists); err != nil {
 			return false, errors.Wrap(p.dbError(err, q), "get schema table")
 		}
@@ -73,8 +73,6 @@ func (p *Tarantool) HasMigrationHistoryTable(ctx context.Context) (exists bool, 
 		if exists {
 			return true, nil
 		}
-
-		break
 	}
 
 	return false, nil
@@ -162,7 +160,7 @@ func (p *Tarantool) DropMigrationHistoryTable(ctx context.Context) error {
 
 // MigrationsCount returns the number of migrations
 func (p *Tarantool) MigrationsCount(ctx context.Context) (int, error) {
-	q := fmt.Sprintf(`box.space.%s:len()`, p.TableNameWithSchema())
+	q := fmt.Sprintf("return box.space.%s:len()", p.TableNameWithSchema())
 	rows, err := p.conn.QueryContext(ctx, q)
 	if err != nil {
 		return 0, err
@@ -201,10 +199,6 @@ func (p *Tarantool) ExistsMigration(ctx context.Context, version string) (bool, 
 
 func (p *Tarantool) TableNameWithSchema() string {
 	return p.options.TableName
-}
-
-func (p *Tarantool) ForceSafely() bool {
-	return false
 }
 
 // dbError returns DBError is err is db error else returns got error.

@@ -61,12 +61,16 @@ func (c *Connection) Ping() error {
 
 // QueryContext executes a query that returns rows, typically a SELECT.
 // The args are for any placeholder parameters in the query.
+//
+//nolint:ireturn,nolintlint // its ok
 func (c *Connection) QueryContext(ctx context.Context, query string, args ...any) (sqlex.Rows, error) {
 	return c.db.QueryContext(ctx, query, args...)
 }
 
 // ExecContext executes a query without returning any rows.
 // The args are for any placeholder parameters in the query.
+//
+//nolint:ireturn,nolintlint // its ok
 func (c *Connection) ExecContext(ctx context.Context, query string, args ...any) (sqlex.Result, error) {
 	v := ctx.Value(contextKeyTX)
 	if v != nil {
@@ -84,9 +88,6 @@ func (c *Connection) ExecContext(ctx context.Context, query string, args ...any)
 
 // Transaction executes body in func txFn into transaction.
 func (c *Connection) Transaction(ctx context.Context, txFn func(ctx context.Context) error) error {
-	if err := c.Ping(); err != nil {
-		return err
-	}
 	if v := ctx.Value(contextKeyTX); v != nil {
 		return errors.New("active transaction does not close")
 	}

@@ -219,10 +219,6 @@ func (p *Postgres) TableNameWithSchema() string {
 	return p.options.SchemaName + "." + p.options.TableName
 }
 
-func (p *Postgres) ForceSafely() bool {
-	return false
-}
-
 // dbError returns DBError is err is db error else returns got error.
 func (p *Postgres) dbError(err error, q string) error {
 	var pgErr *pq.Error

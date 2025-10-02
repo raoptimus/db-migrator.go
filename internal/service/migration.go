@@ -320,7 +320,7 @@ func (m *Migration) apply(ctx context.Context, scanner *sqlio.Scanner, safely bo
 	}
 
 	var err error
-	if m.repo.ForceSafely() || safely {
+	if safely {
 		err = m.repo.ExecQueryTransaction(ctx, processScanFunc)
 	} else {
 		err = processScanFunc(ctx)

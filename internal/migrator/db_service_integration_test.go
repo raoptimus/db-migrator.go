@@ -30,6 +30,17 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 		options     *Options
 	}{
 		{
+			name:        "tarantool",
+			selectQuery: "return box.space.test:select({},{iteration='ALL'})",
+			options: &Options{
+				DSN:       os.Getenv("TARANTOOL_DSN"),
+				Directory: migrationsPathAbs(os.Getenv("TARANTOOL_MIGRATIONS_PATH")),
+				TableName: "migration",
+				//Compact:     true,
+				Interactive: false,
+			},
+		},
+		{
 			name:        "postgres",
 			selectQuery: "select * from test",
 			options: &Options{
@@ -86,18 +97,6 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 				Interactive: false,
 			},
 		},
-		{
-			name:        "tarantool",
-			selectQuery: "select * from raw.test",
-			options: &Options{
-				DSN:         os.Getenv("TARANTOOL_DSN"),
-				Replicated:  true,
-				Directory:   migrationsPathAbs(os.Getenv("TARANTOOL_MIGRATIONS_PATH")),
-				TableName:   "migration",
-				Compact:     true,
-				Interactive: false,
-			},
-		},
 	}
 	// endregion
 
@@ -117,17 +116,17 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 
 			err = up.Run(ctx, "2")
 			assert.NoError(t, err)
-			assertEqualRowsCount(t, ctx, dbServ.repo, 3)
+			assertEqualRowsCount(t, ctx, dbServ.repo, 3) // basic + 2 migrations
 
 			err = up.Run(ctx, "1") // migration with error
 			assert.Error(t, err)
-			assertEqualRowsCount(t, ctx, dbServ.repo, 3)
+			assertEqualRowsCount(t, ctx, dbServ.repo, 3)     // basic + 2 migrations
 			err = dbServ.repo.ExecQuery(ctx, tt.selectQuery) // checks table exists
 			assert.NoError(t, err)
 
 			err = down.Run(ctx, "all")
 			assert.NoError(t, err)
-			assertEqualRowsCount(t, ctx, dbServ.repo, 1)
+			assertEqualRowsCount(t, ctx, dbServ.repo, 1) // basic
 		})
 	}
 }

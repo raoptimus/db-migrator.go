@@ -267,10 +267,6 @@ func (c *Clickhouse) TableNameWithSchema() string {
 	return c.options.SchemaName + "." + c.options.TableName
 }
 
-func (c *Clickhouse) ForceSafely() bool {
-	return false
-}
-
 func (c *Clickhouse) dTableName() string {
 	if c.isUsedCluster() {
 		return "d_" + c.options.TableName
