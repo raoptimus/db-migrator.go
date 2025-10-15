@@ -176,7 +176,7 @@ func TestIntegrationDBService_Upgrade_AlreadyExistsMigration(t *testing.T) {
 func assertEqualMigrationsCount(
 	t *testing.T,
 	ctx context.Context,
-	repo *repository.Repository,
+	repo repository.Repository,
 	expected int,
 ) {
 	count, err := repo.MigrationsCount(ctx)
@@ -187,7 +187,7 @@ func assertEqualMigrationsCount(
 func assertEqualRecordsCount(
 	t *testing.T,
 	ctx context.Context,
-	repo *repository.Repository,
+	repo repository.Repository,
 	query string,
 	wantRecordsCount int,
 ) {

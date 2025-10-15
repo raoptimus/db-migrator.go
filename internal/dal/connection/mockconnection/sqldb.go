@@ -83,6 +83,51 @@ func (_c *SQLDB_BeginTx_Call) RunAndReturn(run func(context.Context, *sql.TxOpti
 	return _c
 }
 
+// Close provides a mock function with no fields
+func (_m *SQLDB) Close() error {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Close")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// SQLDB_Close_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Close'
+type SQLDB_Close_Call struct {
+	*mock.Call
+}
+
+// Close is a helper method to define mock.On call
+func (_e *SQLDB_Expecter) Close() *SQLDB_Close_Call {
+	return &SQLDB_Close_Call{Call: _e.mock.On("Close")}
+}
+
+func (_c *SQLDB_Close_Call) Run(run func()) *SQLDB_Close_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *SQLDB_Close_Call) Return(_a0 error) *SQLDB_Close_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *SQLDB_Close_Call) RunAndReturn(run func() error) *SQLDB_Close_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ExecContext provides a mock function with given fields: ctx, query, args
 func (_m *SQLDB) ExecContext(ctx context.Context, query string, args ...any) (sqlex.Result, error) {
 	var _ca []interface{}

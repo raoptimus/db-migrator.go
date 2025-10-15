@@ -104,18 +104,27 @@ func (c *Connection) Transaction(ctx context.Context, txFn func(ctx context.Cont
 
 	tx, err := c.db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "begin transaction")
 	}
 
 	if err := txFn(ContextWithTx(ctx, tx)); err != nil {
-		if err2 := tx.Rollback(); err2 != nil {
-			return errors.Wrap(err, err2.Error())
+		if rbErr := tx.Rollback(); rbErr != nil {
+			return errors.Wrapf(err, "rollback failed: %v", rbErr)
 		}
 
 		return err
 	}
 
-	return tx.Commit()
+	if err := tx.Commit(); err != nil {
+		_ = tx.Rollback()
+		return errors.Wrap(err, "commit transaction")
+	}
+
+	return nil
+}
+
+func (c *Connection) Close() error {
+	return c.db.Close()
 }
 
 // clickhouse returns connection with clickhouse configuration.

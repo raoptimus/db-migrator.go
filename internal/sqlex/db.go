@@ -58,3 +58,7 @@ func (db *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (Tx, error) {
 
 	return NewTx(tx), nil
 }
+
+func (db *DB) Close() error {
+	return db.DB.Close()
+}

@@ -12,6 +12,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -95,9 +96,9 @@ func (p *Tarantool) HasMigrationHistoryTable(ctx context.Context) (exists bool, 
 
 // InsertMigration inserts the new migration record.
 func (p *Tarantool) InsertMigration(ctx context.Context, version string) error {
-	q := fmt.Sprintf("box.space.%s:insert({'%s', %d})", p.TableNameWithSchema(), version, time.Now().Unix())
+	q := fmt.Sprintf("box.space.%s:insert({...})", p.TableNameWithSchema())
 
-	if _, err := p.conn.ExecContext(ctx, q); err != nil {
+	if _, err := p.conn.ExecContext(ctx, q, version, time.Now().Unix()); err != nil {
 		return errors.Wrap(p.dbError(err, q), "insert migration")
 	}
 	return nil
@@ -105,9 +106,9 @@ func (p *Tarantool) InsertMigration(ctx context.Context, version string) error {
 
 // RemoveMigration removes the migration record.
 func (p *Tarantool) RemoveMigration(ctx context.Context, version string) error {
-	q := fmt.Sprintf("box.space.%s:delete('%s')", p.TableNameWithSchema(), version)
+	q := fmt.Sprintf("box.space.%s:delete(...)", p.TableNameWithSchema())
 
-	if _, err := p.conn.ExecContext(ctx, q); err != nil {
+	if _, err := p.conn.ExecContext(ctx, q, version); err != nil {
 		return errors.Wrap(p.dbError(err, q), "remove migration")
 	}
 
@@ -175,7 +176,12 @@ func (p *Tarantool) DropMigrationHistoryTable(ctx context.Context) error {
 
 // MigrationsCount returns the number of migrations
 func (p *Tarantool) MigrationsCount(ctx context.Context) (int, error) {
-	q := fmt.Sprintf("return box.space.%s:len()", p.TableNameWithSchema())
+	var sb strings.Builder
+	sb.WriteString("return box.space.")
+	sb.WriteString(p.TableNameWithSchema())
+	sb.WriteString(":len()")
+	q := sb.String()
+
 	var c int
 	if err := p.QueryScalar(ctx, q, &c); err != nil {
 		return 0, err
@@ -250,5 +256,6 @@ func (p *Tarantool) dbError(err error, q string) error {
 		Message:       tErr.Msg,
 		Details:       "",
 		InternalQuery: q,
+		Cause:         err,
 	}
 }

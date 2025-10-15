@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"io"
 
 	"github.com/raoptimus/db-migrator.go/internal/dal/connection"
 	"github.com/raoptimus/db-migrator.go/internal/sqlex"
@@ -15,4 +16,5 @@ type Connection interface {
 	QueryContext(ctx context.Context, query string, args ...any) (sqlex.Rows, error)
 	ExecContext(ctx context.Context, query string, args ...any) (sqlex.Result, error)
 	Transaction(ctx context.Context, txFn func(ctx context.Context) error) error
+	io.Closer
 }

@@ -243,5 +243,6 @@ func (m *MySQL) dbError(err error, q string) error {
 		Code:          strconv.Itoa(int(mysqlErr.Number)),
 		Message:       mysqlErr.Message,
 		InternalQuery: q,
+		Cause:         err,
 	}
 }

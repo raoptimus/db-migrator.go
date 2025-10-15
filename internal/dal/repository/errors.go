@@ -24,6 +24,7 @@ type DBError struct {
 	Message       string
 	Details       string
 	InternalQuery string
+	Cause         error
 }
 
 func (d *DBError) Error() string {
@@ -53,4 +54,8 @@ func (d *DBError) Error() string {
 	}
 
 	return strings.TrimRight(sb.String(), "\n")
+}
+
+func (d *DBError) Unwrap() error {
+	return d.Cause
 }

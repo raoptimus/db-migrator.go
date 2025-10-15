@@ -10,13 +10,21 @@ package tarantool
 
 import (
 	"context"
+	"sync"
 
+	"github.com/pkg/errors"
 	"github.com/raoptimus/db-migrator.go/internal/sqlex"
 	"github.com/tarantool/go-tarantool/v2"
 )
 
+var (
+	ErrTransactionAlreadyClosed = errors.New("transaction already closed")
+)
+
 type tx struct {
 	stream *tarantool.Stream
+	closed bool
+	mu     sync.RWMutex
 }
 
 //nolint:ireturn,nolintlint // its ok
@@ -27,23 +35,41 @@ func NewTx(stream *tarantool.Stream) sqlex.Tx {
 }
 
 func (tx *tx) Commit() error {
-	if _, err := tx.stream.Do(tarantool.NewCommitRequest()).Get(); err != nil {
-		return err
-	}
+	tx.mu.Lock()
+	defer tx.mu.Unlock()
 
-	return nil
+	if tx.closed {
+		return errors.WithStack(ErrTransactionAlreadyClosed)
+	}
+	_, err := tx.stream.Do(tarantool.NewCommitRequest()).Get()
+	tx.closed = true
+
+	return err
 }
 
 func (tx *tx) Rollback() error {
-	if _, err := tx.stream.Do(tarantool.NewRollbackRequest()).Get(); err != nil {
-		return err
+	tx.mu.Lock()
+	defer tx.mu.Unlock()
+
+	if tx.closed {
+		return errors.WithStack(ErrTransactionAlreadyClosed)
 	}
 
-	return nil
+	_, err := tx.stream.Do(tarantool.NewRollbackRequest()).Get()
+	tx.closed = true
+
+	return err
 }
 
 //nolint:ireturn,nolintlint // its ok
 func (tx *tx) ExecContext(ctx context.Context, query string, args ...any) (sqlex.Result, error) {
+	tx.mu.RLock()
+	defer tx.mu.RUnlock()
+
+	if tx.closed {
+		return nil, errors.WithStack(ErrTransactionAlreadyClosed)
+	}
+
 	req := tarantool.NewEvalRequest(query).Context(ctx)
 	if len(args) > 0 {
 		req = req.Args(args)
@@ -58,6 +84,13 @@ func (tx *tx) ExecContext(ctx context.Context, query string, args ...any) (sqlex
 
 //nolint:ireturn,nolintlint // its ok
 func (tx *tx) PrepareContext(ctx context.Context, query string) (sqlex.Stmt, error) {
+	tx.mu.RLock()
+	defer tx.mu.RUnlock()
+
+	if tx.closed {
+		return nil, errors.WithStack(ErrTransactionAlreadyClosed)
+	}
+
 	resp, err := tx.stream.Do(tarantool.NewPrepareRequest(query).Context(ctx)).GetResponse()
 	if err != nil {
 		return nil, err

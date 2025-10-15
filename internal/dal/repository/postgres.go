@@ -262,5 +262,6 @@ func (p *Postgres) dbError(err error, q string) error {
 		Message:       pgErr.Message,
 		Details:       pgErr.Detail,
 		InternalQuery: q,
+		Cause:         err,
 	}
 }

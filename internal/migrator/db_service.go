@@ -34,7 +34,7 @@ type (
 		fileNameBuilder FileNameBuilder
 
 		conn    Connection
-		repo    *repository.Repository
+		repo    repository.Repository
 		service *service.Migration
 	}
 	Options struct {

@@ -351,5 +351,6 @@ func (ch *Clickhouse) dbError(err error, q string) error {
 		Message:       clickEx.Message,
 		Details:       clickEx.StackTrace,
 		InternalQuery: q,
+		Cause:         err,
 	}
 }

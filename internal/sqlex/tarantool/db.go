@@ -12,14 +12,24 @@ import (
 	"context"
 	"database/sql"
 	"net/url"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/raoptimus/db-migrator.go/internal/sqlex"
 	"github.com/tarantool/go-tarantool/v2"
 )
 
+const defaultQueryTimeout = 10 * time.Second
+
+//go:generate mockery
+type Connection interface {
+	Do(req tarantool.Request) *tarantool.Future
+	NewStream() (*tarantool.Stream, error)
+	Close() error
+}
+
 type DB struct {
-	conn *tarantool.Connection
+	conn Connection
 }
 
 func Open(dsn string) (*DB, error) {
@@ -38,9 +48,11 @@ func Open(dsn string) (*DB, error) {
 		Password: pass,
 	}
 	opts := tarantool.Opts{
-		//Timeout: time.Second,
+		Timeout: defaultQueryTimeout,
 	}
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultQueryTimeout)
+	defer cancel() //todo: ?
+
 	conn, err := tarantool.Connect(ctx, dialer, opts)
 	if err != nil {
 		return nil, errors.Wrapf(err, "connect to tarantool at %s", dsnURL.Host)
@@ -53,6 +65,8 @@ func Open(dsn string) (*DB, error) {
 			}}),
 	).Get()
 	if err != nil {
+		conn.Close()
+
 		return nil, errors.Wrapf(err, "configure the tarantool at %s", dsnURL.Host)
 	}
 
@@ -119,4 +133,12 @@ func (db *DB) BeginTx(ctx context.Context, _ *sql.TxOptions) (sqlex.Tx, error) {
 	}
 
 	return NewTx(stream), nil
+}
+
+func (db *DB) Close() error {
+	if db.conn != nil {
+		return db.conn.Close()
+	}
+
+	return nil
 }
