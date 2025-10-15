@@ -1,3 +1,11 @@
+/**
+ * This file is part of the raoptimus/db-migrator.go library
+ *
+ * @copyright Copyright (c) Evgeniy Urvantsev
+ * @license https://github.com/raoptimus/db-migrator.go/blob/master/LICENSE.md
+ * @link https://github.com/raoptimus/db-migrator.go
+ */
+
 package repository
 
 import (
@@ -43,10 +51,12 @@ func (p *Postgres) Migrations(ctx context.Context, limit int) (entity.Migrations
 	if err != nil {
 		return nil, errors.Wrap(p.dbError(err, q), "get migrations")
 	}
+	defer rows.Close()
+
 	for rows.Next() {
 		var (
 			version   string
-			applyTime int
+			applyTime int64
 		)
 
 		if err := rows.Scan(&version, &applyTime); err != nil {
@@ -86,6 +96,7 @@ func (p *Postgres) HasMigrationHistoryTable(ctx context.Context) (exists bool, e
 	if err != nil {
 		return false, errors.Wrap(p.dbError(err, q), "get schema table")
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var (
@@ -179,21 +190,31 @@ func (p *Postgres) DropMigrationHistoryTable(ctx context.Context) error {
 // MigrationsCount returns the number of migrations
 func (p *Postgres) MigrationsCount(ctx context.Context) (int, error) {
 	q := fmt.Sprintf(`SELECT count(*) FROM %s`, p.TableNameWithSchema())
-	rows, err := p.conn.QueryContext(ctx, q)
-	if err != nil {
-		return 0, err
+	var c int
+
+	return c, p.QueryScalar(ctx, q, &c)
+}
+
+func (p *Postgres) QueryScalar(ctx context.Context, query string, ptr any) error {
+	if err := checkArgIsPtrAndScalar(ptr); err != nil {
+		return err
 	}
-	var count int
+	rows, err := p.conn.QueryContext(ctx, query)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
 	if rows.Next() {
-		if err := rows.Scan(&count); err != nil {
-			return 0, p.dbError(err, q)
+		if err := rows.Scan(ptr); err != nil {
+			return p.dbError(err, query)
 		}
 	}
 	if err := rows.Err(); err != nil {
-		return 0, p.dbError(err, q)
+		return p.dbError(err, query)
 	}
 
-	return count, nil
+	return nil
 }
 
 func (p *Postgres) ExistsMigration(ctx context.Context, version string) (bool, error) {
@@ -202,6 +223,8 @@ func (p *Postgres) ExistsMigration(ctx context.Context, version string) (bool, e
 	if err != nil {
 		return false, err
 	}
+	defer rows.Close()
+
 	var exists bool
 	if rows.Next() {
 		if err := rows.Scan(&exists); err != nil {

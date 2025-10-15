@@ -17,21 +17,23 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 		t.Skip("skipping integration test")
 	}
 
-	if os.Getenv("CLICKHOUSE_CLUSTER_DSN") == "" {
-		if err := godotenv.Load("../../.env"); err != nil {
-			require.NoError(t, err, "Load environments")
-		}
+	//if os.Getenv("CLICKHOUSE_CLUSTER_DSN") == "" {
+	if err := godotenv.Load("../../.env"); err != nil {
+		require.NoError(t, err, "Load environments")
 	}
+	//}
 
 	// region data provider
 	tests := []struct {
-		name        string
-		selectQuery string
-		options     *Options
+		name                      string
+		selectQueryToRecordsCount string
+		wantRecordsCount          int
+		options                   *Options
 	}{
 		{
-			name:        "tarantool",
-			selectQuery: "return box.space.test:select({},{iteration='ALL'})",
+			name:                      "tarantool",
+			selectQueryToRecordsCount: "return box.space.test:len()",
+			wantRecordsCount:          1,
 			options: &Options{
 				DSN:       os.Getenv("TARANTOOL_DSN"),
 				Directory: migrationsPathAbs(os.Getenv("TARANTOOL_MIGRATIONS_PATH")),
@@ -41,8 +43,9 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 			},
 		},
 		{
-			name:        "postgres",
-			selectQuery: "select * from test",
+			name:                      "postgres",
+			selectQueryToRecordsCount: "select count(*) from test",
+			wantRecordsCount:          1,
 			options: &Options{
 				DSN:         os.Getenv("POSTGRES_DSN"),
 				Directory:   migrationsPathAbs(os.Getenv("POSTGRES_MIGRATIONS_PATH")),
@@ -52,8 +55,9 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 			},
 		},
 		{
-			name:        "mysql",
-			selectQuery: "select * from test",
+			name:                      "mysql",
+			selectQueryToRecordsCount: "select count(*) from test",
+			wantRecordsCount:          1,
 			options: &Options{
 				DSN:         os.Getenv("MYSQL_DSN"),
 				Directory:   migrationsPathAbs(os.Getenv("MYSQL_MIGRATIONS_PATH")),
@@ -63,8 +67,9 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 			},
 		},
 		{
-			name:        "clickhouse",
-			selectQuery: "select * from test",
+			name:                      "clickhouse",
+			selectQueryToRecordsCount: "select count() from test",
+			wantRecordsCount:          1,
 			options: &Options{
 				DSN:         os.Getenv("CLICKHOUSE_DSN"),
 				Directory:   migrationsPathAbs(os.Getenv("CLICKHOUSE_MIGRATIONS_PATH")),
@@ -74,8 +79,9 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 			},
 		},
 		{
-			name:        "clickhouse_cluster",
-			selectQuery: "select * from raw.test",
+			name:                      "clickhouse_cluster",
+			selectQueryToRecordsCount: "select count() from raw.test",
+			wantRecordsCount:          1,
 			options: &Options{
 				DSN:         os.Getenv("CLICKHOUSE_CLUSTER_DSN"),
 				Directory:   migrationsPathAbs(os.Getenv("CLICKHOUSE_CLUSTER_MIGRATIONS_PATH")),
@@ -86,8 +92,9 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 			},
 		},
 		{
-			name:        "clickhouse_cluster_replicated",
-			selectQuery: "select * from raw.test",
+			name:                      "clickhouse_cluster_replicated",
+			selectQueryToRecordsCount: "select count() from raw.test",
+			wantRecordsCount:          1,
 			options: &Options{
 				DSN:         os.Getenv("CLICKHOUSE_CLUSTER_R_DSN"),
 				Replicated:  true,
@@ -116,17 +123,20 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 
 			err = up.Run(ctx, "2")
 			assert.NoError(t, err)
-			assertEqualRowsCount(t, ctx, dbServ.repo, 3) // basic + 2 migrations
+			if err != nil {
+				return
+			}
+			assertEqualMigrationsCount(t, ctx, dbServ.repo, 3) // basic + 2 migrations
 
 			err = up.Run(ctx, "1") // migration with error
 			assert.Error(t, err)
-			assertEqualRowsCount(t, ctx, dbServ.repo, 3)     // basic + 2 migrations
-			err = dbServ.repo.ExecQuery(ctx, tt.selectQuery) // checks table exists
-			assert.NoError(t, err)
+			assertEqualMigrationsCount(t, ctx, dbServ.repo, 3) // basic + 2 migrations
+
+			assertEqualRecordsCount(t, ctx, dbServ.repo, tt.selectQueryToRecordsCount, tt.wantRecordsCount)
 
 			err = down.Run(ctx, "all")
 			assert.NoError(t, err)
-			assertEqualRowsCount(t, ctx, dbServ.repo, 1) // basic
+			assertEqualMigrationsCount(t, ctx, dbServ.repo, 1) // basic
 		})
 	}
 }
@@ -163,7 +173,7 @@ func TestIntegrationDBService_Upgrade_AlreadyExistsMigration(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func assertEqualRowsCount(
+func assertEqualMigrationsCount(
 	t *testing.T,
 	ctx context.Context,
 	repo *repository.Repository,
@@ -172,6 +182,19 @@ func assertEqualRowsCount(
 	count, err := repo.MigrationsCount(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, count)
+}
+
+func assertEqualRecordsCount(
+	t *testing.T,
+	ctx context.Context,
+	repo *repository.Repository,
+	query string,
+	wantRecordsCount int,
+) {
+	var gotRecordsCount int
+	err := repo.QueryScalar(ctx, query, &gotRecordsCount)
+	assert.NoError(t, err)
+	assert.Equal(t, wantRecordsCount, gotRecordsCount)
 }
 
 func migrationsPathAbs(basePath string) string {

@@ -7,6 +7,7 @@ The db migration tool currently supports the following db drivers:
 - clickhouse
 - postgres
 - mysql
+- tarantool db
 
 ### Creating Migrations
 To create a new migration, run the following command:  
@@ -119,11 +120,11 @@ go install github.com/raoptimus/db-migrator.go/cmd/db-migrator@latest
 ```
 The custom version:  
 ```
-go get -u -d github.com/raoptimus/db-migrator.go/cmd/db-migrator@v0.2.7
+go get -u -d github.com/raoptimus/db-migrator.go/cmd/db-migrator@v1.2.0
 ```
 or
 ```
-go install github.com/raoptimus/db-migrator.go/cmd/db-migrator@v0.2.7
+go install github.com/raoptimus/db-migrator.go/cmd/db-migrator@v1.2.0
 ```
 
 #### With docker
@@ -155,4 +156,30 @@ ORDER BY (time, value); ...
 2020/09/11 22:02:22 *** applied 200905_192800_create_test_table (time: 0.022s)
 2020/09/11 22:02:22 1 migration was applied
 Migrated up successfully
+```
+
+### Tarantool-Specific Considerations
+
+When using Tarantool:
+- Connection DSN format: `tarantool://username:password@host:port/database`
+- Example: `tarantool://guest:@localhost:3301/mydb`
+- Tarantool uses Lua-based migrations instead of SQL
+- Transactions are supported via streams
+- Schema management uses box.schema.space.create() and related APIs
+
+### Example Tarantool Migration
+
+**Up migration (251002_183908_create_test_space.safe.up.sql)**:
+```lua
+box.schema.space.create('test', {if_not_exists = true})
+box.space.test:format({
+    {'name', type = 'string', is_nullable = false},
+    {'rank', type = 'unsigned', is_nullable = false}
+})
+box.space.test:create_index('primary', {parts = {'name'}, if_not_exists = true})
+```
+
+**Down migration (251002_183908_create_test_space.safe.down.sql)**:
+```lua
+box.space.test:drop()
 ```

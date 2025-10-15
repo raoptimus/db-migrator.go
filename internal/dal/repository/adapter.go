@@ -1,3 +1,11 @@
+/**
+ * This file is part of the raoptimus/db-migrator.go library
+ *
+ * @copyright Copyright (c) Evgeniy Urvantsev
+ * @license https://github.com/raoptimus/db-migrator.go/blob/master/LICENSE.md
+ * @link https://github.com/raoptimus/db-migrator.go
+ */
+
 package repository
 
 import (
@@ -18,6 +26,7 @@ type adapter interface {
 	InsertMigration(ctx context.Context, version string) error
 	RemoveMigration(ctx context.Context, version string) error
 	ExecQuery(ctx context.Context, query string, args ...any) error
+	QueryScalar(ctx context.Context, query string, ptr any) error
 	ExecQueryTransaction(ctx context.Context, fnTx func(ctx context.Context) error) error
 	DropMigrationHistoryTable(ctx context.Context) error
 	CreateMigrationHistoryTable(ctx context.Context) error
@@ -50,6 +59,10 @@ func (r *Repository) ExecQuery(ctx context.Context, query string, args ...any) e
 	return r.adapter.ExecQuery(ctx, query, args...)
 }
 
+func (r *Repository) QueryScalar(ctx context.Context, query string, ptr any) error {
+	return r.adapter.QueryScalar(ctx, query, ptr)
+}
+
 func (r *Repository) ExecQueryTransaction(ctx context.Context, fnTx func(ctx context.Context) error) error {
 	return r.adapter.ExecQueryTransaction(ctx, fnTx)
 }
@@ -76,7 +89,7 @@ func (r *Repository) TableNameWithSchema() string {
 
 // create creates repository adapter
 //
-//nolint:ireturn,nolintlint // its ok
+//nolint:ireturn,nolintlint // it's ok
 func create(conn Connection, options *Options) (adapter, error) {
 	switch conn.Driver() {
 	case connection.DriverTarantool:

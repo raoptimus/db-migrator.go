@@ -10,119 +10,108 @@ package sqlex
 
 import (
 	"database/sql"
+	"fmt"
 	"io"
 	"reflect"
 
 	"github.com/pkg/errors"
 )
 
-var ErrNilPtrValue = errors.New("nil ptr value")
-var ErrPtrValueMustBeAPointer = errors.New("ptr value must be a pointer")
+var (
+	ErrNilPtrValue            = errors.New("nil ptr value")
+	ErrPtrValueMustBeAPointer = errors.New("ptr value must be a pointer")
+)
 
 type Rows interface {
 	Next() bool
 	Scan(dest ...any) error
 	Err() error
+	Close() error
 }
 
 type RowsWithSlice struct {
-	next func() bool
-	scan func(dest ...any) error
-	err  func() error
+	i    int
+	rows []interface{}
 }
 
-func NewRowsWithSlice(next func() bool, scan func(dest ...any) error, err func() error) *RowsWithSlice {
+type RowsWithSQLRows struct {
+	*sql.Rows
+}
+
+func NewRowsWithSQLRows(rows *sql.Rows) *RowsWithSQLRows {
+	return &RowsWithSQLRows{Rows: rows}
+}
+
+func NewRowsWithSlice(rows []interface{}) *RowsWithSlice {
 	return &RowsWithSlice{
-		next: next,
-		scan: scan,
-		err:  err,
+		rows: rows,
 	}
 }
 
 func (v *RowsWithSlice) Next() bool {
-	return v.next()
+	return v.i < len(v.rows)
 }
 
 func (v *RowsWithSlice) Scan(dest ...any) error {
-	return v.scan(dest...)
+	if v.i >= len(v.rows) {
+		return errors.WithStack(io.EOF)
+	}
+
+	for k := range dest {
+		destValPtr := dest[k]
+		if destValPtr == nil {
+			return errors.WithStack(ErrNilPtrValue)
+		}
+		destType := reflect.TypeOf(destValPtr)
+		if destType.Kind() != reflect.Pointer {
+			return errors.WithStack(ErrPtrValueMustBeAPointer)
+		}
+		destTypeElem := destType.Elem()
+
+		row := v.rows[v.i]
+		rowVals, ok := row.([]any)
+		if !ok {
+			rowVals = []any{row}
+		}
+
+		if len(dest) != len(rowVals) {
+			return errors.WithStack(
+				fmt.Errorf("sql: expected %d destination arguments in Scan, not %d",
+					len(rowVals),
+					len(dest),
+				))
+		}
+
+		rowVal := rowVals[k]
+		if rowVal == nil {
+			continue
+		}
+		rowType := reflect.TypeOf(rowVal)
+		rowTypeElem := rowType
+		if rowType.Kind() == reflect.Pointer {
+			rowTypeElem = rowType.Elem()
+		}
+
+		rowValOf := reflect.ValueOf(rowVal)
+		if rowTypeElem.Kind() == destTypeElem.Kind() {
+			reflect.ValueOf(destValPtr).Elem().Set(rowValOf)
+			continue
+		}
+
+		if rowValOf.CanConvert(destTypeElem) {
+			reflect.ValueOf(destValPtr).Elem().Set(rowValOf.Convert(destTypeElem))
+		}
+	}
+
+	v.i++
+
+	return nil
 }
 
 func (v *RowsWithSlice) Err() error {
-	return v.err()
+	return nil
 }
 
-func NewRowsByData(rows []interface{}) *RowsWithSlice {
-	var i = -1
-	return NewRowsWithSlice(
-		func() bool {
-			i++
-
-			return i < len(rows)
-		},
-		func(dest ...any) error {
-			if i >= len(rows) {
-				return errors.WithStack(io.EOF)
-			}
-			for k := range dest {
-				destValPtr := dest[k]
-				if destValPtr == nil {
-					return errors.WithStack(ErrNilPtrValue)
-				}
-				destType := reflect.TypeOf(destValPtr)
-				if destType.Kind() != reflect.Pointer {
-					return errors.WithStack(ErrPtrValueMustBeAPointer)
-				}
-				destTypeElem := destType.Elem()
-
-				row := rows[i]
-				rowVals, ok := row.([]any)
-				if !ok {
-					rowVals = []any{row}
-				}
-
-				if k >= len(rowVals) {
-					return errors.New("")
-				}
-
-				rowVal := rowVals[k]
-				rowType := reflect.TypeOf(rowVal)
-				rowTypeElem := rowType
-				if rowType.Kind() == reflect.Pointer {
-					if rowVal == nil {
-						continue
-					}
-					rowTypeElem = rowType.Elem()
-				}
-
-				rowValOf := reflect.ValueOf(rowVal)
-				if rowTypeElem.Kind() == destTypeElem.Kind() {
-					reflect.ValueOf(destValPtr).Elem().Set(rowValOf)
-					continue
-				}
-
-				if rowValOf.CanConvert(destTypeElem) {
-					reflect.ValueOf(destValPtr).Elem().Set(rowValOf.Convert(destTypeElem))
-				}
-			}
-
-			return nil
-		},
-		func() error {
-			return nil
-		},
-	)
-}
-
-func NewRowsBySQLRows(rows *sql.Rows) *RowsWithSlice {
-	return NewRowsWithSlice(
-		func() bool {
-			return rows.Next()
-		},
-		func(dest ...any) error {
-			return rows.Scan(dest...)
-		},
-		func() error {
-			return rows.Err()
-		},
-	)
+func (v *RowsWithSlice) Close() error {
+	return nil
 }

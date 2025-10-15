@@ -27,7 +27,7 @@ func (db *DB) QueryContext(ctx context.Context, query string, args ...any) (Rows
 		return nil, err
 	}
 
-	return NewRowsBySQLRows(rows), nil
+	return NewRowsWithSQLRows(rows), nil
 }
 
 // ExecContext executes a query without returning any rows.

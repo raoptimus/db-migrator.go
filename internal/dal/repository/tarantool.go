@@ -1,3 +1,11 @@
+/**
+ * This file is part of the raoptimus/db-migrator.go library
+ *
+ * @copyright Copyright (c) Evgeniy Urvantsev
+ * @license https://github.com/raoptimus/db-migrator.go/blob/master/LICENSE.md
+ * @link https://github.com/raoptimus/db-migrator.go
+ */
+
 package repository
 
 import (
@@ -11,7 +19,8 @@ import (
 	"github.com/tarantool/go-tarantool/v2"
 )
 
-const TarantoolDefaultSchema = "public"
+const tarantoolIteratorLT = "LT"
+const tarantoolIteratorEQ = "EQ"
 
 type Tarantool struct {
 	conn    Connection
@@ -29,17 +38,21 @@ func NewTarantool(conn Connection, options *Options) *Tarantool {
 func (p *Tarantool) Migrations(ctx context.Context, limit int) (entity.Migrations, error) {
 	var migrations entity.Migrations
 
-	//todo: in mem ORDER BY apply_time DESC, version DESC
-	q := "return box.space." + p.TableNameWithSchema() + ":select({}, {iterator='LT', limit = %d})"
-	q = fmt.Sprintf(q, limit)
+	q := fmt.Sprintf("return box.space.%s:select({}, {iterator='%s', limit = %d})",
+		p.TableNameWithSchema(),
+		tarantoolIteratorLT,
+		limit,
+	)
 	rows, err := p.conn.QueryContext(ctx, q)
 	if err != nil {
 		return nil, errors.Wrap(p.dbError(err, q), "get migrations")
 	}
+	defer rows.Close()
+
 	for rows.Next() {
 		var (
 			version   string
-			applyTime int
+			applyTime int64
 		)
 
 		if err := rows.Scan(&version, &applyTime); err != nil {
@@ -59,11 +72,13 @@ func (p *Tarantool) Migrations(ctx context.Context, limit int) (entity.Migration
 
 // HasMigrationHistoryTable returns true if migration history table exists.
 func (p *Tarantool) HasMigrationHistoryTable(ctx context.Context) (exists bool, err error) {
-	q := "return box.space." + p.options.TableName + " ~= nil"
+	q := fmt.Sprintf("return box.space.%s ~= nil", p.TableNameWithSchema())
+
 	rows, err := p.conn.QueryContext(ctx, q)
 	if err != nil {
 		return false, errors.Wrap(p.dbError(err, q), "get schema table")
 	}
+	defer rows.Close()
 
 	if rows.Next() {
 		if err := rows.Scan(&exists); err != nil {
@@ -80,11 +95,9 @@ func (p *Tarantool) HasMigrationHistoryTable(ctx context.Context) (exists bool, 
 
 // InsertMigration inserts the new migration record.
 func (p *Tarantool) InsertMigration(ctx context.Context, version string) error {
-	q := "box.space." + p.TableNameWithSchema() + ":insert({..., %d})"
-	//nolint:gosec // overflow ok
-	now := uint32(time.Now().Unix())
-	q = fmt.Sprintf(q, now)
-	if _, err := p.conn.ExecContext(ctx, q, version); err != nil {
+	q := fmt.Sprintf("box.space.%s:insert({'%s', %d})", p.TableNameWithSchema(), version, time.Now().Unix())
+
+	if _, err := p.conn.ExecContext(ctx, q); err != nil {
 		return errors.Wrap(p.dbError(err, q), "insert migration")
 	}
 	return nil
@@ -92,8 +105,9 @@ func (p *Tarantool) InsertMigration(ctx context.Context, version string) error {
 
 // RemoveMigration removes the migration record.
 func (p *Tarantool) RemoveMigration(ctx context.Context, version string) error {
-	q := "box.space." + p.TableNameWithSchema() + ":delete(...)"
-	if _, err := p.conn.ExecContext(ctx, q, version); err != nil {
+	q := fmt.Sprintf("box.space.%s:delete('%s')", p.TableNameWithSchema(), version)
+
+	if _, err := p.conn.ExecContext(ctx, q); err != nil {
 		return errors.Wrap(p.dbError(err, q), "remove migration")
 	}
 
@@ -119,7 +133,7 @@ func (p *Tarantool) ExecQueryTransaction(ctx context.Context, txFn func(ctx cont
 // CreateMigrationHistoryTable creates a new migration history table.
 func (p *Tarantool) CreateMigrationHistoryTable(ctx context.Context) error {
 	// create space
-	q := "box.schema.space.create('" + p.TableNameWithSchema() + "', {if_not_exists = true})"
+	q := fmt.Sprintf("box.schema.space.create('%s', {if_not_exists = true})", p.TableNameWithSchema())
 	if _, err := p.conn.ExecContext(ctx, q); err != nil {
 		return errors.Wrap(p.dbError(err, q), "create migration history table")
 	}
@@ -150,7 +164,8 @@ func (p *Tarantool) CreateMigrationHistoryTable(ctx context.Context) error {
 
 // DropMigrationHistoryTable drops the migration history table.
 func (p *Tarantool) DropMigrationHistoryTable(ctx context.Context) error {
-	q := "box.space." + p.TableNameWithSchema() + ":drop()"
+	q := fmt.Sprintf("box.space.%s:drop()", p.TableNameWithSchema())
+
 	if _, err := p.conn.ExecContext(ctx, q); err != nil {
 		return errors.Wrap(p.dbError(err, q), "drop migration history table")
 	}
@@ -161,29 +176,47 @@ func (p *Tarantool) DropMigrationHistoryTable(ctx context.Context) error {
 // MigrationsCount returns the number of migrations
 func (p *Tarantool) MigrationsCount(ctx context.Context) (int, error) {
 	q := fmt.Sprintf("return box.space.%s:len()", p.TableNameWithSchema())
-	rows, err := p.conn.QueryContext(ctx, q)
-	if err != nil {
-		return 0, err
+	var c int
+	
+	return c, p.QueryScalar(ctx, q, &c)
+}
+
+// QueryScalar returns the number of records by query
+func (p *Tarantool) QueryScalar(ctx context.Context, query string, ptr any) error {
+	if err := checkArgIsPtrAndScalar(ptr); err != nil {
+		return err
 	}
-	var count int
+	rows, err := p.conn.QueryContext(ctx, query)
+	if err != nil {
+		return p.dbError(err, query)
+	}
+	defer rows.Close()
+
 	if rows.Next() {
-		if err := rows.Scan(&count); err != nil {
-			return 0, p.dbError(err, q)
+		if err := rows.Scan(ptr); err != nil {
+			return p.dbError(err, query)
 		}
 	}
 	if err := rows.Err(); err != nil {
-		return 0, p.dbError(err, q)
+		return p.dbError(err, query)
 	}
 
-	return count, nil
+	return nil
 }
 
 func (p *Tarantool) ExistsMigration(ctx context.Context, version string) (bool, error) {
-	q := "box.space." + p.TableNameWithSchema() + ":count(..., {iterator='EQ'})"
-	rows, err := p.conn.QueryContext(ctx, q, version)
+	q := fmt.Sprintf("box.space.%s:count('%s', {iterator='%s'})",
+		p.TableNameWithSchema(),
+		version,
+		tarantoolIteratorEQ,
+	)
+
+	rows, err := p.conn.QueryContext(ctx, q)
 	if err != nil {
 		return false, err
 	}
+	defer rows.Close()
+
 	var exists bool
 	if rows.Next() {
 		if err := rows.Scan(&exists); err != nil {
@@ -210,7 +243,7 @@ func (p *Tarantool) dbError(err error, q string) error {
 
 	return &DBError{
 		Code:          strconv.Itoa(int(tErr.Code)),
-		Severity:      "",
+		Severity:      "ERR",
 		Message:       tErr.Msg,
 		Details:       "",
 		InternalQuery: q,

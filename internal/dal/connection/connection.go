@@ -1,3 +1,11 @@
+/**
+ * This file is part of the raoptimus/db-migrator.go library
+ *
+ * @copyright Copyright (c) Evgeniy Urvantsev
+ * @license https://github.com/raoptimus/db-migrator.go/blob/master/LICENSE.md
+ * @link https://github.com/raoptimus/db-migrator.go
+ */
+
 package connection
 
 import (
@@ -11,9 +19,9 @@ import (
 	"github.com/raoptimus/db-migrator.go/internal/sqlex/tarantool"
 )
 
-type ContextKey string
-
-const contextKeyTX ContextKey = "tx"
+var (
+	ErrTransactionAlreadyOpened = errors.New("transaction already opened")
+)
 
 type Connection struct {
 	driver Driver
@@ -72,24 +80,26 @@ func (c *Connection) QueryContext(ctx context.Context, query string, args ...any
 //
 //nolint:ireturn,nolintlint // its ok
 func (c *Connection) ExecContext(ctx context.Context, query string, args ...any) (sqlex.Result, error) {
-	v := ctx.Value(contextKeyTX)
-	if v != nil {
-		if tx, ok := v.(*sql.Tx); ok {
-			stmt, err := tx.PrepareContext(ctx, query)
-			if err != nil {
-				return nil, err
-			}
-			return stmt.ExecContext(ctx, args...)
-		}
+	tx, err := TxFromContext(ctx)
+	if err != nil {
+		return c.db.ExecContext(ctx, query, args...)
 	}
 
-	return c.db.ExecContext(ctx, query, args...)
+	// maybe need to clickhouse
+	// stmt, err := tx.PrepareContext(ctx, query)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// return stmt.ExecContext(ctx, args...)
+
+	return tx.ExecContext(ctx, query, args...)
 }
 
 // Transaction executes body in func txFn into transaction.
 func (c *Connection) Transaction(ctx context.Context, txFn func(ctx context.Context) error) error {
-	if v := ctx.Value(contextKeyTX); v != nil {
-		return errors.New("active transaction does not close")
+	if _, err := TxFromContext(ctx); err == nil {
+		return ErrTransactionAlreadyOpened
 	}
 
 	tx, err := c.db.BeginTx(ctx, nil)
@@ -97,12 +107,11 @@ func (c *Connection) Transaction(ctx context.Context, txFn func(ctx context.Cont
 		return err
 	}
 
-	ctxWithTX := context.WithValue(ctx, contextKeyTX, tx)
-
-	if err := txFn(ctxWithTX); err != nil {
+	if err := txFn(ContextWithTx(ctx, tx)); err != nil {
 		if err2 := tx.Rollback(); err2 != nil {
 			return errors.Wrap(err, err2.Error())
 		}
+
 		return err
 	}
 
@@ -155,7 +164,7 @@ func mysql(dsn string) (*Connection, error) {
 func tarantoolConn(dsn string) (*Connection, error) {
 	db, err := tarantool.Open(dsn)
 	if err != nil {
-		return nil, errors.Wrap(err, "open tarantool connection")
+		return nil, err
 	}
 
 	return &Connection{

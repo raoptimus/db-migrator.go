@@ -1,7 +1,21 @@
+/**
+ * This file is part of the raoptimus/db-migrator.go library
+ *
+ * @copyright Copyright (c) Evgeniy Urvantsev
+ * @license https://github.com/raoptimus/db-migrator.go/blob/master/LICENSE.md
+ * @link https://github.com/raoptimus/db-migrator.go
+ */
+
 package repository
 
 import (
 	"strings"
+
+	"github.com/pkg/errors"
+)
+
+var (
+	ErrPtrValueMustBeAPointerAndScalar = errors.New("ptr value must be a pointer and scalar")
 )
 
 type DBError struct {

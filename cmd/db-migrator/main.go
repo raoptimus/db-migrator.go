@@ -58,6 +58,7 @@ func commands(options *migrator.Options) []*cli.Command {
 					return a.Run(ctx, cmd.Args().Get(0))
 				}
 			},
+			Flags: flags(options),
 		},
 		{
 			Name: "down",
@@ -68,6 +69,7 @@ func commands(options *migrator.Options) []*cli.Command {
 					return a.Run(ctx, cmd.Args().Get(0))
 				}
 			},
+			Flags: flags(options),
 		},
 		{
 			Name: "redo",
@@ -78,6 +80,7 @@ func commands(options *migrator.Options) []*cli.Command {
 					return a.Run(ctx, cmd.Args().Get(0))
 				}
 			},
+			Flags: flags(options),
 		},
 		{
 			Name: "create",
@@ -95,6 +98,7 @@ func commands(options *migrator.Options) []*cli.Command {
 					return a.Run(ctx, cmd.Args().Get(0))
 				}
 			},
+			Flags: flags(options),
 		},
 		{
 			Name: "new",
@@ -105,6 +109,7 @@ func commands(options *migrator.Options) []*cli.Command {
 					return a.Run(ctx, cmd.Args().Get(0))
 				}
 			},
+			Flags: flags(options),
 		},
 		{
 			Name: "to",
@@ -115,6 +120,7 @@ func commands(options *migrator.Options) []*cli.Command {
 					return a.Run(ctx, cmd.Args().Get(0))
 				}
 			},
+			Flags: flags(options),
 		},
 	}
 }

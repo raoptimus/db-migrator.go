@@ -9,9 +9,19 @@
 package sqlex
 
 import (
+	"context"
 	"database/sql"
 )
 
-type Result interface {
-	sql.Result
+type Stmt interface {
+	ExecContext(ctx context.Context, args ...any) (Result, error)
+}
+
+type stmt struct {
+	*sql.Stmt
+}
+
+//nolint:ireturn,nolintlint // its ok
+func (s *stmt) ExecContext(ctx context.Context, args ...any) (Result, error) {
+	return s.Stmt.ExecContext(ctx, args...)
 }

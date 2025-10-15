@@ -1,3 +1,11 @@
+/**
+ * This file is part of the raoptimus/db-migrator.go library
+ *
+ * @copyright Copyright (c) Evgeniy Urvantsev
+ * @license https://github.com/raoptimus/db-migrator.go/blob/master/LICENSE.md
+ * @link https://github.com/raoptimus/db-migrator.go
+ */
+
 package repository
 
 import (
@@ -42,10 +50,12 @@ func (m *MySQL) Migrations(ctx context.Context, limit int) (entity.Migrations, e
 	if err != nil {
 		return nil, errors.Wrap(m.dbError(err, q), "get migrations")
 	}
+	defer rows.Close()
+
 	for rows.Next() {
 		var (
 			version   string
-			applyTime int
+			applyTime int64
 		)
 
 		if err := rows.Scan(&version, &applyTime); err != nil {
@@ -84,6 +94,7 @@ func (m *MySQL) HasMigrationHistoryTable(ctx context.Context) (exists bool, err 
 	if err != nil {
 		return false, errors.Wrap(m.dbError(err, q), "get schema table")
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		if err := rows.Scan(&exists); err != nil {
@@ -166,21 +177,31 @@ func (m *MySQL) DropMigrationHistoryTable(ctx context.Context) error {
 // MigrationsCount returns the number of migrations
 func (m *MySQL) MigrationsCount(ctx context.Context) (int, error) {
 	q := fmt.Sprintf(`SELECT count(*) FROM %s`, m.options.TableName)
-	rows, err := m.conn.QueryContext(ctx, q)
-	if err != nil {
-		return 0, err
+	var c int
+
+	return c, m.QueryScalar(ctx, q, &c)
+}
+
+func (m *MySQL) QueryScalar(ctx context.Context, query string, ptr any) error {
+	if err := checkArgIsPtrAndScalar(ptr); err != nil {
+		return err
 	}
-	var count int
+	rows, err := m.conn.QueryContext(ctx, query)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
 	if rows.Next() {
-		if err := rows.Scan(&count); err != nil {
-			return 0, m.dbError(err, q)
+		if err := rows.Scan(ptr); err != nil {
+			return m.dbError(err, query)
 		}
 	}
 	if err := rows.Err(); err != nil {
-		return 0, m.dbError(err, q)
+		return m.dbError(err, query)
 	}
 
-	return count, nil
+	return nil
 }
 
 func (m *MySQL) ExistsMigration(ctx context.Context, version string) (bool, error) {
@@ -189,6 +210,8 @@ func (m *MySQL) ExistsMigration(ctx context.Context, version string) (bool, erro
 	if err != nil {
 		return false, err
 	}
+	defer rows.Close()
+
 	var exists int
 	if rows.Next() {
 		if err := rows.Scan(&exists); err != nil {

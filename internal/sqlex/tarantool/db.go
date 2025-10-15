@@ -11,7 +11,6 @@ package tarantool
 import (
 	"context"
 	"database/sql"
-	"database/sql/driver"
 	"net/url"
 
 	"github.com/pkg/errors"
@@ -26,9 +25,13 @@ type DB struct {
 func Open(dsn string) (*DB, error) {
 	dsnURL, err := url.Parse(dsn)
 	if err != nil {
-		return nil, errors.WithMessage(err, "parse DSN")
+		return nil, errors.WithMessage(err, "parse tarantool DSN")
 	}
-	pass, _ := dsnURL.User.Password()
+	pass, hasPassword := dsnURL.User.Password()
+	if !hasPassword {
+		pass = ""
+	}
+
 	dialer := tarantool.NetDialer{
 		Address:  dsnURL.Host,
 		User:     dsnURL.User.Username(),
@@ -37,9 +40,21 @@ func Open(dsn string) (*DB, error) {
 	opts := tarantool.Opts{
 		//Timeout: time.Second,
 	}
-	conn, err := tarantool.Connect(context.Background(), dialer, opts)
+	ctx := context.Background()
+	conn, err := tarantool.Connect(ctx, dialer, opts)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "connect to tarantool at %s", dsnURL.Host)
+	}
+
+	_, err = conn.Do(
+		tarantool.NewCallRequest("box.cfg").
+			Args([]interface{}{map[string]interface{}{
+				"memtx_max_tuple_size": 128 * 1024 * 1024,
+				"txn_isolation":        tarantool.ReadCommittedLevel,
+			}}),
+	).Get()
+	if err != nil {
+		return nil, errors.Wrapf(err, "configure the tarantool at %s", dsnURL.Host)
 	}
 
 	return &DB{conn: conn}, nil
@@ -73,7 +88,7 @@ func (db *DB) QueryContext(ctx context.Context, query string, args ...any) (sqle
 		}
 	}
 
-	return sqlex.NewRowsByData(data), nil
+	return sqlex.NewRowsWithSlice(data), nil
 }
 
 //nolint:ireturn,nolintlint // its ok
@@ -87,7 +102,7 @@ func (db *DB) ExecContext(ctx context.Context, query string, args ...any) (sqlex
 		return nil, err
 	}
 
-	return driver.RowsAffected(-1), nil
+	return Done(true), nil
 }
 
 //nolint:ireturn,nolintlint // its ok
@@ -97,9 +112,9 @@ func (db *DB) BeginTx(ctx context.Context, _ *sql.TxOptions) (sqlex.Tx, error) {
 		return nil, err
 	}
 
-	_, err = db.conn.
+	_, err = stream.
 		Do(tarantool.NewBeginRequest().Context(ctx).IsSync(true)).
-		GetResponse()
+		Get()
 	if err != nil {
 		return nil, err
 	}
