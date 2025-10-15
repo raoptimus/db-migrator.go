@@ -220,8 +220,11 @@ func (ch *Clickhouse) DropMigrationHistoryTable(ctx context.Context) error {
 func (ch *Clickhouse) MigrationsCount(ctx context.Context) (int, error) {
 	q := "SELECT count(*) FROM " + ch.dTableNameWithSchema() + " WHERE is_deleted = 0"
 	var c int
+	if err := ch.QueryScalar(ctx, q, &c); err != nil {
+		return 0, err
+	}
 
-	return c, ch.QueryScalar(ctx, q, &c)
+	return c, nil
 }
 func (ch *Clickhouse) QueryScalar(ctx context.Context, query string, ptr any) error {
 	if err := checkArgIsPtrAndScalar(ptr); err != nil {

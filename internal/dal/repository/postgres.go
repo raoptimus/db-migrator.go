@@ -191,8 +191,11 @@ func (p *Postgres) DropMigrationHistoryTable(ctx context.Context) error {
 func (p *Postgres) MigrationsCount(ctx context.Context) (int, error) {
 	q := fmt.Sprintf(`SELECT count(*) FROM %s`, p.TableNameWithSchema())
 	var c int
+	if err := p.QueryScalar(ctx, q, &c); err != nil {
+		return 0, err
+	}
 
-	return c, p.QueryScalar(ctx, q, &c)
+	return c, nil
 }
 
 func (p *Postgres) QueryScalar(ctx context.Context, query string, ptr any) error {

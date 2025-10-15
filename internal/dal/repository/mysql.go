@@ -178,8 +178,11 @@ func (m *MySQL) DropMigrationHistoryTable(ctx context.Context) error {
 func (m *MySQL) MigrationsCount(ctx context.Context) (int, error) {
 	q := fmt.Sprintf(`SELECT count(*) FROM %s`, m.options.TableName)
 	var c int
+	if err := m.QueryScalar(ctx, q, &c); err != nil {
+		return 0, err
+	}
 
-	return c, m.QueryScalar(ctx, q, &c)
+	return c, nil
 }
 
 func (m *MySQL) QueryScalar(ctx context.Context, query string, ptr any) error {

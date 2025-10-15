@@ -49,8 +49,7 @@ func Open(dsn string) (*DB, error) {
 	_, err = conn.Do(
 		tarantool.NewCallRequest("box.cfg").
 			Args([]interface{}{map[string]interface{}{
-				"memtx_max_tuple_size": 128 * 1024 * 1024,
-				"txn_isolation":        tarantool.ReadCommittedLevel,
+				"txn_isolation": tarantool.ReadCommittedLevel,
 			}}),
 	).Get()
 	if err != nil {

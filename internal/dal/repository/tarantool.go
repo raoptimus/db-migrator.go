@@ -177,8 +177,11 @@ func (p *Tarantool) DropMigrationHistoryTable(ctx context.Context) error {
 func (p *Tarantool) MigrationsCount(ctx context.Context) (int, error) {
 	q := fmt.Sprintf("return box.space.%s:len()", p.TableNameWithSchema())
 	var c int
-	
-	return c, p.QueryScalar(ctx, q, &c)
+	if err := p.QueryScalar(ctx, q, &c); err != nil {
+		return 0, err
+	}
+
+	return c, nil
 }
 
 // QueryScalar returns the number of records by query
