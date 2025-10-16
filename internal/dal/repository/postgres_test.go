@@ -8,6 +8,7 @@ import (
 	"github.com/raoptimus/db-migrator.go/internal/dal/connection"
 	"github.com/raoptimus/db-migrator.go/internal/dal/repository/mockrepository"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPostgres_ExecQuery_Successfully(t *testing.T) {
@@ -21,9 +22,9 @@ func TestPostgres_ExecQuery_Successfully(t *testing.T) {
 		Return(nil, nil)
 
 	repo, err := New(conn, &Options{})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	err = repo.ExecQuery(ctx, "SELECT 1")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestPostgres_ExecQuery_Failure(t *testing.T) {
@@ -37,8 +38,11 @@ func TestPostgres_ExecQuery_Failure(t *testing.T) {
 		Return(nil, &pq.Error{Severity: pq.Efatal})
 
 	repo, err := New(conn, &Options{})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	err = repo.ExecQuery(ctx, "SELECT 1")
-	assert.Error(t, err)
-	assert.Equal(t, err, &DBError{Severity: pq.Efatal, InternalQuery: "SELECT 1"})
+	require.Error(t, err)
+	var dbErr *DBError
+	require.ErrorAs(t, err, &dbErr)
+	assert.Equal(t, pq.Efatal, dbErr.Severity)
+	assert.Equal(t, "SELECT 1", dbErr.InternalQuery)
 }

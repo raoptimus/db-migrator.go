@@ -16,6 +16,11 @@ services:
     env_file:
       - .env
 
+  tarantool:
+    image: tarantool/tarantool:3.5
+    env_file:
+      - .env
+
   app:
     build:
       context: ./
@@ -30,6 +35,7 @@ services:
       - clickhouse-r-2
       - postgres
       - mysql
+      - tarantool
     links:
       - clickhouse
       - clickhouse1
@@ -38,6 +44,7 @@ services:
       - clickhouse-r-2
       - postgres
       - mysql
+      - tarantool
     volumes:
       - "./:/usr/src/app"
       - "~/.cache/go-build:/root/.cache/go-build"

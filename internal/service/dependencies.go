@@ -61,5 +61,4 @@ type Repository interface {
 	CreateMigrationHistoryTable(ctx context.Context) error
 	MigrationsCount(ctx context.Context) (int, error)
 	TableNameWithSchema() string
-	ForceSafely() bool
 }

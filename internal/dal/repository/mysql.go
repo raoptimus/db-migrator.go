@@ -1,8 +1,15 @@
+/**
+ * This file is part of the raoptimus/db-migrator.go library
+ *
+ * @copyright Copyright (c) Evgeniy Urvantsev
+ * @license https://github.com/raoptimus/db-migrator.go/blob/master/LICENSE.md
+ * @link https://github.com/raoptimus/db-migrator.go
+ */
+
 package repository
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strconv"
 	"time"
@@ -10,6 +17,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/pkg/errors"
 	"github.com/raoptimus/db-migrator.go/internal/dal/entity"
+	"github.com/raoptimus/db-migrator.go/internal/sqlex"
 )
 
 type MySQL struct {
@@ -42,10 +50,12 @@ func (m *MySQL) Migrations(ctx context.Context, limit int) (entity.Migrations, e
 	if err != nil {
 		return nil, errors.Wrap(m.dbError(err, q), "get migrations")
 	}
+	defer rows.Close()
+
 	for rows.Next() {
 		var (
 			version   string
-			applyTime int
+			applyTime int64
 		)
 
 		if err := rows.Scan(&version, &applyTime); err != nil {
@@ -77,13 +87,14 @@ func (m *MySQL) HasMigrationHistoryTable(ctx context.Context) (exists bool, err 
 				WHERE table_name = ? AND table_schema = ?
 			)
 		`
-		rows *sql.Rows
+		rows sqlex.Rows
 	)
 
 	rows, err = m.conn.QueryContext(ctx, q, m.options.TableName, m.options.SchemaName)
 	if err != nil {
 		return false, errors.Wrap(m.dbError(err, q), "get schema table")
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		if err := rows.Scan(&exists); err != nil {
@@ -166,21 +177,34 @@ func (m *MySQL) DropMigrationHistoryTable(ctx context.Context) error {
 // MigrationsCount returns the number of migrations
 func (m *MySQL) MigrationsCount(ctx context.Context) (int, error) {
 	q := fmt.Sprintf(`SELECT count(*) FROM %s`, m.options.TableName)
-	rows, err := m.conn.QueryContext(ctx, q)
-	if err != nil {
+	var c int
+	if err := m.QueryScalar(ctx, q, &c); err != nil {
 		return 0, err
 	}
-	var count int
+
+	return c, nil
+}
+
+func (m *MySQL) QueryScalar(ctx context.Context, query string, ptr any) error {
+	if err := checkArgIsPtrAndScalar(ptr); err != nil {
+		return err
+	}
+	rows, err := m.conn.QueryContext(ctx, query)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
 	if rows.Next() {
-		if err := rows.Scan(&count); err != nil {
-			return 0, m.dbError(err, q)
+		if err := rows.Scan(ptr); err != nil {
+			return m.dbError(err, query)
 		}
 	}
 	if err := rows.Err(); err != nil {
-		return 0, m.dbError(err, q)
+		return m.dbError(err, query)
 	}
 
-	return count, nil
+	return nil
 }
 
 func (m *MySQL) ExistsMigration(ctx context.Context, version string) (bool, error) {
@@ -189,6 +213,8 @@ func (m *MySQL) ExistsMigration(ctx context.Context, version string) (bool, erro
 	if err != nil {
 		return false, err
 	}
+	defer rows.Close()
+
 	var exists int
 	if rows.Next() {
 		if err := rows.Scan(&exists); err != nil {
@@ -206,10 +232,6 @@ func (m *MySQL) TableNameWithSchema() string {
 	return m.options.SchemaName + "." + m.options.TableName
 }
 
-func (m *MySQL) ForceSafely() bool {
-	return false
-}
-
 // dbError returns DBError is err is db error else returns got error.
 func (m *MySQL) dbError(err error, q string) error {
 	var mysqlErr *mysql.MySQLError
@@ -217,9 +239,10 @@ func (m *MySQL) dbError(err error, q string) error {
 		return err
 	}
 
-	return &DBError{
+	return errors.WithStack(&DBError{
 		Code:          strconv.Itoa(int(mysqlErr.Number)),
 		Message:       mysqlErr.Message,
 		InternalQuery: q,
-	}
+		Cause:         err,
+	})
 }

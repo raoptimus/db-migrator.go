@@ -6,6 +6,7 @@ import (
 	"github.com/raoptimus/db-migrator.go/internal/dal/connection"
 	"github.com/raoptimus/db-migrator.go/internal/migrator/mockmigrator"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDBService_Create_ReturnsAction(t *testing.T) {
@@ -23,7 +24,7 @@ func TestDBService_Upgrade_ReturnsAction(t *testing.T) {
 	dbServ.conn = conn
 
 	action, err := dbServ.Upgrade()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, action)
 }
 
@@ -36,7 +37,7 @@ func TestDBService_Downgrade_ReturnsAction(t *testing.T) {
 	dbServ.conn = conn
 
 	action, err := dbServ.Downgrade()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, action)
 }
 
@@ -49,7 +50,7 @@ func TestDBService_To_ReturnsAction(t *testing.T) {
 	dbServ.conn = conn
 
 	action, err := dbServ.To()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, action)
 }
 
@@ -62,7 +63,7 @@ func TestDBService_History_ReturnsAction(t *testing.T) {
 	dbServ.conn = conn
 
 	action, err := dbServ.History()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, action)
 }
 
@@ -75,7 +76,7 @@ func TestDBService_HistoryNew_ReturnsAction(t *testing.T) {
 	dbServ.conn = conn
 
 	action, err := dbServ.HistoryNew()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, action)
 }
 
@@ -88,6 +89,6 @@ func TestDBService_Redo_ReturnsAction(t *testing.T) {
 	dbServ.conn = conn
 
 	action, err := dbServ.Redo()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, action)
 }

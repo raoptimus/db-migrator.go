@@ -1,3 +1,11 @@
+/**
+ * This file is part of the raoptimus/db-migrator.go library
+ *
+ * @copyright Copyright (c) Evgeniy Urvantsev
+ * @license https://github.com/raoptimus/db-migrator.go/blob/master/LICENSE.md
+ * @link https://github.com/raoptimus/db-migrator.go
+ */
+
 package entity
 
 import (
@@ -7,7 +15,7 @@ import (
 
 type Migration struct {
 	Version   string `db:"version"`
-	ApplyTime int    `db:"apply_time"`
+	ApplyTime int64  `db:"apply_time"`
 	// BodySQL     string `db:"body_sql"`
 	// ExecutedSQL string `db:"executed_sql"`
 	// Release     string `db:"release"`
@@ -31,5 +39,5 @@ func (s Migrations) SortByVersion() {
 }
 
 func (s Migration) ApplyTimeFormat() string {
-	return time.Unix(int64(s.ApplyTime), 0).Format("2006-01-02 15:04:05")
+	return time.Unix(s.ApplyTime, 0).Format("2006-01-02 15:04:05")
 }

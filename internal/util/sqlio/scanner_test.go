@@ -1,3 +1,11 @@
+/**
+ * This file is part of the raoptimus/db-migrator.go library
+ *
+ * @copyright Copyright (c) Evgeniy Urvantsev
+ * @license https://github.com/raoptimus/db-migrator.go/blob/master/LICENSE.md
+ * @link https://github.com/raoptimus/db-migrator.go
+ */
+
 package sqlio
 
 import (
@@ -5,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParse(t *testing.T) {
@@ -138,5 +147,5 @@ CREATE TRIGGER test_index_update_trigger`
 		scanner.SQL()
 	}
 	err := scanner.Err()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }

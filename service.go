@@ -1,8 +1,17 @@
+/**
+ * This file is part of the raoptimus/db-migrator.go library
+ *
+ * @copyright Copyright (c) Evgeniy Urvantsev
+ * @license https://github.com/raoptimus/db-migrator.go/blob/master/LICENSE.md
+ * @link https://github.com/raoptimus/db-migrator.go
+ */
+
 package dbmigrator
 
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/raoptimus/db-migrator.go/internal/migrator"
 	"github.com/raoptimus/db-migrator.go/internal/validator"
 )
@@ -55,7 +64,7 @@ func (d *DBService) Upgrade(ctx context.Context, version, sql string, safety boo
 	}
 
 	if exists {
-		return ErrMigrationAlreadyExists
+		return errors.WithStack(ErrMigrationAlreadyExists)
 	}
 
 	return ms.ApplySQL(ctx, safety, version, sql)
@@ -77,7 +86,7 @@ func (d *DBService) Downgrade(ctx context.Context, version, sql string, safety b
 	}
 
 	if !exists {
-		return ErrAppliedMigrationNotFound
+		return errors.WithStack(ErrAppliedMigrationNotFound)
 	}
 
 	return ms.RevertSQL(ctx, safety, version, sql)

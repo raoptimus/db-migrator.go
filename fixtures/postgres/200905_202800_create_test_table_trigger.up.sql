@@ -26,3 +26,6 @@ CREATE TRIGGER test_index_update_trigger
     AFTER INSERT OR UPDATE ON test
     FOR EACH ROW EXECUTE PROCEDURE test_index_update()
 ;
+
+insert into test (id, rank, title, synonyms, updated_at)
+values (1, 0, 'some title 1', ARRAY['some'], now());

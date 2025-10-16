@@ -1,10 +1,19 @@
+/**
+ * This file is part of the raoptimus/db-migrator.go library
+ *
+ * @copyright Copyright (c) Evgeniy Urvantsev
+ * @license https://github.com/raoptimus/db-migrator.go/blob/master/LICENSE.md
+ * @link https://github.com/raoptimus/db-migrator.go
+ */
+
 package migrator
 
 import (
 	"context"
-	"database/sql"
+	"io"
 
 	"github.com/raoptimus/db-migrator.go/internal/dal/connection"
+	"github.com/raoptimus/db-migrator.go/internal/sqlex"
 )
 
 //go:generate mockery
@@ -12,9 +21,10 @@ type Connection interface {
 	DSN() string
 	Driver() connection.Driver
 	Ping() error
-	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
-	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...any) (sqlex.Rows, error)
+	ExecContext(ctx context.Context, query string, args ...any) (sqlex.Result, error)
 	Transaction(ctx context.Context, txFn func(ctx context.Context) error) error
+	io.Closer
 }
 
 //go:generate mockery

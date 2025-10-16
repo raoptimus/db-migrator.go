@@ -9,6 +9,7 @@ import (
 	"github.com/raoptimus/db-migrator.go/internal/util/thelp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestClickhouse_CreateMigrationHistoryTable_Successfully(t *testing.T) {
@@ -47,7 +48,7 @@ func TestClickhouse_CreateMigrationHistoryTable_Successfully(t *testing.T) {
 		Replicated:  false,
 	})
 	err := repo.CreateMigrationHistoryTable(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestClickhouse_Migrations_Failure(t *testing.T) {
