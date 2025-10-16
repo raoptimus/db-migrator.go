@@ -222,7 +222,7 @@ func (p *Tarantool) ExistsMigration(ctx context.Context, version string) (bool, 
 
 	rows, err := p.conn.QueryContext(ctx, q)
 	if err != nil {
-		return false, err
+		return false, errors.WithMessage(err, "exists migration")
 	}
 	defer rows.Close()
 

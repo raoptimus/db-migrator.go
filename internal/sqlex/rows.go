@@ -100,7 +100,14 @@ func (v *RowsWithSlice) Scan(dest ...any) error {
 
 		if rowValOf.CanConvert(destTypeElem) {
 			reflect.ValueOf(destValPtr).Elem().Set(rowValOf.Convert(destTypeElem))
+			continue
 		}
+
+		return errors.WithStack(
+			errors.Errorf("variable of type %T cannot be set to variable of type %T",
+				rowVal,
+				destValPtr,
+			))
 	}
 
 	v.i++

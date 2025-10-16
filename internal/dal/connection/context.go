@@ -19,9 +19,11 @@ var (
 	ErrNoTransaction = errors.New("no transaction")
 )
 
-type ContextKey string
+type contextKey int
 
-const contextKeyTX ContextKey = "tx"
+const (
+	contextKeyTX contextKey = iota
+)
 
 func ContextWithTx(parent context.Context, v sqlex.Tx) context.Context {
 	return context.WithValue(parent, contextKeyTX, v)

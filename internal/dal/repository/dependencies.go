@@ -11,7 +11,7 @@ import (
 //go:generate mockery
 type Connection interface {
 	io.Closer
-	
+
 	DSN() string
 	Driver() connection.Driver
 	Ping() error

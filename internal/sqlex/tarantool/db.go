@@ -45,7 +45,7 @@ func Open(dsn string) (*DB, error) {
 		Password: pass,
 	}
 	opts := tarantool.Opts{
-		Timeout: defaultQueryTimeout, //todo extract from query param dsn
+		Timeout: defaultQueryTimeout, //todo: extract from query param dsn
 	}
 
 	conn, err := tarantool.Connect(context.Background(), dialer, opts)
