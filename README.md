@@ -22,7 +22,7 @@ The above command will create a new sql file named 200101_232501_create_news_tab
 The migration file name is automatically generated in the format of <YYMMDD_HHMMSS>_<Name>.<Safe>.<Action>.sql, where
 - <YYMMDD_HHMMSS> refers to the UTC datetime at which the migration creation command is executed.
 - <Name> is the same as the value of the name argument that you provide to the command.
-- <Safe> is the safely sql. MIgration will be executed in one transaction.
+- <Safe> is the safely sql. Migration will be executed in one transaction.
 - <Action> is the action like up or down.
 
 ### Applying Migrations 
@@ -169,7 +169,7 @@ When using Tarantool:
 
 ### Example Tarantool Migration
 
-**Up migration (251002_183908_create_test_space.safe.up.sql)**:
+**Up migration (251002_183908_create_test_space.up.sql)**:
 ```lua
 box.schema.space.create('test', {if_not_exists = true})
 box.space.test:format({
@@ -179,7 +179,7 @@ box.space.test:format({
 box.space.test:create_index('primary', {parts = {'name'}, if_not_exists = true})
 ```
 
-**Down migration (251002_183908_create_test_space.safe.down.sql)**:
+**Down migration (251002_183908_create_test_space.down.sql)**:
 ```lua
 box.space.test:drop()
 ```

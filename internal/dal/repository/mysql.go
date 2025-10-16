@@ -239,10 +239,10 @@ func (m *MySQL) dbError(err error, q string) error {
 		return err
 	}
 
-	return &DBError{
+	return errors.WithStack(&DBError{
 		Code:          strconv.Itoa(int(mysqlErr.Number)),
 		Message:       mysqlErr.Message,
 		InternalQuery: q,
 		Cause:         err,
-	}
+	})
 }
