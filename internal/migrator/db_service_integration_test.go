@@ -113,16 +113,16 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 
 			dbServ := New(tt.options)
 			down, err := dbServ.Downgrade()
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			up, err := dbServ.Upgrade()
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			defer func() {
 				_ = down.Run(ctx, "all")
 			}()
 
 			err = up.Run(ctx, "2")
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			if err != nil {
 				return
 			}
@@ -135,7 +135,7 @@ func TestIntegrationDBService_UpDown_Successfully(t *testing.T) {
 			assertEqualRecordsCount(t, ctx, dbServ.repo, tt.selectQueryToRecordsCount, tt.wantRecordsCount)
 
 			err = down.Run(ctx, "all")
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assertEqualMigrationsCount(t, ctx, dbServ.repo, 1) // basic
 		})
 	}
@@ -156,18 +156,18 @@ func TestIntegrationDBService_Upgrade_AlreadyExistsMigration(t *testing.T) {
 	dbServ := New(&opts)
 
 	down, err := dbServ.Downgrade()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	err = down.Run(ctx, "all")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	up, err := dbServ.Upgrade()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	// apply first migration
 	err = up.Run(ctx, "1")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	// apply second migration
 	err = up.Run(ctx, "1")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	// apply third broken migration
 	err = up.Run(ctx, "1")
 	assert.Error(t, err)
@@ -180,7 +180,7 @@ func assertEqualMigrationsCount(
 	expected int,
 ) {
 	count, err := repo.MigrationsCount(ctx)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, expected, count)
 }
 
@@ -193,7 +193,7 @@ func assertEqualRecordsCount(
 ) {
 	var gotRecordsCount int
 	err := repo.QueryScalar(ctx, query, &gotRecordsCount)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, wantRecordsCount, gotRecordsCount)
 }
 

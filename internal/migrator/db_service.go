@@ -178,26 +178,31 @@ func (s *DBService) MigrationService() (*service.Migration, error) {
 	return s.service, nil
 }
 
+func (s *DBService) Close() error {
+	if s.conn != nil {
+		return s.conn.Close()
+	}
+
+	return nil
+}
+
 func (s *DBService) tryConnectionToDB() error {
 	if s.conn != nil {
 		return nil
 	}
 
 	var err error
+	for i := 0; i < s.options.MaxConnAttempts; i++ {
+		s.conn, err = connection.New(s.options.DSN)
+		if err == nil {
+			if err = s.conn.Ping(); err == nil {
+				return nil
+			}
+		}
 
-	for i := range s.options.MaxConnAttempts {
-		if i > 0 && i < s.options.MaxConnAttempts-1 {
+		if i < s.options.MaxConnAttempts-1 {
 			time.Sleep(durationBeforeNextConnAttempt)
 		}
-		s.conn, err = connection.New(s.options.DSN)
-		if err != nil {
-			continue
-		}
-		if err = s.conn.Ping(); err != nil {
-			continue
-		}
-
-		break
 	}
 
 	return err

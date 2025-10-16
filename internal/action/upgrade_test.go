@@ -6,7 +6,7 @@ import (
 
 	"github.com/raoptimus/db-migrator.go/internal/action/mockaction"
 	"github.com/raoptimus/db-migrator.go/internal/dal/entity"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestUpgrade_Run_NoMigrations_NoError(t *testing.T) {
@@ -25,5 +25,5 @@ func TestUpgrade_Run_NoMigrations_NoError(t *testing.T) {
 
 	upgrade := NewUpgrade(c, serv, fb, true)
 	err := upgrade.Run(ctx, "2")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/raoptimus/db-migrator.go/internal/sqlex/tarantool/mocktarantool"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/tarantool/go-tarantool/v2"
 )
 
@@ -49,7 +49,7 @@ func TestDB_QueryContext(t *testing.T) {
 
 			db := DB{conn: conn}
 			_, err := db.QueryContext(ctx, tt.query, tt.args...)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		})
 	}
 }

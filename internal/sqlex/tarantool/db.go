@@ -37,10 +37,7 @@ func Open(dsn string) (*DB, error) {
 	if err != nil {
 		return nil, errors.WithMessage(err, "parse tarantool DSN")
 	}
-	pass, hasPassword := dsnURL.User.Password()
-	if !hasPassword {
-		pass = ""
-	}
+	pass, _ := dsnURL.User.Password()
 
 	dialer := tarantool.NetDialer{
 		Address:  dsnURL.Host,
@@ -48,26 +45,12 @@ func Open(dsn string) (*DB, error) {
 		Password: pass,
 	}
 	opts := tarantool.Opts{
-		Timeout: defaultQueryTimeout,
+		Timeout: defaultQueryTimeout, //todo extract from query param dsn
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), defaultQueryTimeout)
-	defer cancel() //todo: ?
 
-	conn, err := tarantool.Connect(ctx, dialer, opts)
+	conn, err := tarantool.Connect(context.Background(), dialer, opts)
 	if err != nil {
 		return nil, errors.Wrapf(err, "connect to tarantool at %s", dsnURL.Host)
-	}
-
-	_, err = conn.Do(
-		tarantool.NewCallRequest("box.cfg").
-			Args([]interface{}{map[string]interface{}{
-				"txn_isolation": tarantool.ReadCommittedLevel,
-			}}),
-	).Get()
-	if err != nil {
-		conn.Close()
-
-		return nil, errors.Wrapf(err, "configure the tarantool at %s", dsnURL.Host)
 	}
 
 	return &DB{conn: conn}, nil

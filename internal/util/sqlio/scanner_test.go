@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParse(t *testing.T) {
@@ -146,5 +147,5 @@ CREATE TRIGGER test_index_update_trigger`
 		scanner.SQL()
 	}
 	err := scanner.Err()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }

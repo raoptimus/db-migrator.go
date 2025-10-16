@@ -21,6 +21,7 @@ import (
 	"github.com/raoptimus/db-migrator.go/internal/util/console"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMigration_BeginCommand(t *testing.T) {
@@ -69,7 +70,7 @@ func TestMigration_ApplyFile_MultiSTMT_Successfully(t *testing.T) {
 		fileName,
 		false,
 	)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestMigration_ApplyFile_SimpleSTMT_Successfully(t *testing.T) {
@@ -96,7 +97,7 @@ func TestMigration_ApplyFile_SimpleSTMT_Successfully(t *testing.T) {
 		fileName,
 		false,
 	)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestMigration_RevertFile_ApplyReturnsBadError(t *testing.T) {

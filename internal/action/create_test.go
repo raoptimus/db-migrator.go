@@ -7,7 +7,7 @@ import (
 
 	"github.com/raoptimus/db-migrator.go/internal/action/mockaction"
 	"github.com/raoptimus/db-migrator.go/internal/util/timex"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCreate_Run_ExpectedArguments_NoError(t *testing.T) {
@@ -77,7 +77,7 @@ func TestCreate_Run_ExpectedArguments_NoError(t *testing.T) {
 
 			create := NewCreate(tm, f, c, fb, "/tmp")
 			err := create.Run(ctx, "init")
-			assert.NoError(t, err)
+			require.NoError(t, err)
 		})
 	}
 }

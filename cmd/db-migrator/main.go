@@ -43,6 +43,9 @@ func main() {
 
 			return ctx, nil
 		},
+		After: func(ctx context.Context, command *cli.Command) error {
+			return dbService.Close()
+		},
 	}
 
 	if err := cmd.Run(context.Background(), os.Args); err != nil {
