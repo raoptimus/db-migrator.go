@@ -128,7 +128,8 @@ func (ch *Clickhouse) RemoveMigration(ctx context.Context, version string) error
 // The args are for any placeholder parameters in the query.
 func (ch *Clickhouse) ExecQuery(ctx context.Context, query string, args ...any) error {
 	_, err := ch.conn.ExecContext(ctx, query, args...)
-	return err
+
+	return ch.dbError(err, query)
 }
 
 // ExecQueryTransaction executes txFn in transaction.
@@ -332,6 +333,7 @@ func (ch *Clickhouse) optimizeTable(ctx context.Context) error {
 	} else {
 		q = fmt.Sprintf("OPTIMIZE TABLE %s ON CLUSTER %s FINAL", ch.options.TableName, ch.options.ClusterName)
 	}
+
 	if _, err := ch.conn.ExecContext(ctx, q); err != nil {
 		return errors.Wrap(ch.dbError(err, q), "optimize table")
 	}

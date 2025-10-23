@@ -191,11 +191,16 @@ func (s *DBService) tryConnectionToDB() error {
 		return nil
 	}
 
-	var err error
+	var (
+		err  error
+		conn Connection
+	)
 	for i := 0; i < s.options.MaxConnAttempts; i++ {
-		s.conn, err = connection.New(s.options.DSN)
+		conn, err = connection.New(s.options.DSN)
 		if err == nil {
-			if err = s.conn.Ping(); err == nil {
+			if err = conn.Ping(); err == nil {
+				s.conn = conn
+
 				return nil
 			}
 		}
