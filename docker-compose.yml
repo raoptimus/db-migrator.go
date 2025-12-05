@@ -1,9 +1,11 @@
 services:
   clickhouse:
-    image: clickhouse/clickhouse-server:23.11-alpine
+    image: clickhouse/clickhouse-server:25.8.11.66-alpine
+    volumes:
+      - "./docker/volume/clickhouse/users.xml:/etc/clickhouse-server/users.d/users.xml"
 
   postgres:
-    image: postgres:12-alpine
+    image: postgres:16-alpine
     volumes:
       - "./docker/volume/postgres/dump:/docker-entrypoint-initdb.d/"
     env_file:
@@ -51,47 +53,49 @@ services:
       - .env
 
   clickhouse-keeper:
-    image: clickhouse/clickhouse-keeper:23.11-alpine
+    image: clickhouse/clickhouse-keeper:25.8.11.66-alpine
     restart: on-failure
     volumes:
       - "./docker/volume/clickhouse-cluster/config/keeper1/keeper_config.xml:/etc/clickhouse-keeper/keeper_config.xml"
 
   clickhouse1:
-    image: clickhouse/clickhouse-server:23.11-alpine
+    image: clickhouse/clickhouse-server:25.8.11.66-alpine
     restart: on-failure
     volumes:
       - "./docker/volume/clickhouse-cluster/config/clickhouse1:/etc/clickhouse-server/config.d/"
+      - "./docker/volume/clickhouse/users.xml:/etc/clickhouse-server/users.d/users.xml"
     depends_on:
       - clickhouse-keeper
 
   clickhouse2:
-    image: clickhouse/clickhouse-server:23.11-alpine
+    image: clickhouse/clickhouse-server:25.8.11.66-alpine
     restart: on-failure
     volumes:
       - "./docker/volume/clickhouse-cluster/config/clickhouse2:/etc/clickhouse-server/config.d/"
+      - "./docker/volume/clickhouse/users.xml:/etc/clickhouse-server/users.d/users.xml"
     depends_on:
       - clickhouse-keeper
 
   clickhouse-keeper-r:
-    image: clickhouse/clickhouse-keeper:23.11-alpine
+    image: clickhouse/clickhouse-keeper:25.8.11.66-alpine
     restart: on-failure
     volumes:
       - "./docker/volume/clickhouse-cluster-replicated/config/keeper1/keeper_config.xml:/etc/clickhouse-keeper/keeper_config.xml"
 
   clickhouse-r-1:
-    image: clickhouse/clickhouse-server:23.11-alpine
+    image: clickhouse/clickhouse-server:25.8.11.66-alpine
     restart: on-failure
     volumes:
       - "./docker/volume/clickhouse-cluster-replicated/config/clickhouse1:/etc/clickhouse-server/config.d/"
-      - "./docker/volume/clickhouse-cluster-replicated/config/clickhouse1/users.xml:/etc/clickhouse-server/users.d/users.xml"
+      - "./docker/volume/clickhouse/users.xml:/etc/clickhouse-server/users.d/users.xml"
     depends_on:
       - clickhouse-keeper-r
 
   clickhouse-r-2:
-    image: clickhouse/clickhouse-server:23.11-alpine
+    image: clickhouse/clickhouse-server:25.8.11.66-alpine
     restart: on-failure
     volumes:
       - "./docker/volume/clickhouse-cluster-replicated/config/clickhouse2:/etc/clickhouse-server/config.d/"
-      - "./docker/volume/clickhouse-cluster-replicated/config/clickhouse2/users.xml:/etc/clickhouse-server/users.d/users.xml"
+      - "./docker/volume/clickhouse/users.xml:/etc/clickhouse-server/users.d/users.xml"
     depends_on:
       - clickhouse-keeper-r
