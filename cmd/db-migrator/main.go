@@ -33,7 +33,8 @@ func main() {
 
 	cmd := &cli.Command{
 		Name:           "DB Service",
-		Usage:          "up/down/redo command for migrates the different db",
+		Usage:          "Database migration tool for different databases",
+		UsageText:      "db-migrator [command] [command options]\n\n   Command-line options override environment variables.",
 		Version:        fmt.Sprintf("%s.rev[%s]", Version, GitCommit),
 		Commands:       commands(&options),
 		DefaultCommand: "help",
