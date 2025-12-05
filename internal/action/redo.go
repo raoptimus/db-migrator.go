@@ -13,22 +13,24 @@ import (
 	"fmt"
 
 	"github.com/raoptimus/db-migrator.go/internal/args"
-	"github.com/raoptimus/db-migrator.go/internal/console"
 	"github.com/raoptimus/db-migrator.go/internal/dal/entity"
 )
 
 type Redo struct {
+	console         Console
 	service         MigrationService
 	fileNameBuilder FileNameBuilder
 	interactive     bool
 }
 
 func NewRedo(
+	console Console,
 	service MigrationService,
 	fileNameBuilder FileNameBuilder,
 	interactive bool,
 ) *Redo {
 	return &Redo{
+		console:         console,
 		service:         service,
 		fileNameBuilder: fileNameBuilder,
 		interactive:     interactive,
@@ -36,7 +38,11 @@ func NewRedo(
 }
 
 func (r *Redo) Run(ctx context.Context, cmdArgs ...string) error {
-	limit, err := args.ParseStepStringOrDefault(cmdArgs[0], minLimit)
+	arg := ""
+	if len(cmdArgs) > 0 {
+		arg = cmdArgs[0]
+	}
+	limit, err := args.ParseStepStringOrDefault(arg, minLimit)
 	if err != nil {
 		return err
 	}
@@ -48,22 +54,22 @@ func (r *Redo) Run(ctx context.Context, cmdArgs ...string) error {
 
 	migrationsCount := migrations.Len()
 	if migrationsCount == 0 {
-		console.SuccessLn("No migration has been done before.")
+		r.console.SuccessLn("No migration has been done before.")
 		return nil
 	}
 
-	console.Warnf(
+	r.console.Warnf(
 		"Total %d %s to be redone: \n",
 		migrationsCount,
-		console.NumberPlural(migrationsCount, "migration", "migrations"),
+		r.console.NumberPlural(migrationsCount, "migration", "migrations"),
 	)
 
 	printMigrations(migrations, false)
 
 	question := fmt.Sprintf("Redo the above %d %s?",
-		migrationsCount, console.NumberPlural(migrationsCount, "migration", "migrations"),
+		migrationsCount, r.console.NumberPlural(migrationsCount, "migration", "migrations"),
 	)
-	if r.interactive && !console.Confirm(question) {
+	if r.interactive && !r.console.Confirm(question) {
 		return nil
 	}
 
@@ -73,7 +79,7 @@ func (r *Redo) Run(ctx context.Context, cmdArgs ...string) error {
 		fileName, safely := r.fileNameBuilder.Down(migration.Version, false)
 
 		if err := r.service.RevertFile(ctx, migration, fileName, safely); err != nil {
-			console.ErrorLn("Migration failed. The rest of the migrations are canceled.")
+			r.console.ErrorLn("Migration failed. The rest of the migrations are canceled.")
 			return err
 		}
 
@@ -85,17 +91,17 @@ func (r *Redo) Run(ctx context.Context, cmdArgs ...string) error {
 		fileName, safely := r.fileNameBuilder.Up(migration.Version, false)
 
 		if err := r.service.ApplyFile(ctx, migration, fileName, safely); err != nil {
-			console.ErrorLn("Migration failed. The rest of the migrations are canceled.\n")
+			r.console.ErrorLn("Migration failed. The rest of the migrations are canceled.\n")
 			return err
 		}
 	}
 
-	console.Warnf(
+	r.console.Warnf(
 		"%d %s redone.",
 		migrationsCount,
-		console.NumberPlural(migrationsCount, migrationWas, migrationsWere),
+		r.console.NumberPlural(migrationsCount, migrationWas, migrationsWere),
 	)
-	console.SuccessLn("Migration redone successfully.\n")
+	r.console.SuccessLn("Migration redone successfully.\n")
 
 	return nil
 }

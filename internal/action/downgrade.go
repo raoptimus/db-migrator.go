@@ -35,7 +35,11 @@ func NewDowngrade(
 }
 
 func (d *Downgrade) Run(ctx context.Context, cmdArgs ...string) error {
-	limit, err := args.ParseStepStringOrDefault(cmdArgs[0], minLimit)
+	arg := ""
+	if len(cmdArgs) > 0 {
+		arg = cmdArgs[0]
+	}
+	limit, err := args.ParseStepStringOrDefault(arg, minLimit)
 	if err != nil {
 		return err
 	}

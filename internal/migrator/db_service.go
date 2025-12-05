@@ -127,7 +127,7 @@ func (s *DBService) Redo() (*action.Redo, error) {
 		return nil, err
 	}
 
-	return action.NewRedo(serv, s.fileNameBuilder, s.options.Interactive), nil
+	return action.NewRedo(console.Std, serv, s.fileNameBuilder, s.options.Interactive), nil
 }
 
 func (s *DBService) MigrationService() (*service.Migration, error) {

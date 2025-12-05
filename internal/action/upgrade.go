@@ -41,7 +41,11 @@ func NewUpgrade(
 }
 
 func (u *Upgrade) Run(ctx context.Context, cmdArgs ...string) error {
-	limit, err := args.ParseStepStringOrDefault(cmdArgs[0], defaultUpgradeLimit)
+	arg := ""
+	if len(cmdArgs) > 0 {
+		arg = cmdArgs[0]
+	}
+	limit, err := args.ParseStepStringOrDefault(arg, defaultUpgradeLimit)
 	if err != nil {
 		return err
 	}

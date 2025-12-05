@@ -20,9 +20,14 @@ func TestRedo_Run_NoMigrations_NoError(t *testing.T) {
 		Migrations(ctx, 1).
 		Return(entity.Migrations{}, nil)
 
+	c := mockaction.NewConsole(t)
+	c.EXPECT().
+		SuccessLn(mock.Anything).
+		Return()
+
 	fb := mockaction.NewFileNameBuilder(t)
 
-	redo := NewRedo(serv, fb, true)
+	redo := NewRedo(c, serv, fb, true)
 	err := redo.Run(ctx)
 	assert.NoError(t, err)
 }
@@ -42,6 +47,17 @@ func TestRedo_Run_OneMigration_NoError(t *testing.T) {
 		ApplyFile(ctx, &migration, "1.up.sql", false).
 		Return(nil)
 
+	c := mockaction.NewConsole(t)
+	c.EXPECT().
+		NumberPlural(mock.Anything, mock.Anything, mock.Anything).
+		Return("migration").Times(3)
+	c.EXPECT().
+		Warnf(mock.Anything, mock.Anything, mock.Anything).
+		Return().Times(2)
+	c.EXPECT().
+		SuccessLn(mock.Anything).
+		Return()
+
 	fb := mockaction.NewFileNameBuilder(t)
 	fb.EXPECT().
 		Down("1", false).
@@ -50,7 +66,7 @@ func TestRedo_Run_OneMigration_NoError(t *testing.T) {
 		Up("1", false).
 		Return("1.up.sql", false)
 
-	redo := NewRedo(serv, fb, false)
+	redo := NewRedo(c, serv, fb, false)
 	err := redo.Run(ctx)
 	assert.NoError(t, err)
 }
@@ -93,7 +109,18 @@ func TestRedo_Run_MultipleMigrations_NoError(t *testing.T) {
 		Up("2", false).
 		Return("2.up.sql", false)
 
-	redo := NewRedo(serv, fb, false)
+	c := mockaction.NewConsole(t)
+	c.EXPECT().
+		NumberPlural(mock.Anything, mock.Anything, mock.Anything).
+		Return("migrations").Times(3)
+	c.EXPECT().
+		Warnf(mock.Anything, mock.Anything, mock.Anything).
+		Return().Times(2)
+	c.EXPECT().
+		SuccessLn(mock.Anything).
+		Return()
+
+	redo := NewRedo(c, serv, fb, false)
 	err := redo.Run(ctx, "2")
 	assert.NoError(t, err)
 }
@@ -111,12 +138,18 @@ func TestRedo_Run_InteractiveMode_ConfirmFalse_NoError(t *testing.T) {
 
 	c := mockaction.NewConsole(t)
 	c.EXPECT().
+		NumberPlural(mock.Anything, mock.Anything, mock.Anything).
+		Return("migration").Times(2)
+	c.EXPECT().
+		Warnf(mock.Anything, mock.Anything, mock.Anything).
+		Return()
+	c.EXPECT().
 		Confirm(mock.Anything).
 		Return(false)
 
 	fb := mockaction.NewFileNameBuilder(t)
 
-	redo := NewRedo(serv, fb, true)
+	redo := NewRedo(c, serv, fb, true)
 	err := redo.Run(ctx)
 	assert.NoError(t, err)
 }
@@ -134,12 +167,23 @@ func TestRedo_Run_RevertFileError_Error(t *testing.T) {
 		RevertFile(ctx, &migration, "1.down.sql", false).
 		Return(expectedErr)
 
+	c := mockaction.NewConsole(t)
+	c.EXPECT().
+		NumberPlural(mock.Anything, mock.Anything, mock.Anything).
+		Return("migration")
+	c.EXPECT().
+		Warnf(mock.Anything, mock.Anything, mock.Anything).
+		Return()
+	c.EXPECT().
+		ErrorLn(mock.Anything).
+		Return()
+
 	fb := mockaction.NewFileNameBuilder(t)
 	fb.EXPECT().
 		Down("1", false).
 		Return("1.down.sql", false)
 
-	redo := NewRedo(serv, fb, false)
+	redo := NewRedo(c, serv, fb, false)
 	err := redo.Run(ctx)
 	assert.ErrorIs(t, err, expectedErr)
 }
@@ -160,6 +204,17 @@ func TestRedo_Run_ApplyFileError_Error(t *testing.T) {
 		ApplyFile(ctx, &migration, "1.up.sql", false).
 		Return(expectedErr)
 
+	c := mockaction.NewConsole(t)
+	c.EXPECT().
+		NumberPlural(mock.Anything, mock.Anything, mock.Anything).
+		Return("migration")
+	c.EXPECT().
+		Warnf(mock.Anything, mock.Anything, mock.Anything).
+		Return()
+	c.EXPECT().
+		ErrorLn(mock.Anything).
+		Return()
+
 	fb := mockaction.NewFileNameBuilder(t)
 	fb.EXPECT().
 		Down("1", false).
@@ -168,7 +223,7 @@ func TestRedo_Run_ApplyFileError_Error(t *testing.T) {
 		Up("1", false).
 		Return("1.up.sql", false)
 
-	redo := NewRedo(serv, fb, false)
+	redo := NewRedo(c, serv, fb, false)
 	err := redo.Run(ctx)
 	assert.ErrorIs(t, err, expectedErr)
 }
