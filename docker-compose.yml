@@ -1,8 +1,6 @@
 services:
   clickhouse:
     image: clickhouse/clickhouse-server:23.11-alpine
-    volumes:
-      - "./docker/volume/clickhouse/dump:/docker-entrypoint-initdb.d/"
 
   postgres:
     image: postgres:12-alpine

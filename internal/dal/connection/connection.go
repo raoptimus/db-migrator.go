@@ -12,6 +12,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -129,16 +130,39 @@ func (c *Connection) Close() error {
 
 // clickhouse returns connection with clickhouse configuration.
 func clickhouse(dsn string) (*Connection, error) {
-	db, err := sql.Open("clickhouse", dsn)
+	// Remove sslmode parameter if present (it's a PostgreSQL parameter, not ClickHouse)
+	cleanDSN, err := removeSslModeFromDSN(dsn)
+	if err != nil {
+		return nil, errors.Wrap(err, "parse clickhouse DSN")
+	}
+
+	db, err := sql.Open("clickhouse", cleanDSN)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Connection{
 		driver: DriverClickhouse,
-		dsn:    dsn,
+		dsn:    cleanDSN,
 		db:     &sqlex.DB{DB: db},
 	}, nil
+}
+
+// removeSslModeFromDSN removes the sslmode parameter from DSN if present.
+// sslmode is a PostgreSQL parameter and not supported by ClickHouse.
+func removeSslModeFromDSN(dsn string) (string, error) {
+	u, err := url.Parse(dsn)
+	if err != nil {
+		return "", err
+	}
+
+	query := u.Query()
+	if query.Has("sslmode") {
+		query.Del("sslmode")
+		u.RawQuery = query.Encode()
+	}
+
+	return u.String(), nil
 }
 
 // postgres returns connection with postgres configuration.
