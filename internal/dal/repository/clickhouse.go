@@ -150,8 +150,7 @@ func (ch *Clickhouse) CreateMigrationHistoryTable(ctx context.Context) error {
 	switch {
 	case ch.isUsedCluster():
 		onCluster = "ON CLUSTER " + ch.options.ClusterName
-		engine = "ReplicatedReplacingMergeTree('/clickhouse/tables/{shard}/" +
-			ch.options.ClusterName + "_" + ch.options.TableName + "', '{replica}', apply_time)"
+		engine = "ReplicatedReplacingMergeTree"
 		extQ = fmt.Sprintf(`
 				CREATE TABLE %[2]s.d_%[3]s ON CLUSTER %[1]s AS %[2]s.%[3]s
 				ENGINE = Distributed('%[1]s', '%[2]s', %[3]s, cityHash64(toString(version)))
@@ -161,8 +160,7 @@ func (ch *Clickhouse) CreateMigrationHistoryTable(ctx context.Context) error {
 			ch.options.TableName,
 		)
 	case ch.options.Replicated:
-		engine = "ReplicatedReplacingMergeTree('/clickhouse/tables/{shard}/" +
-			ch.options.ClusterName + "_" + ch.options.TableName + "', '{replica}', apply_time)"
+		engine = "ReplicatedReplacingMergeTree"
 	default:
 		engine = "ReplacingMergeTree(apply_time)"
 	}

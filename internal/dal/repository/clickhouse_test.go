@@ -21,7 +21,7 @@ func TestClickhouse_CreateMigrationHistoryTable_Successfully(t *testing.T) {
 			date Date DEFAULT toDate(apply_time),
 			apply_time UInt32,
 			is_deleted UInt8
-		) ENGINE = ReplicatedReplacingMergeTree('/clickhouse/tables/{shard}/test_cluster_migrates', '{replica}', apply_time)
+		) ENGINE = ReplicatedReplacingMergeTree
 		PRIMARY KEY (version)
 		PARTITION BY (toYYYYMM(date))
 		ORDER BY (version)
