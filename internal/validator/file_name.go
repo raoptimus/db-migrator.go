@@ -15,7 +15,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-const patternFileName = `^(?P<Year>\d{2})(?P<Month>\d{2})(?P<Day>\d{2})\_(?P<Hour>\d{2})(?P<Minute>\d{2})(?P<Second>\d{2})\_[a-z][a-z0-9\_\-]+(\.safe)?\.(up|down)\.sql$`
+const patternFileName = `^(?P<Year>\d{2})(?P<Month>\d{2})(?P<Day>\d{2})\_(?P<Hour>\d{2})(?P<Minute>\d{2})(?P<Second>\d{2})\_[a-zA-Z][a-zA-Z0-9\_\-]+(\.safe)?\.(up|down)\.sql$`
 
 var (
 	regexpFileName        = regexp.MustCompile(patternFileName)
