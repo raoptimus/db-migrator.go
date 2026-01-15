@@ -8,7 +8,7 @@ packages:
     config:
       recursive: True
       all: True
-      mockname: "{{ .InterfaceName }}"
-      outpkg: "mock{{ .PackageName }}"
-      filename: "{{ .InterfaceName | snakecase }}.go"
-      dir: "{{ .InterfaceDirRelative }}/mock{{ .PackageName }}"
+      mockname: "Mock{{ .InterfaceName }}"
+      outpkg: "{{.PackageName}}"
+      filename: "{{ .InterfaceName | snakecase }}_mock_test.go"
+      dir: "{{.InterfaceDir}}"

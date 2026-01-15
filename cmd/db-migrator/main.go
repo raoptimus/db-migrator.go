@@ -14,125 +14,63 @@ import (
 	"os"
 
 	_ "github.com/lib/pq"
-	"github.com/pkg/errors"
-	"github.com/raoptimus/db-migrator.go/internal/migrator"
-	"github.com/raoptimus/db-migrator.go/internal/util/console"
+	"github.com/raoptimus/db-migrator.go/internal/application/handler"
+	"github.com/raoptimus/db-migrator.go/internal/domain/validator"
+	"github.com/raoptimus/db-migrator.go/internal/infrastructure/adapter/urfavecli"
+	"github.com/raoptimus/db-migrator.go/internal/infrastructure/log"
 	"github.com/urfave/cli/v3"
 )
 
-const maxIdentifierLen = 65000
+const maxConnAttempts = 100
 
 var (
 	Version   string
 	GitCommit string
-	dbService *migrator.DBService
 )
 
 func main() {
-	options := migrator.Options{}
+	options := handler.Options{}
+	logger := log.Std
+	handlers := handler.NewHandlers(&options, logger)
 
 	cmd := &cli.Command{
-		Name:           "DB Service",
-		Usage:          "up/down/redo command for migrates the different db",
-		Version:        fmt.Sprintf("%s.rev[%s]", Version, GitCommit),
-		Commands:       commands(&options),
+		Name:      "Database Migration Tool",
+		Usage:     "Database migration tool for different databases",
+		UsageText: "db-migrator [command] [command options]\n\n Command-line options override environment variables.",
+		Description: `This tool helps to manage database migrations. 
+			It supports PostgreSQL and other databases that support SQL commands. 
+			The tool can perform up, down, redo, create, history, new, and to operations on the database. 
+			For more information, please refer to the documentation. 
+			More details about the tool can be found at https://github.com/raoptimus/db-migrator.go`,
+		Version: fmt.Sprintf("%s.rev[%s]", Version, GitCommit),
+		Commands: []*cli.Command{
+			{Name: "up", Action: urfavecli.Adapt(handlers.Upgrade), Flags: flags(&options, true)},
+			{Name: "down", Action: urfavecli.Adapt(handlers.Downgrade), Flags: flags(&options, true)},
+			{Name: "redo", Action: urfavecli.Adapt(handlers.Redo), Flags: flags(&options, true)},
+			{Name: "to", Action: urfavecli.Adapt(handlers.To), Flags: flags(&options, true)},
+			{Name: "create", Action: urfavecli.Adapt(handlers.Create), Flags: flags(&options, false)},
+			{Name: "history", Action: urfavecli.Adapt(handlers.History), Flags: flags(&options, true)},
+			{Name: "new", Action: urfavecli.Adapt(handlers.HistoryNew), Flags: flags(&options, true)},
+		},
 		DefaultCommand: "help",
-		Flags:          flags(&options, false),
-		Before: func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
-			dbService = migrator.New(&options)
-
-			return ctx, nil
-		},
-		After: func(ctx context.Context, command *cli.Command) error {
-			return dbService.Close()
-		},
 	}
 
 	if err := cmd.Run(context.Background(), os.Args); err != nil {
-		console.Std.Fatal(err)
+		logger.Fatal(err)
 	}
 }
 
-func commands(options *migrator.Options) []*cli.Command {
-	return []*cli.Command{
-		{
-			Name: "up",
-			Action: func(ctx context.Context, cmd *cli.Command) error {
-				if a, err := dbService.Upgrade(); err != nil {
-					return err
-				} else {
-					return a.Run(ctx, cmd.Args().Get(0))
-				}
-			},
-			Flags: flags(options, true),
-		},
-		{
-			Name: "down",
-			Action: func(ctx context.Context, cmd *cli.Command) error {
-				if a, err := dbService.Downgrade(); err != nil {
-					return err
-				} else {
-					return a.Run(ctx, cmd.Args().Get(0))
-				}
-			},
-			Flags: flags(options, true),
-		},
-		{
-			Name: "redo",
-			Action: func(ctx context.Context, cmd *cli.Command) error {
-				if a, err := dbService.Redo(); err != nil {
-					return err
-				} else {
-					return a.Run(ctx, cmd.Args().Get(0))
-				}
-			},
-			Flags: flags(options, true),
-		},
-		{
-			Name: "create",
-			Action: func(ctx context.Context, cmd *cli.Command) error {
-				return dbService.Create().Run(ctx, cmd.Args().Get(0))
-			},
-			Flags: flags(options, false),
-		},
-		{
-			Name: "history",
-			Action: func(ctx context.Context, cmd *cli.Command) error {
-				if a, err := dbService.History(); err != nil {
-					return err
-				} else {
-					return a.Run(ctx, cmd.Args().Get(0))
-				}
-			},
-			Flags: flags(options, true),
-		},
-		{
-			Name: "new",
-			Action: func(ctx context.Context, cmd *cli.Command) error {
-				if a, err := dbService.HistoryNew(); err != nil {
-					return err
-				} else {
-					return a.Run(ctx, cmd.Args().Get(0))
-				}
-			},
-			Flags: flags(options, true),
-		},
-		{
-			Name: "to",
-			Action: func(ctx context.Context, cmd *cli.Command) error {
-				if a, err := dbService.To(); err != nil {
-					return err
-				} else {
-					return a.Run(ctx, cmd.Args().Get(0))
-				}
-			},
-			Flags: flags(options, true),
-		},
-	}
-}
-
-func flags(options *migrator.Options, dsnIsRequired bool) []cli.Flag {
+func flags(options *handler.Options, dsnIsRequired bool) []cli.Flag {
 	return []cli.Flag{
+		&cli.StringFlag{
+			Name:        "placeholderCustom",
+			Sources:     cli.EnvVars("PLACEHOLDER_CUSTOM"),
+			Aliases:     []string{"phc"},
+			Usage:       "PLACEHOLDER_CUSTOM",
+			Destination: &options.PlaceholderCustom,
+			Value:       "",
+			Validator:   validator.ValidateIdentifier,
+		},
 		&cli.StringFlag{
 			Name:        "dsn",
 			Sources:     cli.EnvVars("DSN"),
@@ -148,6 +86,9 @@ func flags(options *migrator.Options, dsnIsRequired bool) []cli.Flag {
 			Usage:       "Maximum number of connection attempts",
 			Destination: &options.MaxConnAttempts,
 			Value:       1,
+			Validator: func(i int) error {
+				return validator.ValidateStringLen(1, maxConnAttempts, i)
+			},
 		},
 		&cli.StringFlag{
 			Name:        "migrationPath",
@@ -165,11 +106,7 @@ func flags(options *migrator.Options, dsnIsRequired bool) []cli.Flag {
 			Usage:       "Table name for history of migrates",
 			Destination: &options.TableName,
 			Action: func(ctx context.Context, command *cli.Command, s string) error {
-				if !isValidIdentifier(s) {
-					return errors.New("invalid value of variable MIGRATION_TABLE")
-				}
-
-				return nil
+				return validator.ValidateIdentifier(s)
 			},
 		},
 		&cli.StringFlag{
@@ -180,11 +117,7 @@ func flags(options *migrator.Options, dsnIsRequired bool) []cli.Flag {
 			Usage:       "Cluster name for history of migrates",
 			Destination: &options.ClusterName,
 			Action: func(ctx context.Context, command *cli.Command, s string) error {
-				if !isValidIdentifier(s) {
-					return errors.New("invalid value of variable MIGRATION_CLUSTER_NAME")
-				}
-
-				return nil
+				return validator.ValidateIdentifier(s)
 			},
 		},
 		&cli.BoolFlag{
@@ -212,18 +145,4 @@ func flags(options *migrator.Options, dsnIsRequired bool) []cli.Flag {
 			Destination: &options.Interactive,
 		},
 	}
-}
-
-func isValidIdentifier(name string) bool {
-	if len(name) > maxIdentifierLen {
-		return false
-	}
-	for _, r := range name {
-		if !((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') ||
-			(r >= '0' && r <= '9') || r == '_') {
-			return false
-		}
-	}
-
-	return true
 }

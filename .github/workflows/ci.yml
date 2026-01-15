@@ -6,6 +6,8 @@ jobs:
   docker:
     timeout-minutes: 10
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
@@ -24,3 +26,16 @@ jobs:
 
       - name: Run integration tests
         run: docker compose exec -T app make test-integration
+
+      - name: Generate coverage report
+        run: docker compose exec -T app make test-coverage
+
+      - name: Copy coverage file
+        run: docker compose cp app:/app/.build/reports/coverage.txt ./coverage.txt
+
+      - name: Create coverage badge
+        uses: ncruces/go-coverage-report@v0
+        with:
+          coverage-file: coverage.txt
+          reuse-go: true
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'

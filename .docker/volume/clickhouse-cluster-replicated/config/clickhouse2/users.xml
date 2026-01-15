@@ -1,0 +1,18 @@
+<clickhouse>
+    <users>
+        <default>
+            <password></password>
+            <networks>
+                <ip>::/0</ip>
+            </networks>
+            <profile>default</profile>
+            <quota>default</quota>
+        </default>
+    </users>
+    <profiles>
+        <default>
+            <allow_experimental_database_replicated>1</allow_experimental_database_replicated>
+            <distributed_ddl_output_mode>null_status_on_timeout</distributed_ddl_output_mode>
+        </default>
+    </profiles>
+</clickhouse>

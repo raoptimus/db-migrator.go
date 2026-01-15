@@ -11,6 +11,9 @@ package dbmigrator
 import "github.com/pkg/errors"
 
 var (
-	ErrMigrationAlreadyExists   = errors.New("migration already exists")
+	// ErrMigrationAlreadyExists indicates that a migration with the specified version already exists in the database.
+	ErrMigrationAlreadyExists = errors.New("migration already exists")
+
+	// ErrAppliedMigrationNotFound indicates that the requested migration was not found in the migration history.
 	ErrAppliedMigrationNotFound = errors.New("applied migration not found")
 )

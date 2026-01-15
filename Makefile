@@ -20,7 +20,7 @@ PKG_WORKDIR = "${BUILD_DIR}/${PKG_NAME}-${VERSION}"
 DOCKER_ID_USER = raoptimus
 DOCKER_PASS ?= ""
 DOCKER_IMAGE = "${PKG_NAME}"
-export GO_IMAGE_VERSION="1.22"
+export GO_IMAGE_VERSION="1.25"
 
 help: ## Show help message
 	@cat $(MAKEFILE_LIST) | grep -e "^[a-zA-Z_\-]*: *.*## *" | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
@@ -143,3 +143,6 @@ start:
 
 stop:
 	@docker-compose -f "docker-compose.yml" down --remove-orphans
+
+docker-test-integration: start
+	@docker compose exec -T app make test-integration

@@ -1,0 +1,12 @@
+<clickhouse>
+    <distributed_ddl>
+        <path>/clickhouse/task_queue/ddl</path>
+    </distributed_ddl>
+    <macros>
+        <shard>01</shard>
+        <replica>clickhouse1</replica>
+        <cluster>test_cluster</cluster>
+    </macros>
+    <default_replica_path>/clickhouse/tables/{shard}/{database}/{table}</default_replica_path>
+    <default_replica_name>{replica}</default_replica_name>
+</clickhouse>
