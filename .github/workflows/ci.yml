@@ -30,12 +30,9 @@ jobs:
       - name: Generate coverage report
         run: docker compose exec -T app make test-coverage
 
-      - name: Copy coverage file
-        run: docker compose cp app:/usr/src/app/.reports/coverage.txt ./coverage.txt
-
       - name: Create coverage badge
         uses: ncruces/go-coverage-report@v0
         with:
-          coverage-file: coverage.txt
+          coverage-file: .reports/coverage.txt
           reuse-go: true
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
