@@ -1,6 +1,16 @@
 name: Test
 
-on: [push, pull_request]
+on:
+  push:
+    paths-ignore:
+      - 'doc/**'
+      - '**.md'
+    branches: [main]
+    tags: [v*]
+  pull_request:
+    paths-ignore:
+      - 'doc/**'
+      - '**.md'
 
 jobs:
   docker:
