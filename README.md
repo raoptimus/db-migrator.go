@@ -1,5 +1,5 @@
 [![Test](https://github.com/raoptimus/db-migrator.go/workflows/Test/badge.svg)](https://github.com/raoptimus/db-migrator.go/actions)
-[![Coverage](https://raw.githubusercontent.com/raoptimus/db-migrator.go/badges/.badges/main/coverage.svg)](https://github.com/raoptimus/db-migrator.go/actions)
+[![Coverage](https://github.com/raoptimus/db-migrator.go/wiki/coverage.svg)](https://raw.githack.com/wiki/raoptimus/db-migrator.go/coverage.html)
 [![GitHub Release](https://img.shields.io/github/release/raoptimus/db-migrator.go.svg)](https://github.com/raoptimus/db-migrator.go/releases)
 
 # db-migrator.go
