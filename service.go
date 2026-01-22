@@ -12,11 +12,14 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	"github.com/raoptimus/db-migrator.go/internal/migrator"
-	"github.com/raoptimus/db-migrator.go/internal/validator"
+	"github.com/raoptimus/db-migrator.go/internal/application/handler"
+	"github.com/raoptimus/db-migrator.go/internal/domain/validator"
+	"github.com/raoptimus/db-migrator.go/internal/infrastructure/log"
 )
 
 type (
+	// Options configures the database migration service.
+	// It contains connection settings and database-specific parameters.
 	Options struct {
 		DSN string
 		// table name to history of migrations
@@ -26,26 +29,42 @@ type (
 		// is replicated used to clickhouse?
 		Replicated bool
 	}
+
+	// DBService provides high-level operations for database migrations.
+	// It orchestrates the migration process using the underlying migration service.
 	DBService struct {
-		dbs  *migrator.DBService
-		opts *Options
+		opts   *handler.Options
+		logger Logger
+		conn   Connection
 	}
 )
 
-func NewDBService(opts *Options) *DBService {
-	return &DBService{
-		dbs: migrator.New(&migrator.Options{
-			DSN:                opts.DSN,
-			Directory:          "",
-			TableName:          opts.TableName,
-			ClusterName:        opts.ClusterName,
-			Replicated:         opts.Replicated,
-			Compact:            true,
-			Interactive:        true,
-			MaxSQLOutputLength: 0,
-		}),
-		opts: opts,
+// NewDBService creates a new database migration service with the provided options, connection, and logger.
+// If logger is nil, a no-op logger will be used.
+func NewDBService(opts *Options, conn Connection, logger Logger) (*DBService, error) {
+	if logger == nil {
+		logger = &log.NopLogger{}
 	}
+	options := &handler.Options{
+		DSN:                opts.DSN,
+		MaxConnAttempts:    1,
+		Directory:          "",
+		TableName:          opts.TableName,
+		ClusterName:        opts.ClusterName,
+		Replicated:         opts.Replicated,
+		Compact:            true,
+		Interactive:        true,
+		MaxSQLOutputLength: 0,
+	}
+	if err := options.Validate(); err != nil {
+		return nil, err
+	}
+
+	return &DBService{
+		opts:   options,
+		conn:   conn,
+		logger: logger,
+	}, nil
 }
 
 // Upgrade apply changes to db. apply specific version of migration.
@@ -53,12 +72,13 @@ func (d *DBService) Upgrade(ctx context.Context, version, sql string, safety boo
 	if err := validator.ValidateVersion(version); err != nil {
 		return err
 	}
-	ms, err := d.dbs.MigrationService()
+
+	serviceMigration, err := handler.NewMigrationService(d.opts, d.logger, d.conn)
 	if err != nil {
 		return err
 	}
 
-	exists, err := ms.Exists(ctx, version)
+	exists, err := serviceMigration.Exists(ctx, version)
 	if err != nil {
 		return err
 	}
@@ -67,7 +87,7 @@ func (d *DBService) Upgrade(ctx context.Context, version, sql string, safety boo
 		return errors.WithStack(ErrMigrationAlreadyExists)
 	}
 
-	return ms.ApplySQL(ctx, safety, version, sql)
+	return serviceMigration.ApplySQL(ctx, safety, version, sql)
 }
 
 // Downgrade revert changes to db. revert specific version of migration.
@@ -75,12 +95,13 @@ func (d *DBService) Downgrade(ctx context.Context, version, sql string, safety b
 	if err := validator.ValidateVersion(version); err != nil {
 		return err
 	}
-	ms, err := d.dbs.MigrationService()
+
+	serviceMigration, err := handler.NewMigrationService(d.opts, d.logger, d.conn)
 	if err != nil {
 		return err
 	}
 
-	exists, err := ms.Exists(ctx, version)
+	exists, err := serviceMigration.Exists(ctx, version)
 	if err != nil {
 		return err
 	}
@@ -89,5 +110,5 @@ func (d *DBService) Downgrade(ctx context.Context, version, sql string, safety b
 		return errors.WithStack(ErrAppliedMigrationNotFound)
 	}
 
-	return ms.RevertSQL(ctx, safety, version, sql)
+	return serviceMigration.RevertSQL(ctx, safety, version, sql)
 }

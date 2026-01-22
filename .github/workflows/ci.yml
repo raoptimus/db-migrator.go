@@ -1,11 +1,23 @@
 name: Test
 
-on: [push, pull_request]
+on:
+  push:
+    paths-ignore:
+      - 'doc/**'
+      - '**.md'
+    branches: [main]
+    tags: [v*]
+  pull_request:
+    paths-ignore:
+      - 'doc/**'
+      - '**.md'
 
 jobs:
   docker:
     timeout-minutes: 10
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
@@ -24,3 +36,13 @@ jobs:
 
       - name: Run integration tests
         run: docker compose exec -T app make test-integration
+
+      - name: Generate coverage report
+        run: docker compose exec -T app make test-coverage
+
+      - name: Create coverage badge
+        uses: ncruces/go-coverage-report@v0
+        with:
+          coverage-file: .reports/coverage.txt
+          reuse-go: true
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'

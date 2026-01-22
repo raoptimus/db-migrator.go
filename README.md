@@ -1,23 +1,64 @@
-[![Build Status](https://travis-ci.org/raoptimus/db-migrator.go.svg?branch=master)](https://travis-ci.org/raoptimus/db-migrator.go)
+[![Test](https://github.com/raoptimus/db-migrator.go/workflows/Test/badge.svg)](https://github.com/raoptimus/db-migrator.go/actions)
+[![Coverage](https://raw.githubusercontent.com/raoptimus/db-migrator.go/badges/.badges/main/coverage.svg)](https://github.com/raoptimus/db-migrator.go/actions)
 [![GitHub Release](https://img.shields.io/github/release/raoptimus/db-migrator.go.svg)](https://github.com/raoptimus/db-migrator.go/releases)
 
 # db-migrator.go
 Database Migration tool in CLI on Golang that allows you to keep track of database changes in terms of database migrations which are version-controlled.
-The db migration tool currently supports the following db drivers: 
+The db migration tool currently supports the following db drivers:
 - clickhouse
 - postgres
 - mysql
 - tarantool db
 
-### Creating Migrations
+## Database Connection Examples
+
+### PostgreSQL
+```bash
+DSN="postgres://username:password@localhost:5432/mydb?sslmode=disable" \
+MIGRATION_PATH=./migrations \
+db-migrator up
+```
+
+### MySQL
+```bash
+DSN="mysql://username:password@localhost:3306/mydb" \
+MIGRATION_PATH=./migrations \
+db-migrator up
+```
+
+### ClickHouse
+```bash
+# Single node
+DSN="clickhouse://username:password@localhost:9000/mydb?sslmode=disable&compress=true" \
+MIGRATION_PATH=./migrations \
+db-migrator up
+
+# Cluster mode
+DSN="clickhouse://username:password@localhost:9000/mydb?sslmode=disable&compress=true" \
+MIGRATION_PATH=./migrations \
+MIGRATION_CLUSTER_NAME=my_cluster \
+MIGRATION_REPLICATED=true \
+db-migrator up
+```
+
+### Tarantool
+```bash
+DSN="tarantool://username:password@localhost:3301/mydb" \
+MIGRATION_PATH=./migrations \
+db-migrator up
+```
+
+---
+
+## Creating Migrations
 To create a new migration, run the following command:  
-`DSN=clickhouse://default:@localhost:9000/docker?sslmode=disable&compress=true MIGRATION_PATH=./migrations db-migrator create <name>`
+`MIGRATION_PATH=./migrations db-migrator create <name>`
 
 The required name argument gives a brief description about the new migration.  
 For example, if the migration is about creating a new table named news, you may use the name `create_news_table` and run the following command:  
 `db-migrator create create_news_table`
 
-The above command will create a new sql file named 200101_232501_create_news_table.safe.up.sql in the ./migrations directory. 
+The above command will create a new sql file named 200101_232501_create_news_table.safe.up.sql in the ./migrations directory.
 
 The migration file name is automatically generated in the format of <YYMMDD_HHMMSS>_<Name>.<Safe>.<Action>.sql, where
 - <YYMMDD_HHMMSS> refers to the UTC datetime at which the migration creation command is executed.
@@ -25,13 +66,13 @@ The migration file name is automatically generated in the format of <YYMMDD_HHMM
 - <Safe> is the safely sql. Migration will be executed in one transaction.
 - <Action> is the action like up or down.
 
-### Applying Migrations 
+### Applying Migrations
 To upgrade a database to its latest structure, you should apply all available new migrations using the following command:  
 `db-migrator` or `db-migrator up`
 
 For each migration that has been successfully applied, the command will insert a row into 
 a database table named migration to record the successful application of the migration. 
-This will allow the migration tool to identify which migrations have been applied and which have not.`
+This will allow the migration tool to identify which migrations have been applied and which have not.
 
 Sometimes, you may only want to apply one or a few new migrations, instead of all available migrations. 
 You can do so by specifying the number of migrations that you want to apply when running the command. 
@@ -40,7 +81,7 @@ For example, the following command will try to apply the next three available mi
 
 You can also explicitly specify a particular migration to which the database should be migrated 
 by using the migrate/to command in one of the following formats:
-```
+```bash
 db-migrator to 150101_185401                      # using timestamp to specify the migration
 db-migrator to "2015-01-01 18:54:01"              # using a string that can be parsed by strtotime()
 db-migrator to 150101_185401_create_news_table    # using full name
@@ -53,20 +94,21 @@ If the specified migration has already been applied before, any later applied mi
 
 ### Reverting Migrations
 To revert (undo) one or multiple migrations that have been applied before, you can run the following command:
-```
+```bash
 db-migrator down     # revert the most recently applied migration
 db-migrator down 3   # revert the most 3 recently applied migrations
 ```
 
 ### Redoing Migrations
 Redoing migrations means first reverting the specified migrations and then applying again. This can be done as follows:
-```
+```bash
 db-migrator redo        # redo the last applied migration
 db-migrator redo 3      # redo the last 3 applied migrations
 ```
+
 ### Listing Migrations
 To list which migrations have been applied and which are not, you may use the following commands:
-```
+```bash
 db-migrator history     # showing the last 10 applied migrations
 db-migrator history 5   # showing the last 5 applied migrations
 db-migrator history all # showing all applied migrations
@@ -75,33 +117,34 @@ db-migrator new         # showing the first 10 new migrations
 db-migrator new 5       # showing the first 5 new migrations
 db-migrator new all     # showing all new migrations
 ```
+
 ### Using Command Line Options
 The migration command comes with a few command-line options that can be used to customize its behaviors:
 
-- `interactive` or `i`: boolean (defaults to true), specifies whether to perform migrations in an interactive mode. 
-When this is true, the user will be prompted before the command performs certain actions. 
-You may want to set this to false if the command is being used in a background process.
-- `migrationPath` or `p`: string (defaults to ./migrations), specifies the directory storing all migration sql files. 
-This can be specified as either a directory path or a path alias. 
-Note that the directory must exist, or the command may trigger an error.
-- `migrationTable` or `t`: string (defaults to migration), specifies the name of the database table for storing migration history information. 
-The table will be automatically created by the command if it does not exist. 
-You may also manually create it using the structure version varchar(255) primary key, apply_time integer.
-- `migrationClusterName` or `cn`: string (defaults to empty), specifies the name of the database cluster name for storing migration history information. 
-The table will be automatically created in cluster by the command if it does not exist.
-It uses only for clickhouse
-- `dsn` or `d`: string (defaults to empty), Database connection strings are specified via URLs. 
-The URL format is driver dependent but generally has the form: driver://username:password@host:port/dbname?option1=true.
-- `compact` or `c`: boolean (defaults to false), output in compact mode
+| Option                 | Alias | Env Variable | Default | Description |
+|------------------------|-------|--------------|---------|-------------|
+| `dsn`                  | `d` | `DSN` | (required) | Database connection string. Format: `driver://username:password@host:port/dbname?options` |
+| `migrationPath`        | `p` | `MIGRATION_PATH` | `./migrations` | Directory storing all migration SQL files |
+| `migrationTable`       | `t` | `MIGRATION_TABLE` | `migration` | Table name for storing migration history |
+| `migrationClusterName` | `cn` | `MIGRATION_CLUSTER_NAME` | (empty) | Cluster name for migration history table. Used only for ClickHouse |
+| `migrationReplicated`  | `cr` | `MIGRATION_REPLICATED` | `false` | Use replicated table for migration history. Used only for ClickHouse |
+| `placeholderCustom`    | `phc` | `PLACEHOLDER_CUSTOM` | (empty) | Custom placeholder value for `{placeholder_custom}` in migrations |
+| `maxConnAttempts`      | `ma` | `MAX_CONN_ATTEMPTS` | `1` | Maximum number of database connection attempts (1-100) |
+| `compact`              | `c` | `COMPACT` | `false` | Output in compact mode |
+| `interactive`          | `i` | `INTERACTIVE` | `true` | Run in interactive mode with prompts |
 
-#### You can use each option as env params:
-```
-DSN=clickhouse://default:@localhost:9000/docker?sslmode=disable&compress=true&debug=false
-MIGRATION_PATH=./migrations
-MIGRATION_TABLE=migration
-MIGRATION_CLUSTER_NAME=test_cluster
-COMPACT=true
-INTERACTIVE=false
+#### Example with env params:
+```bash
+DSN=clickhouse://default:@localhost:9000/docker?sslmode=disable&compress=true \
+MIGRATION_PATH=./migrations \
+MIGRATION_TABLE=migration \
+MIGRATION_CLUSTER_NAME=test_cluster \
+MIGRATION_REPLICATED=true \
+PLACEHOLDER_CUSTOM=my_value \
+MAX_CONN_ATTEMPTS=3 \
+COMPACT=true \
+INTERACTIVE=false \
+db-migrator up
 ```
 
 ### How to build and install?
@@ -111,30 +154,30 @@ If you want build the debian package, then you can run the command
 
 #### With Go toolchain
 The Latest version:
-```
+```bash
 go get -u -d github.com/raoptimus/db-migrator.go/cmd/db-migrator
-```  
-or
 ```
+or
+```bash
 go install github.com/raoptimus/db-migrator.go/cmd/db-migrator@latest
 ```
-The custom version:  
-```
+The custom version:
+```bash
 go get -u -d github.com/raoptimus/db-migrator.go/cmd/db-migrator@v1.2.0
 ```
 or
-```
+```bash
 go install github.com/raoptimus/db-migrator.go/cmd/db-migrator@v1.2.0
 ```
 
 #### With docker
-```
+```bash
 docker pull raoptimus/db-migrator:latest
 ```
 See [https://hub.docker.com/r/raoptimus/db-migrator](https://hub.docker.com/r/raoptimus/db-migrator)
 
 ### Example
-```
+```bash
 DSN=clickhouse://default:@localhost:9000/docker?sslmode=disable&compress=true&debug=false
 MIGRATION_TABLE=migration
 MIGRATION_PATH=./migrator/db/clickhouseMigration/test_migrates
@@ -158,7 +201,156 @@ ORDER BY (time, value); ...
 Migrated up successfully
 ```
 
-### Tarantool-Specific Considerations
+---
+
+## Placeholders in Migrations
+
+You can use placeholders in your migration SQL files that will be replaced at runtime:
+
+| Placeholder | Description | Environment Variable |
+|-------------|-------------|---------------------|
+| `{cluster}` | ClickHouse cluster name | `MIGRATION_CLUSTER_NAME` |
+| `{placeholder_custom}` | Custom placeholder value | `PLACEHOLDER_CUSTOM` |
+| `{username}` | Database username (from DSN) | Extracted from `DSN` |
+| `{password}` | Database password (from DSN) | Extracted from `DSN` |
+
+### Example Migration with Placeholders
+
+**ClickHouse cluster migration:**
+```sql
+CREATE TABLE IF NOT EXISTS events ON CLUSTER {cluster} (
+    id UInt64,
+    event_time DateTime,
+    user_id UInt32
+) ENGINE = ReplicatedMergeTree
+ORDER BY (event_time, id);
+
+-- Grant permissions using credentials from DSN
+GRANT SELECT ON events TO {username};
+```
+
+**Custom placeholder usage:**
+```bash
+PLACEHOLDER_CUSTOM="production_suffix" \
+DSN="clickhouse://admin:secret@localhost:9000/mydb" \
+db-migrator up
+```
+
+```sql
+CREATE TABLE IF NOT EXISTS logs_{placeholder_custom} (
+    id UInt64,
+    message String
+) ENGINE = MergeTree()
+ORDER BY id;
+```
+
+---
+
+## Security: Credential Masking
+
+**Credentials are automatically masked in all log output.** When migration SQL contains `{username}` or `{password}` placeholders, the actual values will be replaced with `****` in logs. This ensures sensitive credentials never appear in console output or log files.
+
+### Example
+
+If your migration contains:
+```sql
+CREATE USER {username} IDENTIFIED BY '{password}';
+```
+
+The log output will show:
+```
+> execute SQL: CREATE USER **** IDENTIFIED BY '****'; ...
+```
+
+This protection applies to:
+- Console output during migration execution
+- Error messages
+- Debug logs
+
+---
+
+## Using as a Go Library
+
+You can use db-migrator directly in your Go code:
+
+```go
+package main
+
+import (
+    "context"
+    "log"
+
+    dbmigrator "github.com/raoptimus/db-migrator.go"
+)
+
+func main() {
+    ctx := context.Background()
+    dsn := "postgres://user:pass@localhost:5432/mydb?sslmode=disable"
+
+    // Create database connection
+    conn, err := dbmigrator.NewConnection(dsn)
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer conn.Close()
+
+    // Or use TryConnection with retries
+    // conn, err := dbmigrator.TryConnection(dsn, 3) // 3 attempts
+
+    // Configure migration service
+    opts := &dbmigrator.Options{
+        DSN:       dsn,
+        TableName: "migration",
+    }
+
+    // Create migration service (pass nil for default logger)
+    service, err := dbmigrator.NewDBService(opts, conn, nil)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    // Apply a migration
+    upSQL := `
+        CREATE TABLE users (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL
+        );
+    `
+    err = service.Upgrade(ctx, "240101_120000", upSQL, true) // true = safe (transactional)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    // Revert a migration
+    downSQL := `DROP TABLE users;`
+    err = service.Downgrade(ctx, "240101_120000", downSQL, true)
+    if err != nil {
+        log.Fatal(err)
+    }
+}
+```
+
+### Options
+
+```go
+type Options struct {
+    DSN         string // Database connection string
+    TableName   string // Migration history table name (default: "migration")
+    ClusterName string // ClickHouse cluster name (optional)
+    Replicated  bool   // Use replicated tables for ClickHouse (optional)
+}
+```
+
+### Methods
+
+- `Upgrade(ctx, version, sql, safety)` - Apply a migration
+- `Downgrade(ctx, version, sql, safety)` - Revert a migration
+
+The `safety` parameter determines whether the migration runs within a transaction.
+
+---
+
+## Tarantool-Specific Considerations
 
 When using Tarantool:
 - Connection DSN format: `tarantool://username:password@host:port/database`
@@ -167,7 +359,7 @@ When using Tarantool:
 - Transactions are supported via streams
 - Schema management uses box.schema.space.create() and related APIs
 
-### Example Tarantool Migration
+### Example Migration
 
 **Up migration (251002_183908_create_test_space.up.sql)**:
 ```lua
