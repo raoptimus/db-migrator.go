@@ -259,12 +259,12 @@ func (p *Tarantool) dbError(err error, q string) error {
 		return err
 	}
 
-	return &DBError{
+	return errors.WithStack(&DBError{
 		Code:          strconv.Itoa(int(tErr.Code)),
 		Severity:      "ERR",
 		Message:       tErr.Msg,
 		Details:       "",
 		InternalQuery: q,
 		Cause:         err,
-	}
+	})
 }

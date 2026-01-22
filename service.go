@@ -47,7 +47,7 @@ func NewDBService(opts *Options, conn Connection, logger Logger) (*DBService, er
 	}
 	options := &handler.Options{
 		DSN:                opts.DSN,
-		MaxConnAttempts:    0,
+		MaxConnAttempts:    1,
 		Directory:          "",
 		TableName:          opts.TableName,
 		ClusterName:        opts.ClusterName,

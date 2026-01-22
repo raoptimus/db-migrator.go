@@ -23,10 +23,16 @@ const defaultQueryTimeout = 10 * time.Second
 
 //go:generate mockery
 
+// Doer defines the interface for executing Tarantool requests.
+// It is implemented by both Connection and Stream, enabling mocking of stream operations.
+type Doer interface {
+	Do(req tarantool.Request) *tarantool.Future
+}
+
 // Connection defines the interface for Tarantool database connection operations.
 // It abstracts the go-tarantool library's connection functionality.
 type Connection interface {
-	Do(req tarantool.Request) *tarantool.Future
+	Doer
 	NewStream() (*tarantool.Stream, error)
 	Close() error
 }

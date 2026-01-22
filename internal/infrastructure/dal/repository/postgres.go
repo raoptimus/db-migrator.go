@@ -266,12 +266,12 @@ func (p *Postgres) dbError(err error, q string) error {
 		q = pgErr.InternalQuery
 	}
 
-	return &DBError{
+	return errors.WithStack(&DBError{
 		Code:          pgErr.SQLState(),
 		Severity:      pgErr.Severity,
 		Message:       pgErr.Message,
 		Details:       pgErr.Detail,
 		InternalQuery: q,
 		Cause:         err,
-	}
+	})
 }

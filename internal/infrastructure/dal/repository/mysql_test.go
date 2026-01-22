@@ -14,6 +14,7 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/pkg/errors"
+	"github.com/raoptimus/db-migrator.go/internal/infrastructure/sqlex"
 	thelp "github.com/raoptimus/db-migrator.go/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -406,4 +407,201 @@ func TestMySQL_dbError_NonMySQLError(t *testing.T) {
 
 	var dbErr *DBError
 	assert.False(t, errors.As(err, &dbErr))
+}
+
+func TestMySQL_Migrations_Successfully(t *testing.T) {
+	ctx := context.Background()
+
+	expectedSQL := `
+		SELECT version, apply_time
+		FROM migration
+		ORDER BY apply_time DESC, version DESC
+		LIMIT ?
+	`
+
+	rows := sqlex.NewRowsWithSlice([]interface{}{
+		[]any{"210328_221600_create_users", int64(1616968560)},
+		[]any{"210329_121500_add_index", int64(1617020100)},
+	})
+
+	conn := NewMockConnection(t)
+	conn.EXPECT().
+		QueryContext(ctx, mock.MatchedBy(thelp.CompareSQL(expectedSQL)), 10).
+		Return(rows, nil).
+		Once()
+
+	repo := NewMySQL(conn, &Options{
+		TableName:  "migration",
+		SchemaName: "test_db",
+	})
+	migrations, err := repo.Migrations(ctx, 10)
+
+	require.NoError(t, err)
+	require.Len(t, migrations, 2)
+	assert.Equal(t, "210328_221600_create_users", migrations[0].Version)
+	assert.Equal(t, int64(1616968560), migrations[0].ApplyTime)
+}
+
+func TestMySQL_Migrations_EmptyResult_Successfully(t *testing.T) {
+	ctx := context.Background()
+
+	rows := sqlex.NewRowsWithSlice([]interface{}{})
+
+	conn := NewMockConnection(t)
+	conn.EXPECT().
+		QueryContext(ctx, mock.AnythingOfType("string"), 10).
+		Return(rows, nil).
+		Once()
+
+	repo := NewMySQL(conn, &Options{
+		TableName:  "migration",
+		SchemaName: "test_db",
+	})
+	migrations, err := repo.Migrations(ctx, 10)
+
+	require.NoError(t, err)
+	assert.Empty(t, migrations)
+}
+
+func TestMySQL_HasMigrationHistoryTable_TableExists_Successfully(t *testing.T) {
+	ctx := context.Background()
+
+	rows := sqlex.NewRowsWithSlice([]interface{}{true})
+
+	conn := NewMockConnection(t)
+	conn.EXPECT().
+		QueryContext(ctx, mock.AnythingOfType("string"), "migration", "test_db").
+		Return(rows, nil).
+		Once()
+
+	repo := NewMySQL(conn, &Options{
+		TableName:  "migration",
+		SchemaName: "test_db",
+	})
+	exists, err := repo.HasMigrationHistoryTable(ctx)
+
+	require.NoError(t, err)
+	assert.True(t, exists)
+}
+
+func TestMySQL_HasMigrationHistoryTable_TableNotExists_Successfully(t *testing.T) {
+	ctx := context.Background()
+
+	rows := sqlex.NewRowsWithSlice([]interface{}{false})
+
+	conn := NewMockConnection(t)
+	conn.EXPECT().
+		QueryContext(ctx, mock.AnythingOfType("string"), "migration", "test_db").
+		Return(rows, nil).
+		Once()
+
+	repo := NewMySQL(conn, &Options{
+		TableName:  "migration",
+		SchemaName: "test_db",
+	})
+	exists, err := repo.HasMigrationHistoryTable(ctx)
+
+	require.NoError(t, err)
+	assert.False(t, exists)
+}
+
+func TestMySQL_MigrationsCount_Successfully(t *testing.T) {
+	ctx := context.Background()
+
+	rows := sqlex.NewRowsWithSlice([]interface{}{5})
+
+	conn := NewMockConnection(t)
+	conn.EXPECT().
+		QueryContext(ctx, mock.AnythingOfType("string")).
+		Return(rows, nil).
+		Once()
+
+	repo := NewMySQL(conn, &Options{
+		TableName:  "migration",
+		SchemaName: "test_db",
+	})
+	count, err := repo.MigrationsCount(ctx)
+
+	require.NoError(t, err)
+	assert.Equal(t, 5, count)
+}
+
+func TestMySQL_QueryScalar_Successfully(t *testing.T) {
+	ctx := context.Background()
+
+	rows := sqlex.NewRowsWithSlice([]interface{}{42})
+
+	conn := NewMockConnection(t)
+	conn.EXPECT().
+		QueryContext(ctx, "SELECT count(*)").
+		Return(rows, nil).
+		Once()
+
+	repo := NewMySQL(conn, &Options{
+		TableName:  "migration",
+		SchemaName: "test_db",
+	})
+	var result int
+	err := repo.QueryScalar(ctx, "SELECT count(*)", &result)
+
+	require.NoError(t, err)
+	assert.Equal(t, 42, result)
+}
+
+func TestMySQL_QueryScalar_InvalidPtr_Failure(t *testing.T) {
+	ctx := context.Background()
+
+	conn := NewMockConnection(t)
+
+	repo := NewMySQL(conn, &Options{
+		TableName:  "migration",
+		SchemaName: "test_db",
+	})
+	var result []int
+	err := repo.QueryScalar(ctx, "SELECT count(*)", &result)
+
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrPtrValueMustBeAPointerAndScalar)
+}
+
+func TestMySQL_ExistsMigration_Exists_Successfully(t *testing.T) {
+	ctx := context.Background()
+
+	rows := sqlex.NewRowsWithSlice([]interface{}{1})
+
+	conn := NewMockConnection(t)
+	conn.EXPECT().
+		QueryContext(ctx, mock.AnythingOfType("string"), "210328_221600_test").
+		Return(rows, nil).
+		Once()
+
+	repo := NewMySQL(conn, &Options{
+		TableName:  "migration",
+		SchemaName: "test_db",
+	})
+	exists, err := repo.ExistsMigration(ctx, "210328_221600_test")
+
+	require.NoError(t, err)
+	assert.True(t, exists)
+}
+
+func TestMySQL_ExistsMigration_NotExists_Successfully(t *testing.T) {
+	ctx := context.Background()
+
+	rows := sqlex.NewRowsWithSlice([]interface{}{})
+
+	conn := NewMockConnection(t)
+	conn.EXPECT().
+		QueryContext(ctx, mock.AnythingOfType("string"), "210328_221600_test").
+		Return(rows, nil).
+		Once()
+
+	repo := NewMySQL(conn, &Options{
+		TableName:  "migration",
+		SchemaName: "test_db",
+	})
+	exists, err := repo.ExistsMigration(ctx, "210328_221600_test")
+
+	require.NoError(t, err)
+	assert.False(t, exists)
 }

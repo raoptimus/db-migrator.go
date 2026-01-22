@@ -83,6 +83,7 @@ func (s *Scanner) Scan() bool {
 	}
 
 	s.err = s.scanner.Err()
+
 	return false
 }
 

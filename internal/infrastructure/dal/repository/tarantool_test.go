@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
+	"github.com/raoptimus/db-migrator.go/internal/infrastructure/sqlex"
 	thelp "github.com/raoptimus/db-migrator.go/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -387,4 +388,191 @@ func TestTarantool_dbError_NonTarantoolError(t *testing.T) {
 
 	var dbErr *DBError
 	assert.False(t, errors.As(err, &dbErr))
+}
+
+func TestTarantool_Migrations_Successfully(t *testing.T) {
+	ctx := context.Background()
+
+	expectedLua := `return box.space.migration:select({}, {iterator='LT', limit = 10})`
+
+	rows := sqlex.NewRowsWithSlice([]interface{}{
+		[]any{"210328_221600_create_users", int64(1616968560)},
+		[]any{"210329_121500_add_index", int64(1617020100)},
+	})
+
+	conn := NewMockConnection(t)
+	conn.EXPECT().
+		QueryContext(ctx, mock.MatchedBy(thelp.CompareSQL(expectedLua))).
+		Return(rows, nil).
+		Once()
+
+	repo := NewTarantool(conn, &Options{
+		TableName: "migration",
+	})
+	migrations, err := repo.Migrations(ctx, 10)
+
+	require.NoError(t, err)
+	require.Len(t, migrations, 2)
+	assert.Equal(t, "210328_221600_create_users", migrations[0].Version)
+	assert.Equal(t, int64(1616968560), migrations[0].ApplyTime)
+}
+
+func TestTarantool_Migrations_EmptyResult_Successfully(t *testing.T) {
+	ctx := context.Background()
+
+	rows := sqlex.NewRowsWithSlice([]interface{}{})
+
+	conn := NewMockConnection(t)
+	conn.EXPECT().
+		QueryContext(ctx, mock.AnythingOfType("string")).
+		Return(rows, nil).
+		Once()
+
+	repo := NewTarantool(conn, &Options{
+		TableName: "migration",
+	})
+	migrations, err := repo.Migrations(ctx, 10)
+
+	require.NoError(t, err)
+	assert.Empty(t, migrations)
+}
+
+func TestTarantool_HasMigrationHistoryTable_TableExists_Successfully(t *testing.T) {
+	ctx := context.Background()
+
+	expectedLua := `return box.space.migration ~= nil`
+
+	rows := sqlex.NewRowsWithSlice([]interface{}{true})
+
+	conn := NewMockConnection(t)
+	conn.EXPECT().
+		QueryContext(ctx, mock.MatchedBy(thelp.CompareSQL(expectedLua))).
+		Return(rows, nil).
+		Once()
+
+	repo := NewTarantool(conn, &Options{
+		TableName: "migration",
+	})
+	exists, err := repo.HasMigrationHistoryTable(ctx)
+
+	require.NoError(t, err)
+	assert.True(t, exists)
+}
+
+func TestTarantool_HasMigrationHistoryTable_TableNotExists_Successfully(t *testing.T) {
+	ctx := context.Background()
+
+	rows := sqlex.NewRowsWithSlice([]interface{}{false})
+
+	conn := NewMockConnection(t)
+	conn.EXPECT().
+		QueryContext(ctx, mock.AnythingOfType("string")).
+		Return(rows, nil).
+		Once()
+
+	repo := NewTarantool(conn, &Options{
+		TableName: "migration",
+	})
+	exists, err := repo.HasMigrationHistoryTable(ctx)
+
+	require.NoError(t, err)
+	assert.False(t, exists)
+}
+
+func TestTarantool_MigrationsCount_Successfully(t *testing.T) {
+	ctx := context.Background()
+
+	expectedLua := `return box.space.migration:len()`
+
+	rows := sqlex.NewRowsWithSlice([]interface{}{5})
+
+	conn := NewMockConnection(t)
+	conn.EXPECT().
+		QueryContext(ctx, mock.MatchedBy(thelp.CompareSQL(expectedLua))).
+		Return(rows, nil).
+		Once()
+
+	repo := NewTarantool(conn, &Options{
+		TableName: "migration",
+	})
+	count, err := repo.MigrationsCount(ctx)
+
+	require.NoError(t, err)
+	assert.Equal(t, 5, count)
+}
+
+func TestTarantool_QueryScalar_Successfully(t *testing.T) {
+	ctx := context.Background()
+
+	rows := sqlex.NewRowsWithSlice([]interface{}{42})
+
+	conn := NewMockConnection(t)
+	conn.EXPECT().
+		QueryContext(ctx, "return 42").
+		Return(rows, nil).
+		Once()
+
+	repo := NewTarantool(conn, &Options{
+		TableName: "migration",
+	})
+	var result int
+	err := repo.QueryScalar(ctx, "return 42", &result)
+
+	require.NoError(t, err)
+	assert.Equal(t, 42, result)
+}
+
+func TestTarantool_QueryScalar_InvalidPtr_Failure(t *testing.T) {
+	ctx := context.Background()
+
+	conn := NewMockConnection(t)
+
+	repo := NewTarantool(conn, &Options{
+		TableName: "migration",
+	})
+	var result []int
+	err := repo.QueryScalar(ctx, "return 42", &result)
+
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrPtrValueMustBeAPointerAndScalar)
+}
+
+func TestTarantool_ExistsMigration_Exists_Successfully(t *testing.T) {
+	ctx := context.Background()
+
+	rows := sqlex.NewRowsWithSlice([]interface{}{true})
+
+	conn := NewMockConnection(t)
+	conn.EXPECT().
+		QueryContext(ctx, mock.AnythingOfType("string")).
+		Return(rows, nil).
+		Once()
+
+	repo := NewTarantool(conn, &Options{
+		TableName: "migration",
+	})
+	exists, err := repo.ExistsMigration(ctx, "210328_221600_test")
+
+	require.NoError(t, err)
+	assert.True(t, exists)
+}
+
+func TestTarantool_ExistsMigration_NotExists_Successfully(t *testing.T) {
+	ctx := context.Background()
+
+	rows := sqlex.NewRowsWithSlice([]interface{}{false})
+
+	conn := NewMockConnection(t)
+	conn.EXPECT().
+		QueryContext(ctx, mock.AnythingOfType("string")).
+		Return(rows, nil).
+		Once()
+
+	repo := NewTarantool(conn, &Options{
+		TableName: "migration",
+	})
+	exists, err := repo.ExistsMigration(ctx, "210328_221600_test")
+
+	require.NoError(t, err)
+	assert.False(t, exists)
 }

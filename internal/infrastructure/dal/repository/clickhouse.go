@@ -366,11 +366,11 @@ func (ch *Clickhouse) dbError(err error, q string) error {
 		return err
 	}
 
-	return &DBError{
+	return errors.WithStack(&DBError{
 		Code:          string(clickEx.Code),
 		Message:       clickEx.Message,
 		Details:       clickEx.StackTrace,
 		InternalQuery: q,
 		Cause:         err,
-	}
+	})
 }

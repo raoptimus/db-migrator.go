@@ -222,7 +222,7 @@ CREATE TABLE IF NOT EXISTS events ON CLUSTER {cluster} (
     id UInt64,
     event_time DateTime,
     user_id UInt32
-) ENGINE = ReplicatedMergeTree('/clickhouse/tables/{cluster}/events', '{replica}')
+) ENGINE = ReplicatedMergeTree
 ORDER BY (event_time, id);
 
 -- Grant permissions using credentials from DSN

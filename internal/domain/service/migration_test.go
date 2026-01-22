@@ -585,7 +585,7 @@ func TestMigration_RevertSQL_ExecQueryReturnsError_Failure(t *testing.T) {
 
 	logger.EXPECT().Warnf("*** reverting %s\n", version)
 	logger.EXPECT().Infof("    > execute SQL: %s ...\n", "DROP TABLE users")
-	logger.EXPECT().Errorf("*** failed to reverted %s (time: %.3fs)\n", version, mock.AnythingOfType("float64"))
+	logger.EXPECT().Errorf("*** failed to revert %s (time: %.3fs)\n", version, mock.AnythingOfType("float64"))
 
 	serv := NewMigration(&Options{}, logger, file, repo)
 	err := serv.RevertSQL(ctx, false, version, downSQL)
@@ -730,7 +730,7 @@ func TestMigration_ApplyFile_FileDoesNotExist_Failure(t *testing.T) {
 	err := serv.ApplyFile(ctx, &model.Migration{Version: version}, fileName, false)
 
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "does not exists")
+	require.Contains(t, err.Error(), "does not exist")
 }
 
 func TestMigration_ApplyFile_FileExistsReturnsError_Failure(t *testing.T) {
@@ -750,7 +750,7 @@ func TestMigration_ApplyFile_FileExistsReturnsError_Failure(t *testing.T) {
 	err := serv.ApplyFile(ctx, &model.Migration{Version: version}, fileName, false)
 
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "does not exists")
+	require.Contains(t, err.Error(), "does not exist")
 }
 
 func TestMigration_ApplyFile_FileOpenReturnsError_Failure(t *testing.T) {
@@ -914,7 +914,7 @@ func TestMigration_RevertFile_FileDoesNotExist_Failure(t *testing.T) {
 	err := serv.RevertFile(ctx, &model.Migration{Version: version}, fileName, false)
 
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "does not exists")
+	require.Contains(t, err.Error(), "does not exist")
 }
 
 func TestMigration_RevertFile_ExecQueryReturnsError_Failure(t *testing.T) {
@@ -935,7 +935,7 @@ func TestMigration_RevertFile_ExecQueryReturnsError_Failure(t *testing.T) {
 
 	logger.EXPECT().Warnf("*** reverting %s\n", version)
 	logger.EXPECT().Infof("    > execute SQL: %s ...\n", "DROP TABLE users")
-	logger.EXPECT().Errorf("*** failed to reverted %s (time: %.3fs)\n", version, mock.AnythingOfType("float64"))
+	logger.EXPECT().Errorf("*** failed to revert %s (time: %.3fs)\n", version, mock.AnythingOfType("float64"))
 
 	serv := NewMigration(&Options{}, logger, file, repo)
 	err := serv.RevertFile(ctx, &model.Migration{Version: version}, fileName, false)
@@ -986,7 +986,7 @@ func TestMigration_RevertFile_TransactionReturnsError_Failure(t *testing.T) {
 	repo.EXPECT().ExecQueryTransaction(ctx, mock.AnythingOfType("func(context.Context) error")).Return(expectedErr)
 
 	logger.EXPECT().Warnf("*** reverting %s\n", version)
-	logger.EXPECT().Errorf("*** failed to reverted %s (time: %.3fs)\n", version, mock.AnythingOfType("float64"))
+	logger.EXPECT().Errorf("*** failed to revert %s (time: %.3fs)\n", version, mock.AnythingOfType("float64"))
 
 	serv := NewMigration(&Options{}, logger, file, repo)
 	err := serv.RevertFile(ctx, &model.Migration{Version: version}, fileName, true)
@@ -1052,82 +1052,82 @@ func TestMigration_ExecQuery_ExecQueryReturnsError_Failure(t *testing.T) {
 
 func TestMigration_SQLQueryOutput_ReturnsFormattedSQL(t *testing.T) {
 	tests := []struct {
-		name               string
-		options            *Options
-		sqlQuery           string
-		expectedOutput     string
+		name           string
+		options        *Options
+		sqlQuery       string
+		expectedOutput string
 	}{
 		{
-			name:               "no transformation needed",
-			options:            &Options{},
-			sqlQuery:           "SELECT * FROM users",
-			expectedOutput:     "SELECT * FROM users",
+			name:           "no transformation needed",
+			options:        &Options{},
+			sqlQuery:       "SELECT * FROM users",
+			expectedOutput: "SELECT * FROM users",
 		},
 		{
-			name:               "masks password in output",
-			options:            &Options{Password: "secret123"},
-			sqlQuery:           "CREATE USER admin WITH PASSWORD 'secret123'",
-			expectedOutput:     "CREATE USER admin WITH PASSWORD '****'",
+			name:           "masks password in output",
+			options:        &Options{Password: "secret123"},
+			sqlQuery:       "CREATE USER admin WITH PASSWORD 'secret123'",
+			expectedOutput: "CREATE USER admin WITH PASSWORD '****'",
 		},
 		{
-			name:               "masks username in output",
-			options:            &Options{Username: "admin"},
-			sqlQuery:           "GRANT ALL TO admin",
-			expectedOutput:     "GRANT ALL TO ****",
+			name:           "masks username in output",
+			options:        &Options{Username: "admin"},
+			sqlQuery:       "GRANT ALL TO admin",
+			expectedOutput: "GRANT ALL TO ****",
 		},
 		{
-			name:               "masks both username and password",
-			options:            &Options{Username: "admin", Password: "secret123"},
-			sqlQuery:           "CREATE USER admin WITH PASSWORD 'secret123'",
-			expectedOutput:     "CREATE USER **** WITH PASSWORD '****'",
+			name:           "masks both username and password",
+			options:        &Options{Username: "admin", Password: "secret123"},
+			sqlQuery:       "CREATE USER admin WITH PASSWORD 'secret123'",
+			expectedOutput: "CREATE USER **** WITH PASSWORD '****'",
 		},
 		{
-			name:               "truncates long SQL at max length",
-			options:            &Options{MaxSQLOutputLength: 10},
-			sqlQuery:           "SELECT * FROM users WHERE id = 1",
-			expectedOutput:     "SELECT * F...",
+			name:           "truncates long SQL at max length",
+			options:        &Options{MaxSQLOutputLength: 10},
+			sqlQuery:       "SELECT * FROM users WHERE id = 1",
+			expectedOutput: "SELECT * F...",
 		},
 		{
-			name:               "truncates long SQL at boundary",
-			options:            &Options{MaxSQLOutputLength: 20},
-			sqlQuery:           "SELECT * FROM users WHERE id = 1",
-			expectedOutput:     "SELECT * FROM users ...",
+			name:           "truncates long SQL at boundary",
+			options:        &Options{MaxSQLOutputLength: 20},
+			sqlQuery:       "SELECT * FROM users WHERE id = 1",
+			expectedOutput: "SELECT * FROM users ...",
 		},
 		{
-			name:               "no truncation when length equals limit",
-			options:            &Options{MaxSQLOutputLength: 33},
-			sqlQuery:           "SELECT * FROM users WHERE id = 1",
-			expectedOutput:     "SELECT * FROM users WHERE id = 1",
+			name:           "no truncation when length equals limit",
+			options:        &Options{MaxSQLOutputLength: 33},
+			sqlQuery:       "SELECT * FROM users WHERE id = 1",
+			expectedOutput: "SELECT * FROM users WHERE id = 1",
 		},
 		{
-			name:               "no truncation when MaxSQLOutputLength is 0",
-			options:            &Options{MaxSQLOutputLength: 0},
-			sqlQuery:           "SELECT * FROM users WHERE id = 1 AND name = 'John'",
-			expectedOutput:     "SELECT * FROM users WHERE id = 1 AND name = 'John'",
+			name:           "no truncation when MaxSQLOutputLength is 0",
+			options:        &Options{MaxSQLOutputLength: 0},
+			sqlQuery:       "SELECT * FROM users WHERE id = 1 AND name = 'John'",
+			expectedOutput: "SELECT * FROM users WHERE id = 1 AND name = 'John'",
 		},
 		{
-			name:               "sanitizes credentials before truncating",
-			options:            &Options{Password: "secret123", MaxSQLOutputLength: 30},
-			sqlQuery:           "CREATE USER admin WITH PASSWORD 'secret123'",
-			expectedOutput:     "CREATE USER admin WITH PASSWOR...",
+			name:           "sanitizes credentials before truncating",
+			options:        &Options{Password: "secret123", MaxSQLOutputLength: 30},
+			sqlQuery:       "CREATE USER admin WITH PASSWORD 'secret123'",
+			expectedOutput: "CREATE USER admin WITH PASSWOR...",
 		},
 		{
-			name:               "empty username and password returns original",
-			options:            &Options{Username: "", Password: ""},
-			sqlQuery:           "SELECT * FROM users",
-			expectedOutput:     "SELECT * FROM users",
+			name:           "empty username and password returns original",
+			options:        &Options{Username: "", Password: ""},
+			sqlQuery:       "SELECT * FROM users",
+			expectedOutput: "SELECT * FROM users",
 		},
 		{
-			name:               "multiple occurrences of password masked",
-			options:            &Options{Password: "pass"},
-			sqlQuery:           "pass and pass and pass",
-			expectedOutput:     "**** and **** and ****",
+			name:           "multiple occurrences of password masked",
+			options:        &Options{Password: "pass"},
+			sqlQuery:       "pass and pass and pass",
+			expectedOutput: "**** and **** and ****",
 		},
 		{
-			name:               "MaxSQLOutputLength of 1",
-			options:            &Options{MaxSQLOutputLength: 1},
-			sqlQuery:           "SELECT * FROM users",
-			expectedOutput:     "S...",
+			name:           "MaxSQLOutputLength of 1",
+			options:        &Options{MaxSQLOutputLength: 1},
+			sqlQuery:       "SELECT * FROM users",
+			expectedOutput: "S...",
 		},
 	}
 

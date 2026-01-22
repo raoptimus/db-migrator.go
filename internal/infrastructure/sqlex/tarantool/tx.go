@@ -22,10 +22,29 @@ var (
 	ErrTransactionAlreadyClosed = errors.New("transaction already closed")
 )
 
+// StreamDoer defines the interface for stream operations used by transactions.
+// It is implemented by *tarantool.Stream and can be mocked for testing.
+type StreamDoer interface {
+	Doer
+	// Conn returns the underlying connection for prepared statement operations.
+	// Note: This returns a concrete type from the tarantool library.
+	Conn() *tarantool.Connection
+}
+
+// streamWrapper wraps *tarantool.Stream to implement StreamDoer interface.
+type streamWrapper struct {
+	*tarantool.Stream
+}
+
+// Conn returns the underlying connection from the stream.
+func (s *streamWrapper) Conn() *tarantool.Connection {
+	return s.Stream.Conn
+}
+
 // tx wraps a Tarantool stream and implements the sqlex.Tx interface.
 // It provides transaction operations including commit, rollback, and query execution.
 type tx struct {
-	stream *tarantool.Stream
+	stream StreamDoer
 	closed bool
 	mu     sync.RWMutex
 }
@@ -34,6 +53,16 @@ type tx struct {
 //
 //nolint:ireturn,nolintlint // its ok
 func NewTx(stream *tarantool.Stream) sqlex.Tx {
+	return &tx{
+		stream: &streamWrapper{Stream: stream},
+	}
+}
+
+// newTxWithStreamDoer creates a new transaction with a StreamDoer interface.
+// This is primarily used for testing with mock implementations.
+//
+//nolint:unused // used in tests
+func newTxWithStreamDoer(stream StreamDoer) *tx {
 	return &tx{
 		stream: stream,
 	}
@@ -111,7 +140,7 @@ func (tx *tx) PrepareContext(ctx context.Context, query string) (sqlex.Stmt, err
 		return nil, err
 	}
 
-	stmt, err := tarantool.NewPreparedFromResponse(tx.stream.Conn, resp)
+	stmt, err := tarantool.NewPreparedFromResponse(tx.stream.Conn(), resp)
 	if err != nil {
 		return nil, err
 	}

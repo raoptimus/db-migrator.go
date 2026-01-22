@@ -221,7 +221,7 @@ func (m *Migration) RevertSQL(
 	err := m.apply(ctx, scanner, safely)
 	elapsedTime := time.Since(start)
 	if err != nil {
-		m.logger.Errorf("*** failed to reverted %s (time: %.3fs)\n", version, elapsedTime.Seconds())
+		m.logger.Errorf("*** failed to revert %s (time: %.3fs)\n", version, elapsedTime.Seconds())
 
 		return err
 	}
@@ -245,7 +245,12 @@ func (m *Migration) ApplyFile(ctx context.Context, migration *model.Migration, f
 	if err != nil {
 		return err
 	}
-	defer scanner.Close() // Ensure file is closed
+	defer func() {
+		// Ensure file is closed
+		if closeErr := scanner.Close(); closeErr != nil {
+			m.logger.Warnf("failed to close SQL scanner: %v", closeErr)
+		}
+	}()
 
 	start := time.Now()
 	err = m.apply(ctx, scanner, safely)
@@ -275,13 +280,18 @@ func (m *Migration) RevertFile(ctx context.Context, migration *model.Migration, 
 	if err != nil {
 		return err
 	}
-	defer scanner.Close() // Ensure file is closed
+	defer func() {
+		// Ensure file is closed
+		if closeErr := scanner.Close(); closeErr != nil {
+			m.logger.Warnf("failed to close SQL scanner: %v", closeErr)
+		}
+	}()
 
 	start := time.Now()
 	err = m.apply(ctx, scanner, safely)
 	elapsedTime := time.Since(start)
 	if err != nil {
-		m.logger.Errorf("*** failed to reverted %s (time: %.3fs)\n",
+		m.logger.Errorf("*** failed to revert %s (time: %.3fs)\n",
 			migration.Version, elapsedTime.Seconds())
 		return err
 	}
@@ -348,6 +358,12 @@ func (m *Migration) apply(ctx context.Context, scanner *sqlio.Scanner, safely bo
 	processScanFunc := func(ctx context.Context) error {
 		var sql string
 		for scanner.Scan() {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+			}
+
 			sql = scanner.SQL()
 			if sql == "" {
 				continue
@@ -362,6 +378,7 @@ func (m *Migration) apply(ctx context.Context, scanner *sqlio.Scanner, safely bo
 				return err
 			}
 		}
+
 		return scanner.Err()
 	}
 
@@ -378,10 +395,10 @@ func (m *Migration) apply(ctx context.Context, scanner *sqlio.Scanner, safely bo
 func (m *Migration) scannerByFile(fileName string) (*sqlio.Scanner, error) {
 	exists, err := m.file.Exists(fileName)
 	if err != nil {
-		return nil, errors.Wrapf(err, "migration file %s does not exists", fileName)
+		return nil, errors.Wrapf(err, "migration file %s does not exist", fileName)
 	}
 	if !exists {
-		return nil, fmt.Errorf("migration file %s does not exists", fileName)
+		return nil, fmt.Errorf("migration file %s does not exist", fileName)
 	}
 
 	f, err := m.file.Open(fileName)
