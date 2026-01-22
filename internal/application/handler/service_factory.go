@@ -32,6 +32,7 @@ func NewMigrationService(
 	}
 
 	// Create repository
+	var serviceRepo service.Repository
 	repo, err := repository.New(
 		conn,
 		&repository.Options{
@@ -42,6 +43,12 @@ func NewMigrationService(
 	)
 	if err != nil {
 		return nil, err
+	}
+	
+	if options.DryRun {
+		serviceRepo = service.NewDryRunRepository(repo)
+	} else {
+		serviceRepo = repo
 	}
 
 	// Create and return service
@@ -57,6 +64,6 @@ func NewMigrationService(
 		},
 		logger,
 		iohelp.StdFile,
-		repo,
+		serviceRepo,
 	), nil
 }

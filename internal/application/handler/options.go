@@ -28,6 +28,7 @@ type Options struct {
 	Compact            bool
 	Interactive        bool
 	MaxSQLOutputLength int
+	DryRun             bool
 }
 
 func (o *Options) Validate() error {

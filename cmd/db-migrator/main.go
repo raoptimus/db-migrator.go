@@ -144,5 +144,13 @@ func flags(options *handler.Options, dsnIsRequired bool) []cli.Flag {
 			Value:       true,
 			Destination: &options.Interactive,
 		},
+		&cli.BoolFlag{
+			Name:        "dryRun",
+			Sources:     cli.EnvVars("DRY_RUN"),
+			Aliases:     []string{"dry"},
+			Usage:       "Show SQL that would be executed without actually running it",
+			Value:       false,
+			Destination: &options.DryRun,
+		},
 	}
 }
