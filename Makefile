@@ -40,7 +40,7 @@ build-beta-docker-image: ## Build docker image
 		--build-arg GIT_COMMIT=${GIT_COMMIT} \
 		--build-arg GIT_TAG=${GIT_TAG} \
 		--build-arg GO_IMAGE_VERSION=${GO_IMAGE_VERSION} \
-		-f ./docker/image/build/Dockerfile \
+		-f ./.docker/image/build/Dockerfile \
 		-t ${DOCKER_ID_USER}/${DOCKER_IMAGE}:"${VERSION}-beta-alpine" \
 		-t ${DOCKER_ID_USER}/${DOCKER_IMAGE}:latest  ./
 
@@ -55,7 +55,7 @@ build-docker-image: ## Build docker image
 		--build-arg GIT_COMMIT=${GIT_COMMIT} \
 		--build-arg GIT_TAG=${GIT_TAG} \
 		--build-arg GO_IMAGE_VERSION=${GO_IMAGE_VERSION} \
-		-f ./docker/image/build/Dockerfile \
+		-f ./.docker/image/build/Dockerfile \
 		-t ${DOCKER_ID_USER}/${DOCKER_IMAGE}:"${VERSION}-alpine" \
 		-t ${DOCKER_ID_USER}/${DOCKER_IMAGE}:latest  ./
 
