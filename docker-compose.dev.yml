@@ -1,4 +1,7 @@
 services:
+  postgres:
+    ports:
+      - 5432:5432
   clickhouse1:
     ports:
       - 9000:9000

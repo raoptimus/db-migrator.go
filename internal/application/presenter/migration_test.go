@@ -31,11 +31,11 @@ func TestMigrationPresenter_ShowUpgradePlan_AllMigrations(t *testing.T) {
 		Return().
 		Once()
 	logger.EXPECT().
-		Infof("\t%s\n\n", "210328_221600_first").
+		Infof("\t%s\n", "210328_221600_first").
 		Return().
 		Once()
 	logger.EXPECT().
-		Infof("\t%s\n\n", "210328_221700_second").
+		Infof("\t%s\n", "210328_221700_second").
 		Return().
 		Once()
 
@@ -54,7 +54,7 @@ func TestMigrationPresenter_ShowUpgradePlan_PartialMigrations(t *testing.T) {
 		Return().
 		Once()
 	logger.EXPECT().
-		Infof("\t%s\n\n", mock.AnythingOfType("string")).
+		Infof("\t%s\n", mock.AnythingOfType("string")).
 		Return().
 		Times(2)
 
@@ -73,7 +73,7 @@ func TestMigrationPresenter_ShowDowngradePlan(t *testing.T) {
 		Return().
 		Once()
 	logger.EXPECT().
-		Infof("\t%s\n\n", mock.AnythingOfType("string")).
+		Infof("\t%s\n", mock.AnythingOfType("string")).
 		Return().
 		Times(2)
 
@@ -88,7 +88,7 @@ func TestMigrationPresenter_ShowDowngradePlan(t *testing.T) {
 func TestMigrationPresenter_PrintMigrations_WithoutTime(t *testing.T) {
 	logger := NewMockLogger(t)
 	logger.EXPECT().
-		Infof("\t%s\n\n", "210328_221600_test").
+		Infof("\t%s\n", "210328_221600_test").
 		Return().
 		Once()
 
@@ -102,7 +102,7 @@ func TestMigrationPresenter_PrintMigrations_WithoutTime(t *testing.T) {
 func TestMigrationPresenter_PrintMigrations_WithTime(t *testing.T) {
 	logger := NewMockLogger(t)
 	logger.EXPECT().
-		Infof("\t(%s) %s\n\n", mock.AnythingOfType("string"), "210328_221600_test").
+		Infof("\t(%s) %s\n", mock.AnythingOfType("string"), "210328_221600_test").
 		Return().
 		Once()
 
@@ -260,7 +260,7 @@ func TestMigrationPresenter_ShowRedoPlan(t *testing.T) {
 		Return().
 		Once()
 	logger.EXPECT().
-		Infof("\t%s\n\n", mock.AnythingOfType("string")).
+		Infof("\t%s\n", mock.AnythingOfType("string")).
 		Return().
 		Times(2)
 

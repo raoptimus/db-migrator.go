@@ -44,7 +44,7 @@ func NewMigrationService(
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if options.DryRun {
 		serviceRepo = service.NewDryRunRepository(repo)
 	} else {

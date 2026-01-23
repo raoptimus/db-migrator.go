@@ -44,9 +44,9 @@ func NewServiceWrapHandler(
 func (w *ServiceWrapHandler) Handle(cmd *Command) error {
 	if w.options.DryRun {
 		w.options.Interactive = false
-		w.logger.Warnf("[DRY RUN] No changes will be applied to the database.")
+		w.logger.Warn("[DRY RUN] No changes will be applied to the database.")
 	}
-	
+
 	// Create database connection
 	conn, err := connection.Try(w.options.DSN, w.options.MaxConnAttempts)
 	if err != nil {
