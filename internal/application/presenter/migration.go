@@ -71,11 +71,11 @@ func (p *MigrationPresenter) ShowDowngradePlan(migrations model.Migrations) {
 func (p *MigrationPresenter) PrintMigrations(migrations model.Migrations, withTime bool) {
 	for _, migration := range migrations {
 		if withTime {
-			p.logger.Infof("\t(%s) %s\n\n", migration.ApplyTimeFormat(), migration.Version)
+			p.logger.Infof("\t(%s) %s\n", migration.ApplyTimeFormat(), migration.Version)
 			continue
 		}
 
-		p.logger.Infof("\t%s\n\n", migration.Version)
+		p.logger.Infof("\t%s\n", migration.Version)
 	}
 }
 

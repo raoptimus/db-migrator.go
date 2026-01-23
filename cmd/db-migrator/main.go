@@ -14,6 +14,7 @@ import (
 	"os"
 
 	_ "github.com/lib/pq"
+	"github.com/pkg/errors"
 	"github.com/raoptimus/db-migrator.go/internal/application/handler"
 	"github.com/raoptimus/db-migrator.go/internal/domain/validator"
 	"github.com/raoptimus/db-migrator.go/internal/infrastructure/adapter/urfavecli"
@@ -31,7 +32,7 @@ var (
 func main() {
 	options := handler.Options{}
 	logger := log.Std
-	handlers := handler.NewHandlers(&options, logger)
+	var handlers *handler.Handlers
 
 	cmd := &cli.Command{
 		Name:      "Database Migration Tool",
@@ -43,14 +44,61 @@ func main() {
 			For more information, please refer to the documentation. 
 			More details about the tool can be found at https://github.com/raoptimus/db-migrator.go`,
 		Version: fmt.Sprintf("%s.rev[%s]", Version, GitCommit),
+		Before: func(ctx context.Context, command *cli.Command) (context.Context, error) {
+			handlers = handler.NewHandlers(&options, logger)
+
+			return ctx, nil
+		},
 		Commands: []*cli.Command{
-			{Name: "up", Action: urfavecli.Adapt(handlers.Upgrade), Flags: flags(&options, true)},
-			{Name: "down", Action: urfavecli.Adapt(handlers.Downgrade), Flags: flags(&options, true)},
-			{Name: "redo", Action: urfavecli.Adapt(handlers.Redo), Flags: flags(&options, true)},
-			{Name: "to", Action: urfavecli.Adapt(handlers.To), Flags: flags(&options, true)},
-			{Name: "create", Action: urfavecli.Adapt(handlers.Create), Flags: flags(&options, false)},
-			{Name: "history", Action: urfavecli.Adapt(handlers.History), Flags: flags(&options, true)},
-			{Name: "new", Action: urfavecli.Adapt(handlers.HistoryNew), Flags: flags(&options, true)},
+			{
+				Name: "up",
+				Action: func(ctx context.Context, c *cli.Command) error {
+					return urfavecli.Adapt(handlers.Upgrade)(ctx, c)
+				},
+				Flags: flags(&options, true),
+			},
+			{
+				Name: "down",
+				Action: func(ctx context.Context, c *cli.Command) error {
+					return urfavecli.Adapt(handlers.Downgrade)(ctx, c)
+				},
+				Flags: flags(&options, true),
+			},
+			{
+				Name: "redo",
+				Action: func(ctx context.Context, c *cli.Command) error {
+					return urfavecli.Adapt(handlers.Redo)(ctx, c)
+				},
+				Flags: flags(&options, true),
+			},
+			{
+				Name: "to",
+				Action: func(ctx context.Context, c *cli.Command) error {
+					return urfavecli.Adapt(handlers.To)(ctx, c)
+				},
+				Flags: flags(&options, true),
+			},
+			{
+				Name: "create",
+				Action: func(ctx context.Context, c *cli.Command) error {
+					return urfavecli.Adapt(handlers.Create)(ctx, c)
+				},
+				Flags: flags(&options, false),
+			},
+			{
+				Name: "history",
+				Action: func(ctx context.Context, c *cli.Command) error {
+					return urfavecli.Adapt(handlers.History)(ctx, c)
+				},
+				Flags: flags(&options, true),
+			},
+			{
+				Name: "new",
+				Action: func(ctx context.Context, c *cli.Command) error {
+					return urfavecli.Adapt(handlers.HistoryNew)(ctx, c)
+				},
+				Flags: flags(&options, true),
+			},
 		},
 		DefaultCommand: "help",
 	}
@@ -97,6 +145,14 @@ func flags(options *handler.Options, dsnIsRequired bool) []cli.Flag {
 			Value:       "./migrations",
 			Usage:       "Directory for migrated files",
 			Destination: &options.Directory,
+			Validator: func(s string) error {
+				fi, err := os.Stat(s)
+				if err != nil || !fi.IsDir() {
+					return errors.WithMessage(err, "directory does not exist")
+				}
+
+				return nil
+			},
 		},
 		&cli.StringFlag{
 			Name:        "migrationTable",
@@ -143,6 +199,14 @@ func flags(options *handler.Options, dsnIsRequired bool) []cli.Flag {
 			Usage:       "Whether to run the command interactively",
 			Value:       true,
 			Destination: &options.Interactive,
+		},
+		&cli.BoolFlag{
+			Name:        "dryRun",
+			Sources:     cli.EnvVars("DRY_RUN"),
+			Aliases:     []string{"dry"},
+			Usage:       "Show SQL that would be executed without actually running it",
+			Value:       false,
+			Destination: &options.DryRun,
 		},
 	}
 }

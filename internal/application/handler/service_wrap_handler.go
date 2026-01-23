@@ -42,6 +42,11 @@ func NewServiceWrapHandler(
 // Handle executes the command by creating database connection and MigrationService,
 // then delegating to the wrapped handler.
 func (w *ServiceWrapHandler) Handle(cmd *Command) error {
+	if w.options.DryRun {
+		w.options.Interactive = false
+		w.logger.Warn("[DRY RUN] No changes will be applied to the database.")
+	}
+
 	// Create database connection
 	conn, err := connection.Try(w.options.DSN, w.options.MaxConnAttempts)
 	if err != nil {

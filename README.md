@@ -132,6 +132,7 @@ The migration command comes with a few command-line options that can be used to 
 | `maxConnAttempts`      | `ma` | `MAX_CONN_ATTEMPTS` | `1` | Maximum number of database connection attempts (1-100) |
 | `compact`              | `c` | `COMPACT` | `false` | Output in compact mode |
 | `interactive`          | `i` | `INTERACTIVE` | `true` | Run in interactive mode with prompts |
+| `dryRun`               | `dry` | `DRY_RUN` | `false` | Show SQL that would be executed without running it |
 
 #### Example with env params:
 ```bash
@@ -144,6 +145,16 @@ PLACEHOLDER_CUSTOM=my_value \
 MAX_CONN_ATTEMPTS=3 \
 COMPACT=true \
 INTERACTIVE=false \
+db-migrator up
+```
+
+### Dry Run Preview
+Use dry run to preview the SQL and migration plan without applying changes. Interactive prompts are disabled.
+
+```bash
+DRY_RUN=true \
+DSN=postgres://username:password@localhost:5432/mydb?sslmode=disable \
+MIGRATION_PATH=./migrations \
 db-migrator up
 ```
 
