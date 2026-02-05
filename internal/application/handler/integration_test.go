@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/raoptimus/db-migrator.go/internal/infrastructure/dal/connection"
@@ -237,6 +238,8 @@ func TestIntegration_ToCommand_Successfully(t *testing.T) {
 			name:                      "mysql",
 			selectQueryToRecordsCount: "select count(*) from test",
 			wantRecordsCount:          1,
+			firstMigrationVersion:     "200905_192800",
+			secondMigrationVersion:    "200905_202800",
 			options: &Options{
 				DSN:         os.Getenv("MYSQL_DSN"),
 				Directory:   migrationsPathAbs(os.Getenv("MYSQL_MIGRATIONS_PATH")),
@@ -249,6 +252,8 @@ func TestIntegration_ToCommand_Successfully(t *testing.T) {
 			name:                      "clickhouse",
 			selectQueryToRecordsCount: "select count() from test",
 			wantRecordsCount:          1,
+			firstMigrationVersion:     "200905_192800",
+			secondMigrationVersion:    "200922_210000",
 			options: &Options{
 				DSN:         os.Getenv("CLICKHOUSE_DSN"),
 				Directory:   migrationsPathAbs(os.Getenv("CLICKHOUSE_MIGRATIONS_PATH")),
@@ -261,6 +266,8 @@ func TestIntegration_ToCommand_Successfully(t *testing.T) {
 			name:                      "clickhouse_cluster",
 			selectQueryToRecordsCount: "select count() from raw.test",
 			wantRecordsCount:          1,
+			firstMigrationVersion:     "200905_192800",
+			secondMigrationVersion:    "200922_210000",
 			options: &Options{
 				DSN:         os.Getenv("CLICKHOUSE_CLUSTER_DSN"),
 				Directory:   migrationsPathAbs(os.Getenv("CLICKHOUSE_CLUSTER_MIGRATIONS_PATH")),
@@ -274,6 +281,8 @@ func TestIntegration_ToCommand_Successfully(t *testing.T) {
 			name:                      "clickhouse_cluster_replicated",
 			selectQueryToRecordsCount: "select count() from raw.test",
 			wantRecordsCount:          1,
+			firstMigrationVersion:     "200905_192800",
+			secondMigrationVersion:    "200922_210000",
 			options: &Options{
 				DSN:         os.Getenv("CLICKHOUSE_CLUSTER_R_DSN"),
 				Replicated:  true,
@@ -302,6 +311,12 @@ func TestIntegration_ToCommand_Successfully(t *testing.T) {
 		t.Run(tt.name+"_upgrade_direction", func(t *testing.T) {
 			// Cleanup before test to ensure clean state
 			_ = handlers.Downgrade.Handle(createCommand("all"))
+			// For ClickHouse clusters, wait for async operations to complete
+			if tt.options.Replicated {
+				time.Sleep(1000 * time.Millisecond)
+			} else if tt.options.ClusterName != "" {
+				time.Sleep(500 * time.Millisecond)
+			}
 
 			defer func() {
 				_ = handlers.Downgrade.Handle(createCommand("all"))
@@ -338,6 +353,12 @@ func TestIntegration_ToCommand_Successfully(t *testing.T) {
 		t.Run(tt.name+"_downgrade_direction", func(t *testing.T) {
 			// Cleanup before test to ensure clean state
 			_ = handlers.Downgrade.Handle(createCommand("all"))
+			// For ClickHouse clusters, wait for async operations to complete
+			if tt.options.Replicated {
+				time.Sleep(1000 * time.Millisecond)
+			} else if tt.options.ClusterName != "" {
+				time.Sleep(500 * time.Millisecond)
+			}
 
 			defer func() {
 				_ = handlers.Downgrade.Handle(createCommand("all"))
@@ -372,6 +393,12 @@ func TestIntegration_ToCommand_Successfully(t *testing.T) {
 		t.Run(tt.name+"_already_at_target", func(t *testing.T) {
 			// Cleanup before test to ensure clean state
 			_ = handlers.Downgrade.Handle(createCommand("all"))
+			// For ClickHouse clusters, wait for async operations to complete
+			if tt.options.Replicated {
+				time.Sleep(1000 * time.Millisecond)
+			} else if tt.options.ClusterName != "" {
+				time.Sleep(500 * time.Millisecond)
+			}
 
 			defer func() {
 				_ = handlers.Downgrade.Handle(createCommand("all"))
