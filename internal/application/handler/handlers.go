@@ -33,7 +33,7 @@ func NewHandlers(options *Options, logger Logger) *Handlers {
 		Upgrade:    NewServiceWrapHandler(options, logger, NewUpgrade(options, migrationPresenter, fileNameBuilder)),
 		Downgrade:  NewServiceWrapHandler(options, logger, NewDowngrade(options, migrationPresenter, fileNameBuilder)),
 		Redo:       NewServiceWrapHandler(options, logger, NewRedo(options, migrationPresenter, fileNameBuilder)),
-		To:         NewServiceWrapHandler(options, logger, NewTo(options, logger, fileNameBuilder)),
+		To:         NewServiceWrapHandler(options, logger, NewTo(options, migrationPresenter, fileNameBuilder)),
 		History:    NewServiceWrapHandler(options, logger, NewHistory(options, migrationPresenter)),
 		HistoryNew: NewServiceWrapHandler(options, logger, NewHistoryNew(options, migrationPresenter)),
 	}

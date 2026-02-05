@@ -144,5 +144,5 @@ start:
 stop:
 	@docker-compose -f "docker-compose.yml" down --remove-orphans
 
-docker-test-integration: start
+docker-test-integration: stop start
 	@docker compose exec -T app make test-integration
