@@ -112,6 +112,98 @@ func (_c *MockPresenter_AskRedoConfirmation_Call) RunAndReturn(run func(int) str
 	return _c
 }
 
+// AskReleaseConfirmation provides a mock function with given fields: count
+func (_m *MockPresenter) AskReleaseConfirmation(count int) string {
+	ret := _m.Called(count)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AskReleaseConfirmation")
+	}
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func(int) string); ok {
+		r0 = rf(count)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	return r0
+}
+
+// MockPresenter_AskReleaseConfirmation_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AskReleaseConfirmation'
+type MockPresenter_AskReleaseConfirmation_Call struct {
+	*mock.Call
+}
+
+// AskReleaseConfirmation is a helper method to define mock.On call
+//   - count int
+func (_e *MockPresenter_Expecter) AskReleaseConfirmation(count interface{}) *MockPresenter_AskReleaseConfirmation_Call {
+	return &MockPresenter_AskReleaseConfirmation_Call{Call: _e.mock.On("AskReleaseConfirmation", count)}
+}
+
+func (_c *MockPresenter_AskReleaseConfirmation_Call) Run(run func(count int)) *MockPresenter_AskReleaseConfirmation_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int))
+	})
+	return _c
+}
+
+func (_c *MockPresenter_AskReleaseConfirmation_Call) Return(_a0 string) *MockPresenter_AskReleaseConfirmation_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockPresenter_AskReleaseConfirmation_Call) RunAndReturn(run func(int) string) *MockPresenter_AskReleaseConfirmation_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AskRollbackConfirmation provides a mock function with given fields: count
+func (_m *MockPresenter) AskRollbackConfirmation(count int) string {
+	ret := _m.Called(count)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AskRollbackConfirmation")
+	}
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func(int) string); ok {
+		r0 = rf(count)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	return r0
+}
+
+// MockPresenter_AskRollbackConfirmation_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AskRollbackConfirmation'
+type MockPresenter_AskRollbackConfirmation_Call struct {
+	*mock.Call
+}
+
+// AskRollbackConfirmation is a helper method to define mock.On call
+//   - count int
+func (_e *MockPresenter_Expecter) AskRollbackConfirmation(count interface{}) *MockPresenter_AskRollbackConfirmation_Call {
+	return &MockPresenter_AskRollbackConfirmation_Call{Call: _e.mock.On("AskRollbackConfirmation", count)}
+}
+
+func (_c *MockPresenter_AskRollbackConfirmation_Call) Run(run func(count int)) *MockPresenter_AskRollbackConfirmation_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int))
+	})
+	return _c
+}
+
+func (_c *MockPresenter_AskRollbackConfirmation_Call) Return(_a0 string) *MockPresenter_AskRollbackConfirmation_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockPresenter_AskRollbackConfirmation_Call) RunAndReturn(run func(int) string) *MockPresenter_AskRollbackConfirmation_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // AskUpgradeConfirmation provides a mock function with given fields: count
 func (_m *MockPresenter) AskUpgradeConfirmation(count int) string {
 	ret := _m.Called(count)
@@ -358,6 +450,39 @@ func (_c *MockPresenter_ShowHistoryHeader_Call) RunAndReturn(run func(int)) *Moc
 	return _c
 }
 
+// ShowMissingDownFiles provides a mock function with given fields: versions
+func (_m *MockPresenter) ShowMissingDownFiles(versions []string) {
+	_m.Called(versions)
+}
+
+// MockPresenter_ShowMissingDownFiles_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ShowMissingDownFiles'
+type MockPresenter_ShowMissingDownFiles_Call struct {
+	*mock.Call
+}
+
+// ShowMissingDownFiles is a helper method to define mock.On call
+//   - versions []string
+func (_e *MockPresenter_Expecter) ShowMissingDownFiles(versions interface{}) *MockPresenter_ShowMissingDownFiles_Call {
+	return &MockPresenter_ShowMissingDownFiles_Call{Call: _e.mock.On("ShowMissingDownFiles", versions)}
+}
+
+func (_c *MockPresenter_ShowMissingDownFiles_Call) Run(run func(versions []string)) *MockPresenter_ShowMissingDownFiles_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].([]string))
+	})
+	return _c
+}
+
+func (_c *MockPresenter_ShowMissingDownFiles_Call) Return() *MockPresenter_ShowMissingDownFiles_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockPresenter_ShowMissingDownFiles_Call) RunAndReturn(run func([]string)) *MockPresenter_ShowMissingDownFiles_Call {
+	_c.Run(run)
+	return _c
+}
+
 // ShowNewMigrationsHeader provides a mock function with given fields: count
 func (_m *MockPresenter) ShowNewMigrationsHeader(count int) {
 	_m.Called(count)
@@ -453,6 +578,38 @@ func (_c *MockPresenter_ShowNoMigrationsToRevert_Call) Return() *MockPresenter_S
 }
 
 func (_c *MockPresenter_ShowNoMigrationsToRevert_Call) RunAndReturn(run func()) *MockPresenter_ShowNoMigrationsToRevert_Call {
+	_c.Run(run)
+	return _c
+}
+
+// ShowNoMigrationsToRollback provides a mock function with no fields
+func (_m *MockPresenter) ShowNoMigrationsToRollback() {
+	_m.Called()
+}
+
+// MockPresenter_ShowNoMigrationsToRollback_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ShowNoMigrationsToRollback'
+type MockPresenter_ShowNoMigrationsToRollback_Call struct {
+	*mock.Call
+}
+
+// ShowNoMigrationsToRollback is a helper method to define mock.On call
+func (_e *MockPresenter_Expecter) ShowNoMigrationsToRollback() *MockPresenter_ShowNoMigrationsToRollback_Call {
+	return &MockPresenter_ShowNoMigrationsToRollback_Call{Call: _e.mock.On("ShowNoMigrationsToRollback")}
+}
+
+func (_c *MockPresenter_ShowNoMigrationsToRollback_Call) Run(run func()) *MockPresenter_ShowNoMigrationsToRollback_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockPresenter_ShowNoMigrationsToRollback_Call) Return() *MockPresenter_ShowNoMigrationsToRollback_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockPresenter_ShowNoMigrationsToRollback_Call) RunAndReturn(run func()) *MockPresenter_ShowNoMigrationsToRollback_Call {
 	_c.Run(run)
 	return _c
 }
@@ -583,6 +740,202 @@ func (_c *MockPresenter_ShowRedoSuccess_Call) Return() *MockPresenter_ShowRedoSu
 }
 
 func (_c *MockPresenter_ShowRedoSuccess_Call) RunAndReturn(run func(int)) *MockPresenter_ShowRedoSuccess_Call {
+	_c.Run(run)
+	return _c
+}
+
+// ShowReleaseError provides a mock function with no fields
+func (_m *MockPresenter) ShowReleaseError() {
+	_m.Called()
+}
+
+// MockPresenter_ShowReleaseError_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ShowReleaseError'
+type MockPresenter_ShowReleaseError_Call struct {
+	*mock.Call
+}
+
+// ShowReleaseError is a helper method to define mock.On call
+func (_e *MockPresenter_Expecter) ShowReleaseError() *MockPresenter_ShowReleaseError_Call {
+	return &MockPresenter_ShowReleaseError_Call{Call: _e.mock.On("ShowReleaseError")}
+}
+
+func (_c *MockPresenter_ShowReleaseError_Call) Run(run func()) *MockPresenter_ShowReleaseError_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockPresenter_ShowReleaseError_Call) Return() *MockPresenter_ShowReleaseError_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockPresenter_ShowReleaseError_Call) RunAndReturn(run func()) *MockPresenter_ShowReleaseError_Call {
+	_c.Run(run)
+	return _c
+}
+
+// ShowReleasePlan provides a mock function with given fields: migrations
+func (_m *MockPresenter) ShowReleasePlan(migrations model.Migrations) {
+	_m.Called(migrations)
+}
+
+// MockPresenter_ShowReleasePlan_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ShowReleasePlan'
+type MockPresenter_ShowReleasePlan_Call struct {
+	*mock.Call
+}
+
+// ShowReleasePlan is a helper method to define mock.On call
+//   - migrations model.Migrations
+func (_e *MockPresenter_Expecter) ShowReleasePlan(migrations interface{}) *MockPresenter_ShowReleasePlan_Call {
+	return &MockPresenter_ShowReleasePlan_Call{Call: _e.mock.On("ShowReleasePlan", migrations)}
+}
+
+func (_c *MockPresenter_ShowReleasePlan_Call) Run(run func(migrations model.Migrations)) *MockPresenter_ShowReleasePlan_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(model.Migrations))
+	})
+	return _c
+}
+
+func (_c *MockPresenter_ShowReleasePlan_Call) Return() *MockPresenter_ShowReleasePlan_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockPresenter_ShowReleasePlan_Call) RunAndReturn(run func(model.Migrations)) *MockPresenter_ShowReleasePlan_Call {
+	_c.Run(run)
+	return _c
+}
+
+// ShowReleaseSuccess provides a mock function with given fields: count
+func (_m *MockPresenter) ShowReleaseSuccess(count int) {
+	_m.Called(count)
+}
+
+// MockPresenter_ShowReleaseSuccess_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ShowReleaseSuccess'
+type MockPresenter_ShowReleaseSuccess_Call struct {
+	*mock.Call
+}
+
+// ShowReleaseSuccess is a helper method to define mock.On call
+//   - count int
+func (_e *MockPresenter_Expecter) ShowReleaseSuccess(count interface{}) *MockPresenter_ShowReleaseSuccess_Call {
+	return &MockPresenter_ShowReleaseSuccess_Call{Call: _e.mock.On("ShowReleaseSuccess", count)}
+}
+
+func (_c *MockPresenter_ShowReleaseSuccess_Call) Run(run func(count int)) *MockPresenter_ShowReleaseSuccess_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int))
+	})
+	return _c
+}
+
+func (_c *MockPresenter_ShowReleaseSuccess_Call) Return() *MockPresenter_ShowReleaseSuccess_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockPresenter_ShowReleaseSuccess_Call) RunAndReturn(run func(int)) *MockPresenter_ShowReleaseSuccess_Call {
+	_c.Run(run)
+	return _c
+}
+
+// ShowRollbackError provides a mock function with no fields
+func (_m *MockPresenter) ShowRollbackError() {
+	_m.Called()
+}
+
+// MockPresenter_ShowRollbackError_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ShowRollbackError'
+type MockPresenter_ShowRollbackError_Call struct {
+	*mock.Call
+}
+
+// ShowRollbackError is a helper method to define mock.On call
+func (_e *MockPresenter_Expecter) ShowRollbackError() *MockPresenter_ShowRollbackError_Call {
+	return &MockPresenter_ShowRollbackError_Call{Call: _e.mock.On("ShowRollbackError")}
+}
+
+func (_c *MockPresenter_ShowRollbackError_Call) Run(run func()) *MockPresenter_ShowRollbackError_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockPresenter_ShowRollbackError_Call) Return() *MockPresenter_ShowRollbackError_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockPresenter_ShowRollbackError_Call) RunAndReturn(run func()) *MockPresenter_ShowRollbackError_Call {
+	_c.Run(run)
+	return _c
+}
+
+// ShowRollbackPlan provides a mock function with given fields: migrations
+func (_m *MockPresenter) ShowRollbackPlan(migrations model.Migrations) {
+	_m.Called(migrations)
+}
+
+// MockPresenter_ShowRollbackPlan_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ShowRollbackPlan'
+type MockPresenter_ShowRollbackPlan_Call struct {
+	*mock.Call
+}
+
+// ShowRollbackPlan is a helper method to define mock.On call
+//   - migrations model.Migrations
+func (_e *MockPresenter_Expecter) ShowRollbackPlan(migrations interface{}) *MockPresenter_ShowRollbackPlan_Call {
+	return &MockPresenter_ShowRollbackPlan_Call{Call: _e.mock.On("ShowRollbackPlan", migrations)}
+}
+
+func (_c *MockPresenter_ShowRollbackPlan_Call) Run(run func(migrations model.Migrations)) *MockPresenter_ShowRollbackPlan_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(model.Migrations))
+	})
+	return _c
+}
+
+func (_c *MockPresenter_ShowRollbackPlan_Call) Return() *MockPresenter_ShowRollbackPlan_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockPresenter_ShowRollbackPlan_Call) RunAndReturn(run func(model.Migrations)) *MockPresenter_ShowRollbackPlan_Call {
+	_c.Run(run)
+	return _c
+}
+
+// ShowRollbackSuccess provides a mock function with given fields: count
+func (_m *MockPresenter) ShowRollbackSuccess(count int) {
+	_m.Called(count)
+}
+
+// MockPresenter_ShowRollbackSuccess_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ShowRollbackSuccess'
+type MockPresenter_ShowRollbackSuccess_Call struct {
+	*mock.Call
+}
+
+// ShowRollbackSuccess is a helper method to define mock.On call
+//   - count int
+func (_e *MockPresenter_Expecter) ShowRollbackSuccess(count interface{}) *MockPresenter_ShowRollbackSuccess_Call {
+	return &MockPresenter_ShowRollbackSuccess_Call{Call: _e.mock.On("ShowRollbackSuccess", count)}
+}
+
+func (_c *MockPresenter_ShowRollbackSuccess_Call) Run(run func(count int)) *MockPresenter_ShowRollbackSuccess_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(int))
+	})
+	return _c
+}
+
+func (_c *MockPresenter_ShowRollbackSuccess_Call) Return() *MockPresenter_ShowRollbackSuccess_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockPresenter_ShowRollbackSuccess_Call) RunAndReturn(run func(int)) *MockPresenter_ShowRollbackSuccess_Call {
 	_c.Run(run)
 	return _c
 }

@@ -60,4 +60,8 @@ type Repository interface {
 	MigrationsCount(ctx context.Context) (int, error)
 	// TableNameWithSchema returns the full table name including schema if applicable.
 	TableNameWithSchema() string
+	// InsertMigrationWithApplyTime inserts the new migration record with an explicit apply time.
+	InsertMigrationWithApplyTime(ctx context.Context, version string, applyTime int64) error
+	// MigrationsByMaxApplyTime returns migrations that share the maximum apply_time value.
+	MigrationsByMaxApplyTime(ctx context.Context) (entity.Migrations, error)
 }

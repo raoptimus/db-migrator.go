@@ -379,6 +379,54 @@ func (_c *MockRepository_InsertMigration_Call) RunAndReturn(run func(context.Con
 	return _c
 }
 
+// InsertMigrationWithApplyTime provides a mock function with given fields: ctx, version, applyTime
+func (_m *MockRepository) InsertMigrationWithApplyTime(ctx context.Context, version string, applyTime int64) error {
+	ret := _m.Called(ctx, version, applyTime)
+
+	if len(ret) == 0 {
+		panic("no return value specified for InsertMigrationWithApplyTime")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, int64) error); ok {
+		r0 = rf(ctx, version, applyTime)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockRepository_InsertMigrationWithApplyTime_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'InsertMigrationWithApplyTime'
+type MockRepository_InsertMigrationWithApplyTime_Call struct {
+	*mock.Call
+}
+
+// InsertMigrationWithApplyTime is a helper method to define mock.On call
+//   - ctx context.Context
+//   - version string
+//   - applyTime int64
+func (_e *MockRepository_Expecter) InsertMigrationWithApplyTime(ctx interface{}, version interface{}, applyTime interface{}) *MockRepository_InsertMigrationWithApplyTime_Call {
+	return &MockRepository_InsertMigrationWithApplyTime_Call{Call: _e.mock.On("InsertMigrationWithApplyTime", ctx, version, applyTime)}
+}
+
+func (_c *MockRepository_InsertMigrationWithApplyTime_Call) Run(run func(ctx context.Context, version string, applyTime int64)) *MockRepository_InsertMigrationWithApplyTime_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(int64))
+	})
+	return _c
+}
+
+func (_c *MockRepository_InsertMigrationWithApplyTime_Call) Return(_a0 error) *MockRepository_InsertMigrationWithApplyTime_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockRepository_InsertMigrationWithApplyTime_Call) RunAndReturn(run func(context.Context, string, int64) error) *MockRepository_InsertMigrationWithApplyTime_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Migrations provides a mock function with given fields: ctx, limit
 func (_m *MockRepository) Migrations(ctx context.Context, limit int) (entity.Migrations, error) {
 	ret := _m.Called(ctx, limit)
@@ -434,6 +482,64 @@ func (_c *MockRepository_Migrations_Call) Return(_a0 entity.Migrations, _a1 erro
 }
 
 func (_c *MockRepository_Migrations_Call) RunAndReturn(run func(context.Context, int) (entity.Migrations, error)) *MockRepository_Migrations_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// MigrationsByMaxApplyTime provides a mock function with given fields: ctx
+func (_m *MockRepository) MigrationsByMaxApplyTime(ctx context.Context) (entity.Migrations, error) {
+	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for MigrationsByMaxApplyTime")
+	}
+
+	var r0 entity.Migrations
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context) (entity.Migrations, error)); ok {
+		return rf(ctx)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context) entity.Migrations); ok {
+		r0 = rf(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(entity.Migrations)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockRepository_MigrationsByMaxApplyTime_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MigrationsByMaxApplyTime'
+type MockRepository_MigrationsByMaxApplyTime_Call struct {
+	*mock.Call
+}
+
+// MigrationsByMaxApplyTime is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockRepository_Expecter) MigrationsByMaxApplyTime(ctx interface{}) *MockRepository_MigrationsByMaxApplyTime_Call {
+	return &MockRepository_MigrationsByMaxApplyTime_Call{Call: _e.mock.On("MigrationsByMaxApplyTime", ctx)}
+}
+
+func (_c *MockRepository_MigrationsByMaxApplyTime_Call) Run(run func(ctx context.Context)) *MockRepository_MigrationsByMaxApplyTime_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context))
+	})
+	return _c
+}
+
+func (_c *MockRepository_MigrationsByMaxApplyTime_Call) Return(_a0 entity.Migrations, _a1 error) *MockRepository_MigrationsByMaxApplyTime_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockRepository_MigrationsByMaxApplyTime_Call) RunAndReturn(run func(context.Context) (entity.Migrations, error)) *MockRepository_MigrationsByMaxApplyTime_Call {
 	_c.Call.Return(run)
 	return _c
 }

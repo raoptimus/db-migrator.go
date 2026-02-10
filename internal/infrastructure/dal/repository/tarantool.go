@@ -252,6 +252,69 @@ func (p *Tarantool) TableNameWithSchema() string {
 	return p.options.TableName
 }
 
+// InsertMigrationWithApplyTime inserts the new migration record with an explicit apply time.
+func (p *Tarantool) InsertMigrationWithApplyTime(ctx context.Context, version string, applyTime int64) error {
+	q := fmt.Sprintf("box.space.%s:insert({...})", p.TableNameWithSchema())
+
+	if _, err := p.conn.ExecContext(ctx, q, version, applyTime); err != nil {
+		return errors.Wrap(p.dbError(err, q), "insert migration")
+	}
+	return nil
+}
+
+// MigrationsByMaxApplyTime returns migrations that share the maximum apply_time value.
+func (p *Tarantool) MigrationsByMaxApplyTime(ctx context.Context) (entity.Migrations, error) {
+	// Find max apply_time using secondary index (reverse iterator, limit 1)
+	maxQ := fmt.Sprintf("return box.space.%s.index.secondary:max()",
+		p.TableNameWithSchema(),
+	)
+
+	maxRows, err := p.conn.QueryContext(ctx, maxQ)
+	if err != nil {
+		return nil, errors.Wrap(p.dbError(err, maxQ), "get max apply time")
+	}
+	defer maxRows.Close()
+
+	var maxVersion string
+	var maxApplyTime int64
+	if !maxRows.Next() {
+		return nil, nil
+	}
+	if err := maxRows.Scan(&maxVersion, &maxApplyTime); err != nil {
+		return nil, errors.Wrap(p.dbError(err, maxQ), "get max apply time")
+	}
+
+	// Select all records with this apply_time using secondary index
+	q := fmt.Sprintf("return box.space.%s.index.secondary:select({%d}, {iterator='%s'})",
+		p.TableNameWithSchema(),
+		maxApplyTime,
+		tarantoolIteratorEQ,
+	)
+
+	rows, err := p.conn.QueryContext(ctx, q)
+	if err != nil {
+		return nil, errors.Wrap(p.dbError(err, q), "get migrations by max apply time")
+	}
+	defer rows.Close()
+
+	var migrations entity.Migrations
+	for rows.Next() {
+		var (
+			version   string
+			applyTime int64
+		)
+		if err := rows.Scan(&version, &applyTime); err != nil {
+			return nil, errors.Wrap(p.dbError(err, q), "get migrations by max apply time")
+		}
+		migrations = append(migrations, entity.Migration{
+			Version:   version,
+			ApplyTime: applyTime,
+		})
+	}
+
+	return migrations, nil
+}
+
 // dbError returns DBError is err is db error else returns got error.
 func (p *Tarantool) dbError(err error, q string) error {
 	var tErr tarantool.Error

@@ -92,6 +92,22 @@ they will all be applied before the specified migration is applied.
 
 If the specified migration has already been applied before, any later applied migrations will be reverted.
 
+### Releasing Migrations (Atomic Batch Apply)
+To apply ALL pending migrations atomically in a single transaction, use the `release` command:
+```bash
+db-migrator release
+```
+All migrations in a release share the same `apply_time`, allowing batch identification for later rollback.
+If any migration fails, the entire batch is rolled back automatically.
+
+### Rolling Back a Release
+To revert the latest release batch atomically, use the `rollback` command:
+```bash
+db-migrator rollback
+```
+This identifies the latest batch by `MAX(apply_time)` and reverts all migrations in that batch within a single transaction.
+Before reverting, the command checks that all `.down.sql` files exist.
+
 ### Reverting Migrations
 To revert (undo) one or multiple migrations that have been applied before, you can run the following command:
 ```bash

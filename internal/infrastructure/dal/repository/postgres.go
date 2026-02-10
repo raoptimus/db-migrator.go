@@ -255,6 +255,58 @@ func (p *Postgres) TableNameWithSchema() string {
 	return p.options.SchemaName + "." + p.options.TableName
 }
 
+// InsertMigrationWithApplyTime inserts the new migration record with an explicit apply time.
+func (p *Postgres) InsertMigrationWithApplyTime(ctx context.Context, version string, applyTime int64) error {
+	q := fmt.Sprintf(`
+		INSERT INTO %s (version, apply_time)
+		VALUES ($1, $2)`,
+		p.TableNameWithSchema(),
+	)
+	//nolint:gosec // overflow ok
+	if _, err := p.conn.ExecContext(ctx, q, version, uint32(applyTime)); err != nil {
+		return errors.Wrap(p.dbError(err, q), "insert migration")
+	}
+	return nil
+}
+
+// MigrationsByMaxApplyTime returns migrations that share the maximum apply_time value.
+func (p *Postgres) MigrationsByMaxApplyTime(ctx context.Context) (entity.Migrations, error) {
+	q := fmt.Sprintf(`
+		SELECT version, apply_time
+		FROM %s
+		WHERE apply_time = (SELECT MAX(apply_time) FROM %s)
+		ORDER BY version DESC`,
+		p.TableNameWithSchema(),
+		p.TableNameWithSchema(),
+	)
+
+	rows, err := p.conn.QueryContext(ctx, q)
+	if err != nil {
+		return nil, errors.Wrap(p.dbError(err, q), "get migrations by max apply time")
+	}
+	defer rows.Close()
+
+	var migrations entity.Migrations
+	for rows.Next() {
+		var (
+			version   string
+			applyTime int64
+		)
+		if err := rows.Scan(&version, &applyTime); err != nil {
+			return nil, errors.Wrap(p.dbError(err, q), "get migrations by max apply time")
+		}
+		migrations = append(migrations, entity.Migration{
+			Version:   version,
+			ApplyTime: applyTime,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(p.dbError(err, q), "get migrations by max apply time")
+	}
+
+	return migrations, nil
+}
+
 // dbError returns DBError is err is db error else returns got error.
 func (p *Postgres) dbError(err error, q string) error {
 	var pgErr *pq.Error
