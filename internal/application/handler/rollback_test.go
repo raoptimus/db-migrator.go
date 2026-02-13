@@ -48,7 +48,7 @@ func TestRollback_Handle_NoMigrationsToRollback_Successfully(t *testing.T) {
 		Return(nil, nil).
 		Once()
 	presenterMock.EXPECT().
-		ShowNoMigrationsToRollback().
+		ShowNoMigrationsToRevert().
 		Once()
 
 	rollback := NewRollback(
@@ -179,10 +179,10 @@ func TestRollback_Handle_RevertSuccessfully_NonInteractive(t *testing.T) {
 		Once()
 
 	presenterMock.EXPECT().
-		ShowRollbackPlan(migrations).
+		ShowDowngradePlan(migrations).
 		Once()
 	presenterMock.EXPECT().
-		AskRollbackConfirmation(2).
+		AskDowngradeConfirmation(2).
 		Return("Confirm?").
 		Once()
 
@@ -205,7 +205,7 @@ func TestRollback_Handle_RevertSuccessfully_NonInteractive(t *testing.T) {
 		Once()
 
 	presenterMock.EXPECT().
-		ShowRollbackSuccess(2).
+		ShowDowngradeSuccess(2).
 		Once()
 
 	rollback := NewRollback(
@@ -246,10 +246,10 @@ func TestRollback_Handle_TransactionError_Failure(t *testing.T) {
 		Once()
 
 	presenterMock.EXPECT().
-		ShowRollbackPlan(migrations).
+		ShowDowngradePlan(migrations).
 		Once()
 	presenterMock.EXPECT().
-		AskRollbackConfirmation(1).
+		AskDowngradeConfirmation(1).
 		Return("Confirm?").
 		Once()
 

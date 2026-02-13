@@ -196,63 +196,14 @@ func (p *MigrationPresenter) ShowNewMigrationsLimitedHeader(shown, total int) {
 	)
 }
 
-// ShowReleasePlan displays the plan for applying all migrations in a release.
-func (p *MigrationPresenter) ShowReleasePlan(migrations model.Migrations) {
-	p.logger.Warnf(
-		"Total %d %s to be released: \n",
-		migrations.Len(),
-		plural.Migration(migrations.Len()),
-	)
-
-	p.PrintMigrations(migrations, false)
-}
-
-// AskReleaseConfirmation returns a confirmation question for applying a release.
-func (p *MigrationPresenter) AskReleaseConfirmation(count int) string {
-	return fmt.Sprintf("Release the above %d %s?", count, plural.Migration(count))
-}
-
-// ShowReleaseSuccess displays a success message after all migrations have been released.
-func (p *MigrationPresenter) ShowReleaseSuccess(count int) {
-	p.logger.Successf("%d %s released\n", count, plural.MigrationWas(count))
-	p.logger.Success("Release applied successfully")
-}
-
 // ShowReleaseError displays a message when release operation failed.
 func (p *MigrationPresenter) ShowReleaseError() {
 	p.logger.Error("Release failed. All changes have been rolled back.\n")
 }
 
-// ShowRollbackPlan displays the plan for reverting a release.
-func (p *MigrationPresenter) ShowRollbackPlan(migrations model.Migrations) {
-	p.logger.Warnf(
-		"Total %d %s to be rolled back: \n",
-		migrations.Len(),
-		plural.Migration(migrations.Len()),
-	)
-
-	p.PrintMigrations(migrations, true)
-}
-
-// AskRollbackConfirmation returns a confirmation question for reverting a release.
-func (p *MigrationPresenter) AskRollbackConfirmation(count int) string {
-	return fmt.Sprintf("Rollback the above %d %s?", count, plural.Migration(count))
-}
-
-// ShowRollbackSuccess displays a success message after release has been rolled back.
-func (p *MigrationPresenter) ShowRollbackSuccess(count int) {
-	p.logger.Successf("%d %s rolled back\n", count, plural.MigrationWas(count))
-	p.logger.Success("Rollback completed successfully")
-}
-
 // ShowRollbackError displays a message when rollback operation failed.
 func (p *MigrationPresenter) ShowRollbackError() {
 	p.logger.Error("Rollback failed. Some changes may have been partially reverted.\n")
-}
-
-// ShowNoMigrationsToRollback displays a message when there are no migrations to roll back.
-func (p *MigrationPresenter) ShowNoMigrationsToRollback() {
-	p.logger.Success("No migrations to roll back.")
 }
 
 // ShowMissingDownFiles displays a message about missing down migration files.

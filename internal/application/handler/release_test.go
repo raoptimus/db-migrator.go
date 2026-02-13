@@ -106,10 +106,10 @@ func TestRelease_Handle_ApplySuccessfully_NonInteractive(t *testing.T) {
 		Return(migrations, nil).
 		Once()
 	presenterMock.EXPECT().
-		ShowReleasePlan(migrations).
+		ShowUpgradePlan(migrations, migrations.Len()).
 		Once()
 	presenterMock.EXPECT().
-		AskReleaseConfirmation(2).
+		AskUpgradeConfirmation(2).
 		Return("Confirm?").
 		Once()
 
@@ -149,7 +149,7 @@ func TestRelease_Handle_ApplySuccessfully_NonInteractive(t *testing.T) {
 		Once()
 
 	presenterMock.EXPECT().
-		ShowReleaseSuccess(2).
+		ShowUpgradeSuccess(2).
 		Once()
 
 	release := NewRelease(
@@ -182,10 +182,10 @@ func TestRelease_Handle_TransactionError_Failure(t *testing.T) {
 		Return(migrations, nil).
 		Once()
 	presenterMock.EXPECT().
-		ShowReleasePlan(migrations).
+		ShowUpgradePlan(migrations, migrations.Len()).
 		Once()
 	presenterMock.EXPECT().
-		AskReleaseConfirmation(1).
+		AskUpgradeConfirmation(1).
 		Return("Confirm?").
 		Once()
 
@@ -228,10 +228,10 @@ func TestRelease_Handle_ApplyFileErrorInsideTx_Failure(t *testing.T) {
 		Return(migrations, nil).
 		Once()
 	presenterMock.EXPECT().
-		ShowReleasePlan(migrations).
+		ShowUpgradePlan(migrations, migrations.Len()).
 		Once()
 	presenterMock.EXPECT().
-		AskReleaseConfirmation(1).
+		AskUpgradeConfirmation(1).
 		Return("Confirm?").
 		Once()
 

@@ -48,9 +48,9 @@ func (r *Release) Handle(cmd *Command, svc MigrationService) error {
 		return nil
 	}
 
-	r.presenter.ShowReleasePlan(migrations)
+	r.presenter.ShowUpgradePlan(migrations, migrations.Len())
 
-	question := r.presenter.AskReleaseConfirmation(migrations.Len())
+	question := r.presenter.AskUpgradeConfirmation(migrations.Len())
 	if r.options.Interactive && !console.Confirm(question) {
 		return nil
 	}
@@ -74,6 +74,6 @@ func (r *Release) Handle(cmd *Command, svc MigrationService) error {
 		return err
 	}
 
-	r.presenter.ShowReleaseSuccess(migrations.Len())
+	r.presenter.ShowUpgradeSuccess(migrations.Len())
 	return nil
 }

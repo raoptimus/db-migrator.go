@@ -43,7 +43,7 @@ func (r *Rollback) Handle(cmd *Command, svc MigrationService) error {
 	}
 
 	if migrations.Len() == 0 {
-		r.presenter.ShowNoMigrationsToRollback()
+		r.presenter.ShowNoMigrationsToRevert()
 		return nil
 	}
 
@@ -65,9 +65,9 @@ func (r *Rollback) Handle(cmd *Command, svc MigrationService) error {
 		return ErrMissingDownFiles
 	}
 
-	r.presenter.ShowRollbackPlan(migrations)
+	r.presenter.ShowDowngradePlan(migrations)
 
-	question := r.presenter.AskRollbackConfirmation(migrations.Len())
+	question := r.presenter.AskDowngradeConfirmation(migrations.Len())
 	if r.options.Interactive && !console.Confirm(question) {
 		return nil
 	}
@@ -89,6 +89,6 @@ func (r *Rollback) Handle(cmd *Command, svc MigrationService) error {
 		return err
 	}
 
-	r.presenter.ShowRollbackSuccess(migrations.Len())
+	r.presenter.ShowDowngradeSuccess(migrations.Len())
 	return nil
 }

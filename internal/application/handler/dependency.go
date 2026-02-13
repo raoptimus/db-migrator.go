@@ -124,24 +124,10 @@ type Presenter interface {
 	ShowDowngradeSuccess(count int)
 	// ShowRedoSuccess displays a success message after all migrations have been redone.
 	ShowRedoSuccess(count int)
-	// ShowReleasePlan displays the plan for applying all migrations in a release.
-	ShowReleasePlan(migrations model.Migrations)
-	// AskReleaseConfirmation returns a confirmation question for applying a release.
-	AskReleaseConfirmation(count int) string
-	// ShowReleaseSuccess displays a success message after all migrations have been released.
-	ShowReleaseSuccess(count int)
 	// ShowReleaseError displays a message when release operation failed.
 	ShowReleaseError()
-	// ShowRollbackPlan displays the plan for reverting a release.
-	ShowRollbackPlan(migrations model.Migrations)
-	// AskRollbackConfirmation returns a confirmation question for reverting a release.
-	AskRollbackConfirmation(count int) string
-	// ShowRollbackSuccess displays a success message after release has been rolled back.
-	ShowRollbackSuccess(count int)
 	// ShowRollbackError displays a message when rollback operation failed.
 	ShowRollbackError()
-	// ShowNoMigrationsToRollback displays a message when there are no migrations to roll back.
-	ShowNoMigrationsToRollback()
 	// ShowMissingDownFiles displays a message about missing down migration files.
 	ShowMissingDownFiles(versions []string)
 }
