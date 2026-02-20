@@ -72,6 +72,55 @@ func (_c *MockMigrationService_ApplyFile_Call) RunAndReturn(run func(context.Con
 	return _c
 }
 
+// ApplyFileWithApplyTime provides a mock function with given fields: ctx, migration, fileName, applyTime
+func (_m *MockMigrationService) ApplyFileWithApplyTime(ctx context.Context, migration *model.Migration, fileName string, applyTime int64) error {
+	ret := _m.Called(ctx, migration, fileName, applyTime)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ApplyFileWithApplyTime")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *model.Migration, string, int64) error); ok {
+		r0 = rf(ctx, migration, fileName, applyTime)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockMigrationService_ApplyFileWithApplyTime_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ApplyFileWithApplyTime'
+type MockMigrationService_ApplyFileWithApplyTime_Call struct {
+	*mock.Call
+}
+
+// ApplyFileWithApplyTime is a helper method to define mock.On call
+//   - ctx context.Context
+//   - migration *model.Migration
+//   - fileName string
+//   - applyTime int64
+func (_e *MockMigrationService_Expecter) ApplyFileWithApplyTime(ctx interface{}, migration interface{}, fileName interface{}, applyTime interface{}) *MockMigrationService_ApplyFileWithApplyTime_Call {
+	return &MockMigrationService_ApplyFileWithApplyTime_Call{Call: _e.mock.On("ApplyFileWithApplyTime", ctx, migration, fileName, applyTime)}
+}
+
+func (_c *MockMigrationService_ApplyFileWithApplyTime_Call) Run(run func(ctx context.Context, migration *model.Migration, fileName string, applyTime int64)) *MockMigrationService_ApplyFileWithApplyTime_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*model.Migration), args[2].(string), args[3].(int64))
+	})
+	return _c
+}
+
+func (_c *MockMigrationService_ApplyFileWithApplyTime_Call) Return(_a0 error) *MockMigrationService_ApplyFileWithApplyTime_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockMigrationService_ApplyFileWithApplyTime_Call) RunAndReturn(run func(context.Context, *model.Migration, string, int64) error) *MockMigrationService_ApplyFileWithApplyTime_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ApplySQL provides a mock function with given fields: ctx, safely, version, upSQL
 func (_m *MockMigrationService) ApplySQL(ctx context.Context, safely bool, version string, upSQL string) error {
 	ret := _m.Called(ctx, safely, version, upSQL)
@@ -117,6 +166,53 @@ func (_c *MockMigrationService_ApplySQL_Call) Return(_a0 error) *MockMigrationSe
 }
 
 func (_c *MockMigrationService_ApplySQL_Call) RunAndReturn(run func(context.Context, bool, string, string) error) *MockMigrationService_ApplySQL_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ExecInTransaction provides a mock function with given fields: ctx, fn
+func (_m *MockMigrationService) ExecInTransaction(ctx context.Context, fn func(context.Context) error) error {
+	ret := _m.Called(ctx, fn)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ExecInTransaction")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, func(context.Context) error) error); ok {
+		r0 = rf(ctx, fn)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockMigrationService_ExecInTransaction_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ExecInTransaction'
+type MockMigrationService_ExecInTransaction_Call struct {
+	*mock.Call
+}
+
+// ExecInTransaction is a helper method to define mock.On call
+//   - ctx context.Context
+//   - fn func(context.Context) error
+func (_e *MockMigrationService_Expecter) ExecInTransaction(ctx interface{}, fn interface{}) *MockMigrationService_ExecInTransaction_Call {
+	return &MockMigrationService_ExecInTransaction_Call{Call: _e.mock.On("ExecInTransaction", ctx, fn)}
+}
+
+func (_c *MockMigrationService_ExecInTransaction_Call) Run(run func(ctx context.Context, fn func(context.Context) error)) *MockMigrationService_ExecInTransaction_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(func(context.Context) error))
+	})
+	return _c
+}
+
+func (_c *MockMigrationService_ExecInTransaction_Call) Return(_a0 error) *MockMigrationService_ExecInTransaction_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockMigrationService_ExecInTransaction_Call) RunAndReturn(run func(context.Context, func(context.Context) error) error) *MockMigrationService_ExecInTransaction_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -174,6 +270,120 @@ func (_c *MockMigrationService_Exists_Call) Return(_a0 bool, _a1 error) *MockMig
 }
 
 func (_c *MockMigrationService_Exists_Call) RunAndReturn(run func(context.Context, string) (bool, error)) *MockMigrationService_Exists_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// FileExists provides a mock function with given fields: fileName
+func (_m *MockMigrationService) FileExists(fileName string) (bool, error) {
+	ret := _m.Called(fileName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FileExists")
+	}
+
+	var r0 bool
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string) (bool, error)); ok {
+		return rf(fileName)
+	}
+	if rf, ok := ret.Get(0).(func(string) bool); ok {
+		r0 = rf(fileName)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(fileName)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockMigrationService_FileExists_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FileExists'
+type MockMigrationService_FileExists_Call struct {
+	*mock.Call
+}
+
+// FileExists is a helper method to define mock.On call
+//   - fileName string
+func (_e *MockMigrationService_Expecter) FileExists(fileName interface{}) *MockMigrationService_FileExists_Call {
+	return &MockMigrationService_FileExists_Call{Call: _e.mock.On("FileExists", fileName)}
+}
+
+func (_c *MockMigrationService_FileExists_Call) Run(run func(fileName string)) *MockMigrationService_FileExists_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(string))
+	})
+	return _c
+}
+
+func (_c *MockMigrationService_FileExists_Call) Return(_a0 bool, _a1 error) *MockMigrationService_FileExists_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockMigrationService_FileExists_Call) RunAndReturn(run func(string) (bool, error)) *MockMigrationService_FileExists_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// LatestReleaseMigrations provides a mock function with given fields: ctx
+func (_m *MockMigrationService) LatestReleaseMigrations(ctx context.Context) (model.Migrations, error) {
+	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for LatestReleaseMigrations")
+	}
+
+	var r0 model.Migrations
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context) (model.Migrations, error)); ok {
+		return rf(ctx)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context) model.Migrations); ok {
+		r0 = rf(ctx)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(model.Migrations)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockMigrationService_LatestReleaseMigrations_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'LatestReleaseMigrations'
+type MockMigrationService_LatestReleaseMigrations_Call struct {
+	*mock.Call
+}
+
+// LatestReleaseMigrations is a helper method to define mock.On call
+//   - ctx context.Context
+func (_e *MockMigrationService_Expecter) LatestReleaseMigrations(ctx interface{}) *MockMigrationService_LatestReleaseMigrations_Call {
+	return &MockMigrationService_LatestReleaseMigrations_Call{Call: _e.mock.On("LatestReleaseMigrations", ctx)}
+}
+
+func (_c *MockMigrationService_LatestReleaseMigrations_Call) Run(run func(ctx context.Context)) *MockMigrationService_LatestReleaseMigrations_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context))
+	})
+	return _c
+}
+
+func (_c *MockMigrationService_LatestReleaseMigrations_Call) Return(_a0 model.Migrations, _a1 error) *MockMigrationService_LatestReleaseMigrations_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockMigrationService_LatestReleaseMigrations_Call) RunAndReturn(run func(context.Context) (model.Migrations, error)) *MockMigrationService_LatestReleaseMigrations_Call {
 	_c.Call.Return(run)
 	return _c
 }

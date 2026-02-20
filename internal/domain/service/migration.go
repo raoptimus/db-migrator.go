@@ -237,6 +237,35 @@ func (m *Migration) RevertSQL(
 // It tracks execution time, logs progress, and records the migration in the history table.
 // The safely parameter determines whether to execute statements within a transaction.
 func (m *Migration) ApplyFile(ctx context.Context, migration *model.Migration, fileName string, safely bool) error {
+	return m.applyFileCore(ctx, migration, fileName, safely, func(ctx context.Context, version string) error {
+		return m.repo.InsertMigration(ctx, version)
+	})
+}
+
+// ApplyFileWithApplyTime applies a migration by reading and executing SQL from a file
+// with an explicit apply time. This is used by the release command to ensure all migrations
+// in a release batch share the same apply_time for later rollback identification.
+// The safely parameter is always false because release runs inside an outer transaction.
+func (m *Migration) ApplyFileWithApplyTime(
+	ctx context.Context,
+	migration *model.Migration,
+	fileName string,
+	applyTime int64,
+) error {
+	return m.applyFileCore(ctx, migration, fileName, false, func(ctx context.Context, version string) error {
+		return m.repo.InsertMigrationWithApplyTime(ctx, version, applyTime)
+	})
+}
+
+// applyFileCore contains the shared logic for applying a migration file.
+// insertFn controls how the migration record is stored (with or without explicit applyTime).
+func (m *Migration) applyFileCore(
+	ctx context.Context,
+	migration *model.Migration,
+	fileName string,
+	safely bool,
+	insertFn func(ctx context.Context, version string) error,
+) error {
 	if migration.Version == baseMigration {
 		return ErrMigrationVersionReserved
 	}
@@ -260,7 +289,7 @@ func (m *Migration) ApplyFile(ctx context.Context, migration *model.Migration, f
 
 		return err
 	}
-	if err := m.repo.InsertMigration(ctx, migration.Version); err != nil {
+	if err := insertFn(ctx, migration.Version); err != nil {
 		return err
 	}
 	m.logger.Successf("*** applied %s (time: %.3fs)\n", migration.Version, elapsedTime.Seconds())
@@ -352,6 +381,41 @@ func (m *Migration) EndCommand(start time.Time) {
 // It queries the repository to determine if the migration exists in the history table.
 func (m *Migration) Exists(ctx context.Context, version string) (bool, error) {
 	return m.repo.ExistsMigration(ctx, version)
+}
+
+// LatestReleaseMigrations returns migrations from the latest release batch,
+// identified by the maximum apply_time value. It filters out the base migration.
+func (m *Migration) LatestReleaseMigrations(ctx context.Context) (model.Migrations, error) {
+	if err := m.InitializeTableHistory(ctx); err != nil {
+		return nil, err
+	}
+
+	entities, err := m.repo.MigrationsByMaxApplyTime(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	migrations := mapper.EntitiesToDomain(entities)
+
+	// Filter out base migration
+	result := make(model.Migrations, 0, len(migrations))
+	for _, migration := range migrations {
+		if migration.Version != baseMigration {
+			result = append(result, migration)
+		}
+	}
+
+	return result, nil
+}
+
+// ExecInTransaction executes a function within a database transaction.
+func (m *Migration) ExecInTransaction(ctx context.Context, fn func(ctx context.Context) error) error {
+	return m.repo.ExecQueryTransaction(ctx, fn)
+}
+
+// FileExists checks whether a file exists at the specified path.
+func (m *Migration) FileExists(fileName string) (bool, error) {
+	return m.file.Exists(fileName)
 }
 
 func (m *Migration) apply(ctx context.Context, scanner *sqlio.Scanner, safely bool) error {

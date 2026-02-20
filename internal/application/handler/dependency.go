@@ -51,6 +51,8 @@ type MigrationService interface {
 	NewMigrations(ctx context.Context) (model.Migrations, error)
 	// ApplyFile applies new migration
 	ApplyFile(ctx context.Context, migration *model.Migration, fileName string, safely bool) error
+	// ApplyFileWithApplyTime applies new migration with an explicit apply time
+	ApplyFileWithApplyTime(ctx context.Context, migration *model.Migration, fileName string, applyTime int64) error
 	// RevertFile reverts the migration
 	RevertFile(ctx context.Context, migration *model.Migration, fileName string, safely bool) error
 	// Exists checks whether a migration with the specified version has been applied
@@ -59,6 +61,12 @@ type MigrationService interface {
 	ApplySQL(ctx context.Context, safely bool, version, upSQL string) error
 	// RevertSQL reverts a migration by executing the provided SQL statements
 	RevertSQL(ctx context.Context, safely bool, version, downSQL string) error
+	// LatestReleaseMigrations returns migrations from the latest release batch
+	LatestReleaseMigrations(ctx context.Context) (model.Migrations, error)
+	// ExecInTransaction executes a function within a database transaction
+	ExecInTransaction(ctx context.Context, fn func(ctx context.Context) error) error
+	// FileExists checks whether a file exists at the specified path
+	FileExists(fileName string) (bool, error)
 }
 
 // Connection defines the interface for database connection operations.
@@ -116,4 +124,10 @@ type Presenter interface {
 	ShowDowngradeSuccess(count int)
 	// ShowRedoSuccess displays a success message after all migrations have been redone.
 	ShowRedoSuccess(count int)
+	// ShowReleaseError displays a message when release operation failed.
+	ShowReleaseError()
+	// ShowRollbackError displays a message when rollback operation failed.
+	ShowRollbackError()
+	// ShowMissingDownFiles displays a message about missing down migration files.
+	ShowMissingDownFiles(versions []string)
 }

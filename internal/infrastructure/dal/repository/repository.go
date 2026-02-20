@@ -41,6 +41,10 @@ type Repository interface {
 	ExistsMigration(ctx context.Context, version string) (bool, error)
 	// TableNameWithSchema returns the fully qualified table name including schema.
 	TableNameWithSchema() string
+	// InsertMigrationWithApplyTime inserts a new migration version with an explicit apply time.
+	InsertMigrationWithApplyTime(ctx context.Context, version string, applyTime int64) error
+	// MigrationsByMaxApplyTime returns migrations that share the maximum apply_time value.
+	MigrationsByMaxApplyTime(ctx context.Context) (entity.Migrations, error)
 }
 
 // New creates repository by connection

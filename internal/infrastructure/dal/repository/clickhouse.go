@@ -359,6 +359,60 @@ func (ch *Clickhouse) optimizeTable(ctx context.Context) error {
 	return nil
 }
 
+// InsertMigrationWithApplyTime inserts the new migration record with an explicit apply time.
+func (ch *Clickhouse) InsertMigrationWithApplyTime(ctx context.Context, version string, applyTime int64) error {
+	q := `
+		INSERT INTO ` + ch.dTableNameWithSchema() + ` (version, apply_time, is_deleted)
+		VALUES(?, ?, ?)
+	`
+	//nolint:gosec // overflow ok
+	if err := ch.ExecQueryTransaction(ctx, func(ctx context.Context) error {
+		return ch.ExecQuery(ctx, q, version, uint32(applyTime), 0)
+	}); err != nil {
+		return errors.Wrap(ch.dbError(err, q), "insert migration")
+	}
+
+	return ch.optimizeTable(ctx)
+}
+
+// MigrationsByMaxApplyTime returns migrations that share the maximum apply_time value.
+func (ch *Clickhouse) MigrationsByMaxApplyTime(ctx context.Context) (entity.Migrations, error) {
+	q := `
+		SELECT version, apply_time
+		FROM ` + ch.dTableNameWithSchema() + `
+		WHERE is_deleted = 0 AND apply_time = (
+			SELECT MAX(apply_time) FROM ` + ch.dTableNameWithSchema() + ` WHERE is_deleted = 0
+		)
+		ORDER BY version DESC
+	`
+
+	rows, err := ch.conn.QueryContext(ctx, q)
+	if err != nil {
+		return nil, errors.Wrap(ch.dbError(err, q), "get migrations by max apply time")
+	}
+	defer rows.Close()
+
+	var migrations entity.Migrations
+	for rows.Next() {
+		var (
+			version   string
+			applyTime int64
+		)
+		if err := rows.Scan(&version, &applyTime); err != nil {
+			return nil, errors.Wrap(ch.dbError(err, q), "get migrations by max apply time")
+		}
+		migrations = append(migrations, entity.Migration{
+			Version:   version,
+			ApplyTime: applyTime,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(ch.dbError(err, q), "get migrations by max apply time")
+	}
+
+	return migrations, nil
+}
+
 // dbError returns DBError is err is db error else returns got error.
 func (ch *Clickhouse) dbError(err error, q string) error {
 	var clickEx *clickhouse.Exception

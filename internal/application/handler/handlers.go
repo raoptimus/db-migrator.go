@@ -22,6 +22,8 @@ type Handlers struct {
 	To         Handler
 	History    Handler
 	HistoryNew Handler
+	Release    Handler
+	Rollback   Handler
 }
 
 func NewHandlers(options *Options, logger Logger) *Handlers {
@@ -36,5 +38,7 @@ func NewHandlers(options *Options, logger Logger) *Handlers {
 		To:         NewServiceWrapHandler(options, logger, NewTo(options, migrationPresenter, fileNameBuilder)),
 		History:    NewServiceWrapHandler(options, logger, NewHistory(options, migrationPresenter)),
 		HistoryNew: NewServiceWrapHandler(options, logger, NewHistoryNew(options, migrationPresenter)),
+		Release:    NewServiceWrapHandler(options, logger, NewRelease(options, migrationPresenter, fileNameBuilder)),
+		Rollback:   NewServiceWrapHandler(options, logger, NewRollback(options, migrationPresenter, fileNameBuilder)),
 	}
 }

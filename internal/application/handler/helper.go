@@ -28,6 +28,9 @@ const (
 // ErrArgumentMustBeGreaterThanZero is returned when a step argument is less than or equal to zero.
 var ErrArgumentMustBeGreaterThanZero = errors.New("the step argument must be greater than 0")
 
+// ErrMissingDownFiles is returned when down migration files are missing for rollback.
+var ErrMissingDownFiles = errors.New("missing down migration files")
+
 func stepOrDefault(cmd *Command, defaults int) (int, error) {
 	if !cmd.Args.Present() {
 		return defaults, nil

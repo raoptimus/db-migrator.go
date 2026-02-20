@@ -195,3 +195,21 @@ func (p *MigrationPresenter) ShowNewMigrationsLimitedHeader(shown, total int) {
 		plural.Migration(total),
 	)
 }
+
+// ShowReleaseError displays a message when release operation failed.
+func (p *MigrationPresenter) ShowReleaseError() {
+	p.logger.Error("Release failed. All changes have been rolled back.\n")
+}
+
+// ShowRollbackError displays a message when rollback operation failed.
+func (p *MigrationPresenter) ShowRollbackError() {
+	p.logger.Error("Rollback failed. Some changes may have been partially reverted.\n")
+}
+
+// ShowMissingDownFiles displays a message about missing down migration files.
+func (p *MigrationPresenter) ShowMissingDownFiles(versions []string) {
+	p.logger.Error("Cannot rollback: missing down migration files for versions:\n")
+	for _, v := range versions {
+		p.logger.Errorf("\t%s\n", v)
+	}
+}

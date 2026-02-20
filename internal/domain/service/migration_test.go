@@ -1565,3 +1565,194 @@ func TestMigration_ApplySQL_OnlySemicolonsAndWhitespace_Successfully(t *testing.
 
 	require.NoError(t, err)
 }
+
+// --- ApplyFileWithApplyTime Tests ---
+
+func TestMigration_ApplyFileWithApplyTime_Successfully(t *testing.T) {
+	ctx := context.Background()
+	repo := NewMockRepository(t)
+	file := NewMockFile(t)
+	logger := NewMockLogger(t)
+	version := "200101_120000_create_users"
+	fileName := "/migrations/200101_120000_create_users.up.sql"
+	sqlContent := "CREATE TABLE users (id INT);"
+	sqlReader := io.NopCloser(strings.NewReader(sqlContent))
+	var applyTime int64 = 1700000000
+
+	file.EXPECT().Exists(fileName).Return(true, nil)
+	file.EXPECT().Open(fileName).Return(sqlReader, nil)
+
+	repo.EXPECT().ExecQuery(ctx, "CREATE TABLE users (id INT)").Return(nil)
+	repo.EXPECT().InsertMigrationWithApplyTime(ctx, version, applyTime).Return(nil)
+
+	logger.EXPECT().Warnf("*** applying %s\n", version)
+	logger.EXPECT().Infof("    > execute SQL: %s ...\n", "CREATE TABLE users (id INT)")
+	logger.EXPECT().Successf("*** applied %s (time: %.3fs)\n", version, mock.AnythingOfType("float64"))
+
+	serv := NewMigration(&Options{}, logger, file, repo)
+	err := serv.ApplyFileWithApplyTime(ctx, &model.Migration{Version: version}, fileName, applyTime)
+
+	require.NoError(t, err)
+}
+
+func TestMigration_ApplyFileWithApplyTime_BaseMigrationVersion_Failure(t *testing.T) {
+	ctx := context.Background()
+	repo := NewMockRepository(t)
+	file := NewMockFile(t)
+	logger := NewMockLogger(t)
+	fileName := "/migrations/000000_000000_base.up.sql"
+
+	serv := NewMigration(&Options{}, logger, file, repo)
+	err := serv.ApplyFileWithApplyTime(ctx, &model.Migration{Version: "000000_000000_base"}, fileName, 1700000000)
+
+	require.ErrorIs(t, err, ErrMigrationVersionReserved)
+}
+
+// --- LatestReleaseMigrations Tests ---
+
+func TestMigration_LatestReleaseMigrations_ReturnsFilteredMigrations_Successfully(t *testing.T) {
+	ctx := context.Background()
+	repo := NewMockRepository(t)
+	file := NewMockFile(t)
+	logger := NewMockLogger(t)
+
+	repo.EXPECT().HasMigrationHistoryTable(ctx).Return(true, nil)
+	repo.EXPECT().MigrationsByMaxApplyTime(ctx).Return(entity.Migrations{
+		{Version: "000000_000000_base", ApplyTime: 1700000000},
+		{Version: "200101_120000_create_users", ApplyTime: 1700000000},
+		{Version: "200102_120000_add_email", ApplyTime: 1700000000},
+	}, nil)
+
+	serv := NewMigration(&Options{}, logger, file, repo)
+	migrations, err := serv.LatestReleaseMigrations(ctx)
+
+	require.NoError(t, err)
+	require.Len(t, migrations, 2)
+	require.Equal(t, "200101_120000_create_users", migrations[0].Version)
+	require.Equal(t, "200102_120000_add_email", migrations[1].Version)
+}
+
+func TestMigration_LatestReleaseMigrations_EmptyResult_Successfully(t *testing.T) {
+	ctx := context.Background()
+	repo := NewMockRepository(t)
+	file := NewMockFile(t)
+	logger := NewMockLogger(t)
+
+	repo.EXPECT().HasMigrationHistoryTable(ctx).Return(true, nil)
+	repo.EXPECT().MigrationsByMaxApplyTime(ctx).Return(entity.Migrations{}, nil)
+
+	serv := NewMigration(&Options{}, logger, file, repo)
+	migrations, err := serv.LatestReleaseMigrations(ctx)
+
+	require.NoError(t, err)
+	require.Empty(t, migrations)
+}
+
+func TestMigration_LatestReleaseMigrations_RepositoryError_Failure(t *testing.T) {
+	ctx := context.Background()
+	repo := NewMockRepository(t)
+	file := NewMockFile(t)
+	logger := NewMockLogger(t)
+	expectedErr := errors.New("query error")
+
+	repo.EXPECT().HasMigrationHistoryTable(ctx).Return(true, nil)
+	repo.EXPECT().MigrationsByMaxApplyTime(ctx).Return(nil, expectedErr)
+
+	serv := NewMigration(&Options{}, logger, file, repo)
+	migrations, err := serv.LatestReleaseMigrations(ctx)
+
+	require.ErrorIs(t, err, expectedErr)
+	require.Nil(t, migrations)
+}
+
+// --- ExecInTransaction Tests ---
+
+func TestMigration_ExecInTransaction_DelegatesToRepo_Successfully(t *testing.T) {
+	ctx := context.Background()
+	repo := NewMockRepository(t)
+	file := NewMockFile(t)
+	logger := NewMockLogger(t)
+
+	var called bool
+	repo.EXPECT().
+		ExecQueryTransaction(ctx, mock.AnythingOfType("func(context.Context) error")).
+		RunAndReturn(func(ctx context.Context, fn func(context.Context) error) error {
+			return fn(ctx)
+		})
+
+	serv := NewMigration(&Options{}, logger, file, repo)
+	err := serv.ExecInTransaction(ctx, func(_ context.Context) error {
+		called = true
+		return nil
+	})
+
+	require.NoError(t, err)
+	require.True(t, called)
+}
+
+func TestMigration_ExecInTransaction_PropagatesError_Failure(t *testing.T) {
+	ctx := context.Background()
+	repo := NewMockRepository(t)
+	file := NewMockFile(t)
+	logger := NewMockLogger(t)
+	expectedErr := errors.New("transaction error")
+
+	repo.EXPECT().
+		ExecQueryTransaction(ctx, mock.AnythingOfType("func(context.Context) error")).
+		Return(expectedErr)
+
+	serv := NewMigration(&Options{}, logger, file, repo)
+	err := serv.ExecInTransaction(ctx, func(_ context.Context) error {
+		return nil
+	})
+
+	require.ErrorIs(t, err, expectedErr)
+}
+
+// --- FileExists Tests ---
+
+func TestMigration_FileExists_DelegatesToFile_Successfully(t *testing.T) {
+	repo := NewMockRepository(t)
+	file := NewMockFile(t)
+	logger := NewMockLogger(t)
+	fileName := "/migrations/200101_120000_create_users.down.sql"
+
+	file.EXPECT().Exists(fileName).Return(true, nil)
+
+	serv := NewMigration(&Options{}, logger, file, repo)
+	exists, err := serv.FileExists(fileName)
+
+	require.NoError(t, err)
+	require.True(t, exists)
+}
+
+func TestMigration_FileExists_FileDoesNotExist_Successfully(t *testing.T) {
+	repo := NewMockRepository(t)
+	file := NewMockFile(t)
+	logger := NewMockLogger(t)
+	fileName := "/migrations/nonexistent.down.sql"
+
+	file.EXPECT().Exists(fileName).Return(false, nil)
+
+	serv := NewMigration(&Options{}, logger, file, repo)
+	exists, err := serv.FileExists(fileName)
+
+	require.NoError(t, err)
+	require.False(t, exists)
+}
+
+func TestMigration_FileExists_Error_Failure(t *testing.T) {
+	repo := NewMockRepository(t)
+	file := NewMockFile(t)
+	logger := NewMockLogger(t)
+	fileName := "/migrations/200101_120000_create_users.down.sql"
+	expectedErr := errors.New("filesystem error")
+
+	file.EXPECT().Exists(fileName).Return(false, expectedErr)
+
+	serv := NewMigration(&Options{}, logger, file, repo)
+	exists, err := serv.FileExists(fileName)
+
+	require.ErrorIs(t, err, expectedErr)
+	require.False(t, exists)
+}

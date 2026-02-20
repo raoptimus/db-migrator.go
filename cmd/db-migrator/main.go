@@ -99,6 +99,22 @@ func main() {
 				},
 				Flags: flags(&options, true),
 			},
+			{
+				Name:  "release",
+				Usage: "Apply all new migrations atomically in a single transaction",
+				Action: func(ctx context.Context, c *cli.Command) error {
+					return urfavecli.Adapt(handlers.Release)(ctx, c)
+				},
+				Flags: flags(&options, true),
+			},
+			{
+				Name:  "rollback",
+				Usage: "Revert the latest release batch atomically in a single transaction",
+				Action: func(ctx context.Context, c *cli.Command) error {
+					return urfavecli.Adapt(handlers.Rollback)(ctx, c)
+				},
+				Flags: flags(&options, true),
+			},
 		},
 		DefaultCommand: "help",
 	}

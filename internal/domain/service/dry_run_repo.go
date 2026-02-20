@@ -86,6 +86,20 @@ func (d *DryRunRepository) MigrationsCount(ctx context.Context) (int, error) {
 	return d.repo.MigrationsCount(ctx)
 }
 
+// InsertMigrationWithApplyTime inserts the new migration record with an explicit apply time.
+func (d *DryRunRepository) InsertMigrationWithApplyTime(ctx context.Context, version string, applyTime int64) error {
+	return nil
+}
+
+// MigrationsByMaxApplyTime returns migrations that share the maximum apply_time value.
+func (d *DryRunRepository) MigrationsByMaxApplyTime(ctx context.Context) (entity.Migrations, error) {
+	if d.virtualTableCreated {
+		return nil, nil
+	}
+
+	return d.repo.MigrationsByMaxApplyTime(ctx)
+}
+
 // TableNameWithSchema returns the full table name including schema if applicable.
 func (d *DryRunRepository) TableNameWithSchema() string {
 	if d.virtualTableCreated {
