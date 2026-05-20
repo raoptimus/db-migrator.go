@@ -157,11 +157,13 @@ func (p *Postgres) ExecQuery(ctx context.Context, query string, args ...any) err
 	return nil
 }
 
-// ExecQueryTransaction executes a query in transaction without returning any rows.
-// The args are for any placeholder parameters in the query.
+// ExecQueryTransaction executes txFn within a transaction.
 func (p *Postgres) ExecQueryTransaction(ctx context.Context, txFn func(ctx context.Context) error) error {
 	return p.conn.Transaction(ctx, txFn)
 }
+
+// SupportsDDLTransactions returns true because PostgreSQL supports transactional DDL.
+func (p *Postgres) SupportsDDLTransactions() bool { return true }
 
 // CreateMigrationHistoryTable creates a new migration history table.
 func (p *Postgres) CreateMigrationHistoryTable(ctx context.Context) error {

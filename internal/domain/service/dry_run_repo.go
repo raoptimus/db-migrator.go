@@ -65,6 +65,9 @@ func (d *DryRunRepository) ExecQueryTransaction(ctx context.Context, fnTx func(c
 	return nil
 }
 
+// SupportsDDLTransactions returns false for dry-run mode.
+func (d *DryRunRepository) SupportsDDLTransactions() bool { return false }
+
 // DropMigrationHistoryTable drops the migration history table from the database.
 func (d *DryRunRepository) DropMigrationHistoryTable(ctx context.Context) error {
 	return nil

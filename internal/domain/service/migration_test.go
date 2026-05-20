@@ -1667,18 +1667,38 @@ func TestMigration_LatestReleaseMigrations_RepositoryError_Failure(t *testing.T)
 
 // --- ExecInTransaction Tests ---
 
-func TestMigration_ExecInTransaction_DelegatesToRepo_Successfully(t *testing.T) {
+func TestMigration_ExecInTransaction_WithDDLSupport_UsesTransaction(t *testing.T) {
 	ctx := context.Background()
 	repo := NewMockRepository(t)
 	file := NewMockFile(t)
 	logger := NewMockLogger(t)
 
 	var called bool
+	repo.EXPECT().SupportsDDLTransactions().Return(true)
 	repo.EXPECT().
 		ExecQueryTransaction(ctx, mock.AnythingOfType("func(context.Context) error")).
 		RunAndReturn(func(ctx context.Context, fn func(context.Context) error) error {
 			return fn(ctx)
 		})
+
+	serv := NewMigration(&Options{}, logger, file, repo)
+	err := serv.ExecInTransaction(ctx, func(_ context.Context) error {
+		called = true
+		return nil
+	})
+
+	require.NoError(t, err)
+	require.True(t, called)
+}
+
+func TestMigration_ExecInTransaction_WithoutDDLSupport_CallsDirectly(t *testing.T) {
+	ctx := context.Background()
+	repo := NewMockRepository(t)
+	file := NewMockFile(t)
+	logger := NewMockLogger(t)
+
+	var called bool
+	repo.EXPECT().SupportsDDLTransactions().Return(false)
 
 	serv := NewMigration(&Options{}, logger, file, repo)
 	err := serv.ExecInTransaction(ctx, func(_ context.Context) error {
@@ -1697,6 +1717,7 @@ func TestMigration_ExecInTransaction_PropagatesError_Failure(t *testing.T) {
 	logger := NewMockLogger(t)
 	expectedErr := errors.New("transaction error")
 
+	repo.EXPECT().SupportsDDLTransactions().Return(true)
 	repo.EXPECT().
 		ExecQueryTransaction(ctx, mock.AnythingOfType("func(context.Context) error")).
 		Return(expectedErr)

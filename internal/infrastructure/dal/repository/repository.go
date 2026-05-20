@@ -31,6 +31,8 @@ type Repository interface {
 	QueryScalar(ctx context.Context, query string, ptr any) error
 	// ExecQueryTransaction executes a function within a database transaction.
 	ExecQueryTransaction(ctx context.Context, fnTx func(ctx context.Context) error) error
+	// SupportsDDLTransactions reports whether the driver can wrap DDL statements in a transaction.
+	SupportsDDLTransactions() bool
 	// DropMigrationHistoryTable drops the migration history table from the database.
 	DropMigrationHistoryTable(ctx context.Context) error
 	// CreateMigrationHistoryTable creates the migration history table in the database.

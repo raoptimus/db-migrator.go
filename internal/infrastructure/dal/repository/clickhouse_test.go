@@ -247,12 +247,6 @@ func TestClickhouse_InsertMigration_Successfully(t *testing.T) {
 
 	conn := NewMockConnection(t)
 	conn.EXPECT().
-		Transaction(ctx, mock.AnythingOfType("func(context.Context) error")).
-		RunAndReturn(func(ctx context.Context, txFn func(context.Context) error) error {
-			return txFn(ctx)
-		}).
-		Once()
-	conn.EXPECT().
 		ExecContext(ctx, mock.AnythingOfType("string"), "210328_221600_test", mock.AnythingOfType("uint32"), 0).
 		Return(nil, nil).
 		Once()
@@ -272,13 +266,13 @@ func TestClickhouse_InsertMigration_Successfully(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestClickhouse_InsertMigration_TransactionError_Failure(t *testing.T) {
+func TestClickhouse_InsertMigration_ExecError_Failure(t *testing.T) {
 	ctx := context.Background()
 
 	conn := NewMockConnection(t)
 	conn.EXPECT().
-		Transaction(ctx, mock.AnythingOfType("func(context.Context) error")).
-		Return(errors.New("transaction failed")).
+		ExecContext(ctx, mock.AnythingOfType("string"), "210328_221600_test", mock.AnythingOfType("uint32"), 0).
+		Return(nil, errors.New("exec failed")).
 		Once()
 
 	repo := NewClickhouse(conn, &Options{
@@ -297,12 +291,6 @@ func TestClickhouse_RemoveMigration_Successfully(t *testing.T) {
 	ctx := context.Background()
 
 	conn := NewMockConnection(t)
-	conn.EXPECT().
-		Transaction(ctx, mock.AnythingOfType("func(context.Context) error")).
-		RunAndReturn(func(ctx context.Context, txFn func(context.Context) error) error {
-			return txFn(ctx)
-		}).
-		Once()
 	conn.EXPECT().
 		ExecContext(ctx, mock.AnythingOfType("string"), "210328_221600_test", mock.AnythingOfType("uint32"), 1).
 		Return(nil, nil).
@@ -375,10 +363,6 @@ func TestClickhouse_ExecQueryTransaction_Successfully(t *testing.T) {
 	ctx := context.Background()
 
 	conn := NewMockConnection(t)
-	conn.EXPECT().
-		Transaction(ctx, mock.AnythingOfType("func(context.Context) error")).
-		Return(nil).
-		Once()
 
 	repo := NewClickhouse(conn, &Options{
 		TableName:   "migrates",
@@ -386,11 +370,15 @@ func TestClickhouse_ExecQueryTransaction_Successfully(t *testing.T) {
 		ClusterName: "test_cluster",
 		Replicated:  false,
 	})
+
+	called := false
 	err := repo.ExecQueryTransaction(ctx, func(ctx context.Context) error {
+		called = true
 		return nil
 	})
 
 	require.NoError(t, err)
+	assert.True(t, called, "txFn must be called directly without a transaction")
 }
 
 func TestClickhouse_MigrationsCount_Successfully(t *testing.T) {

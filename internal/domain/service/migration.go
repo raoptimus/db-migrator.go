@@ -408,9 +408,13 @@ func (m *Migration) LatestReleaseMigrations(ctx context.Context) (model.Migratio
 	return result, nil
 }
 
-// ExecInTransaction executes a function within a database transaction.
+// ExecInTransaction executes fn within a transaction only if the driver supports DDL transactions.
+// Drivers that do not support transactional DDL (ClickHouse, MySQL, Tarantool) execute fn directly.
 func (m *Migration) ExecInTransaction(ctx context.Context, fn func(ctx context.Context) error) error {
-	return m.repo.ExecQueryTransaction(ctx, fn)
+	if m.repo.SupportsDDLTransactions() {
+		return m.repo.ExecQueryTransaction(ctx, fn)
+	}
+	return fn(ctx)
 }
 
 // FileExists checks whether a file exists at the specified path.
