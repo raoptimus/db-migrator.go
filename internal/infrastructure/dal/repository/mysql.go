@@ -144,11 +144,13 @@ func (m *MySQL) ExecQuery(ctx context.Context, query string, args ...any) error 
 	return err
 }
 
-// ExecQueryTransaction executes a query in transaction without returning any rows.
-// The args are for any placeholder parameters in the query.
+// ExecQueryTransaction executes txFn within a transaction.
 func (m *MySQL) ExecQueryTransaction(ctx context.Context, txFn func(ctx context.Context) error) error {
 	return m.conn.Transaction(ctx, txFn)
 }
+
+// SupportsDDLTransactions returns false because MySQL DDL causes implicit commits.
+func (m *MySQL) SupportsDDLTransactions() bool { return false }
 
 // CreateMigrationHistoryTable creates a new migration history table.
 func (m *MySQL) CreateMigrationHistoryTable(ctx context.Context) error {

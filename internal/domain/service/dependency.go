@@ -52,6 +52,9 @@ type Repository interface {
 	ExecQuery(ctx context.Context, query string, args ...any) error
 	// ExecQueryTransaction executes a function within a database transaction.
 	ExecQueryTransaction(ctx context.Context, fnTx func(ctx context.Context) error) error
+	// SupportsDDLTransactions reports whether the driver supports wrapping DDL in a transaction.
+	// Only PostgreSQL returns true; all other drivers execute DDL outside transactions.
+	SupportsDDLTransactions() bool
 	// DropMigrationHistoryTable drops the migration history table from the database.
 	DropMigrationHistoryTable(ctx context.Context) error
 	// CreateMigrationHistoryTable creates the migration history table in the database.

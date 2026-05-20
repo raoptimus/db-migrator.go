@@ -136,10 +136,18 @@ func (ch *Clickhouse) ExecQuery(ctx context.Context, query string, args ...any) 
 	return ch.dbError(err, query)
 }
 
-// ExecQueryTransaction executes txFn in transaction.
-// todo: называется ExecQuery но query не принимает. подумать
+// ExecQueryTransaction executes txFn directly without a transaction.
+// ClickHouse does not support transactions; each statement is auto-committed.
 func (ch *Clickhouse) ExecQueryTransaction(ctx context.Context, txFn func(ctx context.Context) error) error {
-	return ch.conn.Transaction(ctx, txFn)
+	return txFn(ctx)
+}
+
+// SupportsDDLTransactions returns false because ClickHouse does not support transactions.
+func (ch *Clickhouse) SupportsDDLTransactions() bool { return false }
+
+// ExecInTransaction executes the batch fn directly without a transaction.
+func (ch *Clickhouse) ExecInTransaction(ctx context.Context, txFn func(ctx context.Context) error) error {
+	return ch.ExecQueryTransaction(ctx, txFn)
 }
 
 // CreateMigrationHistoryTable creates a new migration history table.

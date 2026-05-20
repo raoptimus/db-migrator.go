@@ -22,6 +22,7 @@ import (
 
 const tarantoolIteratorLT = "LT"
 const tarantoolIteratorEQ = "EQ"
+const tarantoolIteratorREQ = "REQ"
 
 // Tarantool implements Repository interface for Tarantool database.
 // It handles migration history tracking and Lua script execution for Tarantool.
@@ -129,11 +130,13 @@ func (p *Tarantool) ExecQuery(ctx context.Context, query string, args ...any) er
 	return nil
 }
 
-// ExecQueryTransaction executes a query in transaction without returning any rows.
-// The args are for any placeholder parameters in the query.
+// ExecQueryTransaction executes txFn in a Tarantool stream for .safe migrations.
 func (p *Tarantool) ExecQueryTransaction(ctx context.Context, txFn func(ctx context.Context) error) error {
 	return p.conn.Transaction(ctx, txFn)
 }
+
+// SupportsDDLTransactions returns false because Tarantool streams do not commit DDL until stream end.
+func (p *Tarantool) SupportsDDLTransactions() bool { return false }
 
 // CreateMigrationHistoryTable creates a new migration history table.
 func (p *Tarantool) CreateMigrationHistoryTable(ctx context.Context) error {
@@ -264,8 +267,9 @@ func (p *Tarantool) InsertMigrationWithApplyTime(ctx context.Context, version st
 
 // MigrationsByMaxApplyTime returns migrations that share the maximum apply_time value.
 func (p *Tarantool) MigrationsByMaxApplyTime(ctx context.Context) (entity.Migrations, error) {
-	// Find max apply_time using secondary index (reverse iterator, limit 1)
-	maxQ := fmt.Sprintf("return box.space.%s.index.secondary:max()",
+	// max() returns a single tuple, not a list — wrap in {m} so QueryContext unwraps it correctly.
+	maxQ := fmt.Sprintf(
+		"local m=box.space.%s.index.secondary:max(); if m~=nil then return {m} else return {} end",
 		p.TableNameWithSchema(),
 	)
 
@@ -284,11 +288,11 @@ func (p *Tarantool) MigrationsByMaxApplyTime(ctx context.Context) (entity.Migrat
 		return nil, errors.Wrap(p.dbError(err, maxQ), "get max apply time")
 	}
 
-	// Select all records with this apply_time using secondary index
+	// Select all records with this apply_time in descending version order (newest first) for correct rollback.
 	q := fmt.Sprintf("return box.space.%s.index.secondary:select({%d}, {iterator='%s'})",
 		p.TableNameWithSchema(),
 		maxApplyTime,
-		tarantoolIteratorEQ,
+		tarantoolIteratorREQ,
 	)
 
 	rows, err := p.conn.QueryContext(ctx, q)

@@ -57,17 +57,17 @@ func TestTarantool_ExecQuery_Failure(t *testing.T) {
 func TestTarantool_ExecQueryTransaction_Successfully(t *testing.T) {
 	ctx := context.Background()
 	conn := NewMockConnection(t)
-	txFn := func(ctx context.Context) error {
-		return nil
-	}
 	conn.EXPECT().
 		Transaction(ctx, mock.AnythingOfType("func(context.Context) error")).
-		Return(nil)
+		Return(nil).
+		Once()
 
 	repo := NewTarantool(conn, &Options{
 		TableName: "migration",
 	})
-	err := repo.ExecQueryTransaction(ctx, txFn)
+	err := repo.ExecQueryTransaction(ctx, func(ctx context.Context) error {
+		return nil
+	})
 	require.NoError(t, err)
 }
 
@@ -77,7 +77,8 @@ func TestTarantool_ExecQueryTransaction_Failure(t *testing.T) {
 	expectedErr := errors.New("transaction failed")
 	conn.EXPECT().
 		Transaction(ctx, mock.AnythingOfType("func(context.Context) error")).
-		Return(expectedErr)
+		Return(expectedErr).
+		Once()
 
 	repo := NewTarantool(conn, &Options{
 		TableName: "migration",
@@ -88,6 +89,7 @@ func TestTarantool_ExecQueryTransaction_Failure(t *testing.T) {
 	require.Error(t, err)
 	assert.Equal(t, expectedErr, err)
 }
+
 
 func TestTarantool_CreateMigrationHistoryTable_Successfully(t *testing.T) {
 	ctx := context.Background()
