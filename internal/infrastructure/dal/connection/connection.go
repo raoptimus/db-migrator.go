@@ -17,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/raoptimus/db-migrator.go/internal/helper/dsn"
 	"github.com/raoptimus/db-migrator.go/internal/infrastructure/sqlex"
+	icebergsx "github.com/raoptimus/db-migrator.go/internal/infrastructure/sqlex/iceberg"
 	"github.com/raoptimus/db-migrator.go/internal/infrastructure/sqlex/tarantool"
 )
 
@@ -48,6 +49,8 @@ func New(dsnStr string) (*Connection, error) {
 		return mysql(dsnStr)
 	case "tarantool":
 		return tarantoolConn(dsnStr)
+	case "iceberg":
+		return icebergConn(dsnStr)
 	default:
 		return nil, fmt.Errorf("driver \"%s\" doesn't support", parsed.Driver)
 	}
@@ -69,7 +72,7 @@ func (c *Connection) Ping() error {
 		return nil
 	}
 	if err := c.db.Ping(); err != nil {
-		return errors.Wrapf(err, "ping %v connection: %v", c.Driver(), c.dsn)
+		return errors.Wrapf(err, "ping %v connection: %v", c.Driver(), dsn.Redact(c.dsn))
 	}
 	c.ping = true
 	return nil
@@ -202,7 +205,21 @@ func mysql(dsn string) (*Connection, error) {
 	}, nil
 }
 
-// tarantool returns connection with tarantool configuration.
+// icebergConn returns a connection backed by an Apache Iceberg REST catalog.
+func icebergConn(dsnStr string) (*Connection, error) {
+	db, err := icebergsx.Open(dsnStr)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Connection{
+		driver: DriverIceberg,
+		dsn:    dsnStr,
+		db:     db,
+	}, nil
+}
+
+// tarantoolConn returns connection with tarantool configuration.
 func tarantoolConn(dsn string) (*Connection, error) {
 	db, err := tarantool.Open(dsn)
 	if err != nil {

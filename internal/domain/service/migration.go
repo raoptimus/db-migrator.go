@@ -477,13 +477,11 @@ func (m *Migration) scannerByFile(fileName string) (*sqlio.Scanner, error) {
 	return sqlio.NewScanner(f), nil
 }
 
-// sanitizeCredentials replaces credential values with masks in SQL output.
-// This prevents passwords and usernames from appearing in logs or console output.
+// sanitizeCredentials replaces credential values with masks in SQL/DSN output.
+// It masks Username, Password, Token, and Credential (for Iceberg REST auth).
+// DSN query-parameter forms (token=…, credential=…) are also masked so that
+// DSN strings logged verbatim do not leak secrets (ФТ-10).
 func (m *Migration) sanitizeCredentials(sql string) string {
-	if m.options.Username == "" && m.options.Password == "" {
-		return sql
-	}
-
 	sanitized := sql
 
 	// Replace password if present
@@ -496,5 +494,64 @@ func (m *Migration) sanitizeCredentials(sql string) string {
 		sanitized = strings.ReplaceAll(sanitized, m.options.Username, credentialMask)
 	}
 
+	// Mask bearer token value
+	if m.options.Token != "" {
+		sanitized = strings.ReplaceAll(sanitized, m.options.Token, credentialMask)
+	}
+
+	// Mask OAuth2 credential value
+	if m.options.Credential != "" {
+		sanitized = strings.ReplaceAll(sanitized, m.options.Credential, credentialMask)
+	}
+
+	// Mask S3/MinIO secret access key value
+	if m.options.S3SecretAccessKey != "" {
+		sanitized = strings.ReplaceAll(sanitized, m.options.S3SecretAccessKey, credentialMask)
+	}
+
+	// Mask S3/MinIO session token value
+	if m.options.S3SessionToken != "" {
+		sanitized = strings.ReplaceAll(sanitized, m.options.S3SessionToken, credentialMask)
+	}
+
+	// Mask DSN query-parameter forms: token=<value>, credential=<value>,
+	// s3.secret-access-key=<value>, s3.session-token=<value>.
+	// This covers cases where a DSN string is logged directly.
+	sanitized = maskDSNParam(sanitized, "token")
+	sanitized = maskDSNParam(sanitized, "credential")
+	sanitized = maskDSNParam(sanitized, "s3.secret-access-key")
+	sanitized = maskDSNParam(sanitized, "s3.session-token")
+
 	return sanitized
+}
+
+// maskDSNParam replaces the value of a URL query parameter (key=value) with credentialMask.
+// It handles both "key=value&" and "key=value" (end of string / end of query) forms.
+// All occurrences of the parameter in the string are masked (left-to-right, no re-scan).
+func maskDSNParam(s, key string) string {
+	prefix := key + "="
+	var b strings.Builder
+	rest := s
+	for {
+		idx := strings.Index(rest, prefix)
+		if idx == -1 {
+			b.WriteString(rest)
+			break
+		}
+
+		// Copy everything up to and including the "key=" prefix.
+		b.WriteString(rest[:idx+len(prefix)])
+		b.WriteString(credentialMask)
+
+		// Skip past the original value (up to a delimiter or end of string).
+		after := rest[idx+len(prefix):]
+		end := strings.IndexAny(after, "&# ")
+		if end == -1 {
+			// Value extends to end of string; nothing more to append.
+			break
+		}
+		// Continue scanning from the delimiter onward.
+		rest = after[end:]
+	}
+	return b.String()
 }

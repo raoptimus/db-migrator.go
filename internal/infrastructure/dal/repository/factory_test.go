@@ -19,7 +19,7 @@ import (
 func TestNewFactoryRegistry(t *testing.T) {
 	registry := NewFactoryRegistry()
 	require.NotNil(t, registry)
-	require.Len(t, registry.factories, 4)
+	require.Len(t, registry.factories, 5)
 }
 
 func TestFactoryRegistry_Create_Postgres(t *testing.T) {
@@ -288,6 +288,57 @@ func TestTarantoolFactory_Create_InvalidTableName(t *testing.T) {
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid table name")
+}
+
+// IcebergFactory tests
+
+func TestIcebergFactory_Supports(t *testing.T) {
+	factory := &IcebergFactory{}
+
+	assert.True(t, factory.Supports(connection.DriverIceberg))
+	assert.False(t, factory.Supports(connection.DriverPostgres))
+	assert.False(t, factory.Supports(connection.DriverMySQL))
+	assert.False(t, factory.Supports(connection.DriverClickhouse))
+	assert.False(t, factory.Supports(connection.DriverTarantool))
+}
+
+func TestFactoryRegistry_SelectsIcebergFactory_ForIcebergDriver(t *testing.T) {
+	registry := NewFactoryRegistry()
+	var found Factory
+	for _, f := range registry.factories {
+		if f.Supports(connection.DriverIceberg) {
+			found = f
+			break
+		}
+	}
+	require.NotNil(t, found, "IcebergFactory must be registered in NewFactoryRegistry")
+	_, ok := found.(*IcebergFactory)
+	assert.True(t, ok, "found factory must be *IcebergFactory")
+}
+
+func TestIcebergFactory_Create_InvalidTableName(t *testing.T) {
+	factory := &IcebergFactory{}
+	conn := NewMockConnection(t)
+	conn.EXPECT().DSN().Return("iceberg://localhost:8181/warehouse?token=mytoken")
+
+	_, err := factory.Create(conn, &Options{
+		TableName: "table;DROP DATABASE;--",
+	})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid table name")
+}
+
+func TestIcebergFactory_Create_InvalidDSN(t *testing.T) {
+	factory := &IcebergFactory{}
+	conn := NewMockConnection(t)
+	conn.EXPECT().DSN().Return("://bad-dsn")
+
+	_, err := factory.Create(conn, &Options{
+		TableName: "migration",
+	})
+
+	require.Error(t, err)
 }
 
 // parseAndValidateTableName tests

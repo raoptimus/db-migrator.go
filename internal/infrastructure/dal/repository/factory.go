@@ -15,7 +15,9 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/go-sql-driver/mysql"
 	"github.com/pkg/errors"
+	"github.com/raoptimus/db-migrator.go/internal/helper/dsn"
 	"github.com/raoptimus/db-migrator.go/internal/infrastructure/dal/connection"
+	"github.com/raoptimus/db-migrator.go/internal/infrastructure/iceberg/catalog"
 )
 
 const minTableNameParts = 2
@@ -41,6 +43,7 @@ func NewFactoryRegistry() *FactoryRegistry {
 			&PostgresFactory{},
 			&MySQLFactory{},
 			&ClickhouseFactory{},
+			&IcebergFactory{},
 		},
 	}
 }
@@ -234,4 +237,36 @@ func parseAndValidateSchemaTableName(tableName, defaultSchema string) (schema, t
 		return "", "", errors.Wrap(err, "invalid table name")
 	}
 	return defaultSchema, tableName, nil
+}
+
+// IcebergFactory
+
+// IcebergFactory creates repository instances for Apache Iceberg REST catalog.
+type IcebergFactory struct{}
+
+// Supports returns true if the driver is Iceberg.
+func (f *IcebergFactory) Supports(driver connection.Driver) bool {
+	return driver == connection.DriverIceberg
+}
+
+// Create creates a new Iceberg repository instance.
+// It parses the DSN to build a catalog client and validates the migration table name.
+//
+//nolint:ireturn,nolintlint // its ok
+func (f *IcebergFactory) Create(conn Connection, options *Options) (Repository, error) {
+	parsed, err := dsn.Parse(conn.DSN())
+	if err != nil {
+		return nil, errors.WithMessage(err, "parsing dsn")
+	}
+
+	if err := ValidateIdentifier(options.TableName); err != nil {
+		return nil, errors.Wrap(err, "invalid table name")
+	}
+
+	cat, err := catalog.New(parsed)
+	if err != nil {
+		return nil, errors.WithMessage(err, "create iceberg catalog")
+	}
+
+	return NewIceberg(cat, &Options{TableName: options.TableName}), nil
 }

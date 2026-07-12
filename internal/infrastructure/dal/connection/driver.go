@@ -23,6 +23,9 @@ const (
 
 	// DriverTarantool represents the Tarantool database driver.
 	DriverTarantool Driver = "tarantool"
+
+	// DriverIceberg represents the Apache Iceberg REST catalog driver.
+	DriverIceberg Driver = "iceberg"
 )
 
 // String returns the string representation of the driver.
