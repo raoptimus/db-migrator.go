@@ -1,0 +1,22 @@
+db-migrator has been deployed as release "{{ .Release.Name }}".
+
+{{ if .Values.release.enabled -}}
+A migration Job runs the "{{ .Values.release.command }}" command as a Helm hook
+({{ join "," .Values.release.hookTypes }}), so it executes before the application pods roll out.
+
+Watch its progress:
+  kubectl -n {{ .Release.Namespace }} get job {{ include "db-migrator.fullname" . }}-release
+  kubectl -n {{ .Release.Namespace }} logs job/{{ include "db-migrator.fullname" . }}-release
+{{- else -}}
+The release Job is disabled (release.enabled=false); no migrations were applied.
+{{- end }}
+
+Rolling back the latest release batch (opt-in):
+  # werf or plain Helm: enable the rollback Job explicitly
+  helm upgrade --install {{ .Release.Name }} <chart> --reuse-values --set rollback.enabled=true
+  # plain Helm alternative: wire it to `helm rollback`
+  #   --set rollback.hookTypes={pre-rollback}
+
+Reminder: the image "{{ include "db-migrator.image" . }}" must contain the migration files
+at MIGRATION_PATH ({{ .Values.migrator.path }}). Build your own image FROM raoptimus/db-migrator
+with the migrations COPY'd in, or mount them via extraVolumes/extraVolumeMounts.

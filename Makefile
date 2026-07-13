@@ -21,6 +21,8 @@ DOCKER_ID_USER = raoptimus
 DOCKER_PASS ?= ""
 DOCKER_IMAGE = "${PKG_NAME}"
 export GO_IMAGE_VERSION="1.26"
+HELM_CHART_DIR = charts/db-migrator
+HELM_DIST_DIR ?= ${BUILD_DIR}/charts
 
 help: ## Show help message
 	@cat $(MAKEFILE_LIST) | grep -e "^[a-zA-Z_\-]*: *.*## *" | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
@@ -137,6 +139,16 @@ gen-mocks-dry-run: install-mockery ## Run mockery --dry-run=true
 	mockery --srcpkg=$${d} --output=$${d}/mock$$(basename -- "$${d/./''}") --all --dry-run=true; \
 	done; \
 	'
+
+helm-lint: ## Lint the Helm chart
+	@helm lint ${HELM_CHART_DIR} -f ${HELM_CHART_DIR}/ci/example-values.yaml
+
+helm-template: ## Render the Helm chart to stdout
+	@helm template db-migrator ${HELM_CHART_DIR} -f ${HELM_CHART_DIR}/ci/example-values.yaml
+
+helm-package: helm-lint ## Package the Helm chart into ${HELM_DIST_DIR}
+	@[ -d ${HELM_DIST_DIR} ] || mkdir -p ${HELM_DIST_DIR}
+	@helm package ${HELM_CHART_DIR} --destination ${HELM_DIST_DIR}
 
 start:
 	@docker-compose -f "docker-compose.yml" -f "docker-compose.dev.yml" up -d

@@ -1,0 +1,34 @@
+{{- if .Values.release.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "db-migrator.fullname" . }}-release
+  labels:
+    {{- include "db-migrator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: release
+  annotations:
+    "helm.sh/hook": {{ join "," .Values.release.hookTypes | quote }}
+    "helm.sh/hook-weight": {{ .Values.release.weight | quote }}
+    "helm.sh/hook-delete-policy": {{ .Values.release.deletePolicy | quote }}
+    {{- with .Values.release.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  backoffLimit: {{ .Values.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.activeDeadlineSeconds }}
+  ttlSecondsAfterFinished: {{ .Values.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        {{- include "db-migrator.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: release
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- include "db-migrator.podSpec" (dict "root" . "command" .Values.release.command) | nindent 6 }}
+{{- end }}
