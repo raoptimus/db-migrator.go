@@ -40,10 +40,10 @@ func parseType(s string) (IcebergType, error) {
 	case upper == "TIME":
 		return IcebergType{Kind: Time}, nil
 	case upper == "TIMESTAMP":
-		// Spark TIMESTAMP → Iceberg timestamptz (with timezone, UTC) — ФТ-12
+		// Spark TIMESTAMP → Iceberg timestamptz (with timezone, UTC)
 		return IcebergType{Kind: TimestampTz}, nil
 	case upper == "TIMESTAMP_NTZ":
-		// Spark TIMESTAMP_NTZ → Iceberg timestamp (without timezone) — ФТ-12
+		// Spark TIMESTAMP_NTZ → Iceberg timestamp (without timezone)
 		return IcebergType{Kind: Timestamp}, nil
 	case upper == "STRING":
 		return IcebergType{Kind: String}, nil

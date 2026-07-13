@@ -12,11 +12,7 @@ import (
 //go:generate mockery
 
 // IcebergCatalog is the full catalog contract needed by the Iceberg repository.
-// Defined here in task 01 so that the repository compiles; methods are implemented
-// in catalog.Client across tasks:
-//   - Ping/Close/Warehouse: task 01
-//   - namespace/property methods: task 02
-//   - table/schema/spec methods: task 04
+// It is implemented by catalog.Client, which wraps the Apache Iceberg REST client.
 type IcebergCatalog interface {
 	// Ping verifies connectivity to the REST catalog.
 	Ping(ctx context.Context) error

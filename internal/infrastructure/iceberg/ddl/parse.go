@@ -23,7 +23,7 @@ const (
 // Parse parses a single Spark-SQL (Iceberg) DDL statement into an Operation.
 //
 // catalog is the warehouse name from the DSN (e.g. "iceberg") used to strip the leading
-// catalog segment from qualified identifiers (ФТ-14). Pass an empty string to disable stripping.
+// catalog segment from qualified identifiers. Pass an empty string to disable stripping.
 //
 // The statement must be a single DDL statement; the caller (sqlio.Scanner) is responsible
 // for splitting multi-statement files on ";".
@@ -710,7 +710,7 @@ func (p *parser) parseAlterColumn(id Ident) (Operation, error) {
 	}, nil
 }
 
-// ─── Identifier parsing (ФТ-14) ────────────────────────────────────────────────
+// ─── Identifier parsing ────────────────────────────────────────────────────────
 
 // parseIdent reads a potentially dot-separated qualified identifier and strips the catalog prefix.
 // The last segment becomes Table; all preceding segments (after catalog stripping) become Namespace.
@@ -810,7 +810,7 @@ func parseQualifiedIdent(catalog, raw string) (Ident, error) {
 	if len(filtered) == 0 {
 		return Ident{}, errors.Wrapf(ErrParse, "empty identifier %q", raw)
 	}
-	// Strip leading catalog segment (case-insensitive) — ФТ-14
+	// Strip leading catalog segment (case-insensitive) when it matches the warehouse name.
 	if catalog != "" && strings.EqualFold(filtered[0], catalog) {
 		filtered = filtered[1:]
 	}

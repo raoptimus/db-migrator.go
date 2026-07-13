@@ -12,5 +12,5 @@ import "github.com/pkg/errors"
 
 // ErrNotSupported is returned by SQL-level methods (QueryContext, ExecContext, BeginTx)
 // that are not on the critical path for Iceberg migrations.
-// Actual DDL execution is handled by the repository layer (task 04).
+// Actual DDL execution is handled by the repository layer.
 var ErrNotSupported = errors.New("operation is not supported by iceberg sqlex driver; use repository layer")

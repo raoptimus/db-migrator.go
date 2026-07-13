@@ -15,8 +15,8 @@
 //   - ?credential=<c>&oauth2_server_uri=<u>[&scope=<s>] → rest.WithCredential(c)+rest.WithAuthURI(u)[+rest.WithScope(s)]
 //   - &prefix=<p>                                  → rest.WithPrefix(p) (combined with any auth branch)
 //
-// Namespace-property methods (task 02) and table/schema/spec methods (task 04)
-// are added here aditively, implementing repository.IcebergCatalog.
+// Namespace-property methods and table/schema/spec methods are implemented here,
+// fulfilling the repository.IcebergCatalog interface.
 package catalog
 
 import (
@@ -35,7 +35,7 @@ import (
 // catalog operations needed by the Iceberg repository driver.
 type Client struct {
 	cat       *rest.Catalog
-	warehouse string // warehouse name extracted from DSN path (ФТ-14)
+	warehouse string // warehouse name extracted from DSN path (used for catalog-prefix stripping)
 }
 
 // New constructs a REST catalog client from a parsed DSN.

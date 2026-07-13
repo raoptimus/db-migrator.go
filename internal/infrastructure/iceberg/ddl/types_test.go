@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestParseType covers all 13 types from @ФТ-3 Примеры table.
+// TestParseType covers all 13 supported Iceberg column types.
 func TestParseType(t *testing.T) {
 	t.Parallel()
 
@@ -45,10 +45,10 @@ func TestParseType(t *testing.T) {
 		{input: "date", wantKind: Date},
 		{input: "DATE", wantKind: Date},
 		{input: "time", wantKind: Time},
-		// TIMESTAMP → TimestampTz (with zone) — critical ФТ-12 mapping
+		// TIMESTAMP → TimestampTz (with timezone, UTC)
 		{input: "timestamp", wantKind: TimestampTz},
 		{input: "TIMESTAMP", wantKind: TimestampTz},
-		// TIMESTAMP_NTZ → Timestamp (without zone) — critical ФТ-12 mapping
+		// TIMESTAMP_NTZ → Timestamp (without timezone)
 		{input: "timestamp_ntz", wantKind: Timestamp},
 		{input: "TIMESTAMP_NTZ", wantKind: Timestamp},
 		{input: "string", wantKind: String},
@@ -108,7 +108,7 @@ func TestParseType_Composite(t *testing.T) {
 		assert.Equal(t, String, got.Elem.Kind)
 	})
 
-	// BDD @ФТ-3 type table row: "list<string>" — list<T> is a synonym for array<T>.
+	// list<string> — list<T> is a synonym for array<T>.
 	t.Run("list<string>", func(t *testing.T) {
 		t.Parallel()
 		got, err := parseType("list<string>")
@@ -163,12 +163,11 @@ func TestParseType_Composite(t *testing.T) {
 	})
 }
 
-// TestParseType_CreateTable_ColumnTypes exercises types through the full Parse path (BDD examples).
+// TestParseType_CreateTable_ColumnTypes exercises types through the full Parse path.
 func TestParseType_CreateTable_ColumnTypes(t *testing.T) {
 	t.Parallel()
 
-	// From BDD @ФТ-3: "Поддерживаемые типы колонок" table (13 rows).
-	// Each row is "CREATE TABLE analytics.t (c <type>)" and the type must map correctly.
+	// Each entry uses "CREATE TABLE analytics.t (c <type>)" and verifies the type maps correctly.
 	tests := []struct {
 		typeExpr string
 		wantKind TypeKind
@@ -179,7 +178,7 @@ func TestParseType_CreateTable_ColumnTypes(t *testing.T) {
 		{"double", Double},
 		{"decimal(10,2)", Decimal},
 		{"date", Date},
-		{"timestamp", TimestampTz}, // BDD row says "timestamp" → timestamptz (with zone)
+		{"timestamp", TimestampTz}, // TIMESTAMP → timestamptz (with timezone, UTC)
 		{"string", String},
 		{"uuid", UUID},
 		{"binary", Binary},
@@ -216,7 +215,7 @@ func TestParseType_CreateTable_ColumnTypes(t *testing.T) {
 		assert.Equal(t, List, op.Create.Schema[0].Type.Kind)
 	})
 
-	// BDD @ФТ-3: literal "list<string>" in type column → must parse to List kind.
+	// literal "list<string>" → must parse to List kind.
 	t.Run("list<string>", func(t *testing.T) {
 		t.Parallel()
 		op, err := Parse("", "CREATE TABLE analytics.t (c list<string>)")

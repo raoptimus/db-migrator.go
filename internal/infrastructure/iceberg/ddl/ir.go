@@ -17,7 +17,7 @@ const (
 	DropPartitionField               // ALTER TABLE … DROP PARTITION FIELD
 )
 
-// Ident is a fully-qualified table or namespace identifier with the catalog prefix already stripped (ФТ-14).
+// Ident is a fully-qualified table or namespace identifier with the catalog prefix already stripped.
 type Ident struct {
 	// Namespace holds every identifier segment except the last (table name).
 	// For namespace-only operations (CREATE/DROP NAMESPACE) Table is empty.

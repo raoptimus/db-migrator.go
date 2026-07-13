@@ -1,3 +1,3 @@
 -- Second migration fails: TRUNCATE is not supported DDL in Iceberg.
--- This is intentionally broken to test best-effort release failure (ФТ-7 @negative).
+-- Intentionally broken to verify that a partial release leaves successfully applied migrations recorded (best-effort).
 TRUNCATE TABLE raw_release_fail.nonexistent;

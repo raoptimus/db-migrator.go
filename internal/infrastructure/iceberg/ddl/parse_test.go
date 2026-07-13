@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// ─── DDL operations (@ФТ-3 table) ─────────────────────────────────────────────
+// ─── DDL operations ────────────────────────────────────────────────────────────
 
 func TestParse_DDLOperations(t *testing.T) {
 	t.Parallel()
@@ -147,7 +147,7 @@ func TestParse_DDLOperations(t *testing.T) {
 	}
 }
 
-// ─── Referential CREATE TABLE (@ФТ-3 @ФТ-11 @ФТ-12) ──────────────────────────
+// ─── Referential CREATE TABLE ──────────────────────────────────────────────────
 
 func TestParse_ReferentialCreateTable(t *testing.T) {
 	t.Parallel()
@@ -199,7 +199,7 @@ func TestParse_ReferentialCreateTable(t *testing.T) {
 	assert.Equal(t, String, op.Create.Schema[2].Type.Kind)
 	assert.Equal(t, "event category", op.Create.Schema[2].Doc)
 
-	// event_time: TIMESTAMP → TimestampTz (ФТ-12)
+	// event_time: TIMESTAMP → TimestampTz (mapped to timestamptz with UTC timezone)
 	assert.Equal(t, "event_time", op.Create.Schema[3].Name)
 	assert.Equal(t, TimestampTz, op.Create.Schema[3].Type.Kind)
 	assert.Equal(t, "canonical event time (UTC)", op.Create.Schema[3].Doc)
@@ -228,7 +228,7 @@ func TestParse_ReferentialCreateTable(t *testing.T) {
 	assert.Equal(t, "analytics events (bronze layer)", op.Create.Comment)
 }
 
-// ─── Timestamp types (@ФТ-12) ─────────────────────────────────────────────────
+// ─── Timestamp types ───────────────────────────────────────────────────────────
 
 func TestParse_TimestampTypes(t *testing.T) {
 	t.Parallel()
@@ -250,7 +250,7 @@ func TestParse_TimestampTypes(t *testing.T) {
 	})
 }
 
-// ─── Identifier resolution (@ФТ-14) ───────────────────────────────────────────
+// ─── Identifier resolution ─────────────────────────────────────────────────────
 
 func TestParse_IdentResolution(t *testing.T) {
 	t.Parallel()

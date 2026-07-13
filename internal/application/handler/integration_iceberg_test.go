@@ -81,11 +81,11 @@ func loadIcebergEnv(t *testing.T) {
 	}
 }
 
-// TestIntegration_Iceberg_UpDown covers @ФТ-2 @ФТ-6:
+// TestIntegration_Iceberg_UpDown verifies core up/down migration behaviour:
 //   - up N applies N migrations
 //   - down N reverts N migrations
-//   - history / new reflect state correctly (@ФТ-5)
-//   - repeated up is idempotent (@ФТ-9)
+//   - history / new reflect state correctly
+//   - repeated up is idempotent
 func TestIntegration_Iceberg_UpDown(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
@@ -111,7 +111,7 @@ func TestIntegration_Iceberg_UpDown(t *testing.T) {
 
 	ctx := context.Background()
 
-	// @ФТ-2/@ФТ-6: up 2 applies first 2 migrations.
+	// up 2 applies first 2 migrations.
 	t.Run("up_2_and_down_2", func(t *testing.T) {
 		cleanupIceberg(handlers, createCommand)
 		defer func() { cleanupIceberg(handlers, createCommand) }()
@@ -125,7 +125,7 @@ func TestIntegration_Iceberg_UpDown(t *testing.T) {
 		assertIcebergMigrationsCount(t, ctx, repo, 1) // base only
 	})
 
-	// @ФТ-5: history shows applied migrations; new shows pending ones.
+	// history shows applied migrations; new shows pending ones.
 	t.Run("history_and_new", func(t *testing.T) {
 		cleanupIceberg(handlers, createCommand)
 		defer func() { cleanupIceberg(handlers, createCommand) }()
@@ -143,7 +143,7 @@ func TestIntegration_Iceberg_UpDown(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	// @ФТ-9: idempotency — applying all then calling up again is a no-op.
+	// Idempotency — applying all then calling up again is a no-op.
 	t.Run("idempotent_up", func(t *testing.T) {
 		cleanupIceberg(handlers, createCommand)
 		defer func() { cleanupIceberg(handlers, createCommand) }()
@@ -165,7 +165,7 @@ func TestIntegration_Iceberg_UpDown(t *testing.T) {
 		assert.Equal(t, count1, count2, "repeated up must be idempotent")
 	})
 
-	// @ФТ-6: down all reverts all user migrations (base record remains).
+	// down all reverts all user migrations (base record remains).
 	t.Run("down_all", func(t *testing.T) {
 		cleanupIceberg(handlers, createCommand)
 		defer func() { cleanupIceberg(handlers, createCommand) }()
@@ -180,7 +180,7 @@ func TestIntegration_Iceberg_UpDown(t *testing.T) {
 	})
 }
 
-// TestIntegration_Iceberg_Redo covers @ФТ-6 redo.
+// TestIntegration_Iceberg_Redo verifies the redo command (revert + reapply).
 func TestIntegration_Iceberg_Redo(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
@@ -223,7 +223,7 @@ func TestIntegration_Iceberg_Redo(t *testing.T) {
 	})
 }
 
-// TestIntegration_Iceberg_To covers @ФТ-6 to command (up and down directions).
+// TestIntegration_Iceberg_To verifies the to command in both upgrade and downgrade directions.
 func TestIntegration_Iceberg_To(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
@@ -256,7 +256,7 @@ func TestIntegration_Iceberg_To(t *testing.T) {
 	const firstVersion = "250101_100000"
 	const thirdVersion = "250101_100200"
 
-	// @ФТ-6: to target version (upgrade direction).
+	// to target version (upgrade direction).
 	t.Run("to_upgrade", func(t *testing.T) {
 		cleanupIceberg(handlers, createCommand)
 		defer func() { cleanupIceberg(handlers, createCommand) }()
@@ -272,7 +272,7 @@ func TestIntegration_Iceberg_To(t *testing.T) {
 		assertIcebergMigrationsCount(t, ctx, repo, 4) // base + 3
 	})
 
-	// @ФТ-6: to target version (downgrade direction).
+	// to target version (downgrade direction).
 	t.Run("to_downgrade", func(t *testing.T) {
 		cleanupIceberg(handlers, createCommand)
 		defer func() { cleanupIceberg(handlers, createCommand) }()
@@ -288,7 +288,7 @@ func TestIntegration_Iceberg_To(t *testing.T) {
 		assertIcebergMigrationsCount(t, ctx, repo, 2) // base + 1
 	})
 
-	// @ФТ-6: already at target — no changes.
+	// already at target — no changes.
 	t.Run("to_already_at_target", func(t *testing.T) {
 		cleanupIceberg(handlers, createCommand)
 		defer func() { cleanupIceberg(handlers, createCommand) }()
@@ -303,7 +303,7 @@ func TestIntegration_Iceberg_To(t *testing.T) {
 	})
 }
 
-// TestIntegration_Iceberg_Create covers @ФТ-8: create command generates a file pair.
+// TestIntegration_Iceberg_Create verifies that the create command generates a migration file pair.
 func TestIntegration_Iceberg_Create(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
@@ -331,7 +331,7 @@ func TestIntegration_Iceberg_Create(t *testing.T) {
 	err = handlers.Create.Handle(cmd)
 	require.NoError(t, err)
 
-	// @ФТ-8: Both .up.sql and .down.sql files must exist.
+	// Both .up.sql and .down.sql files must exist.
 	entries, err := os.ReadDir(tmpDir)
 	require.NoError(t, err)
 
@@ -359,12 +359,12 @@ func TestIntegration_Iceberg_Create(t *testing.T) {
 		"down file name format mismatch: %s", downFile)
 }
 
-// TestIntegration_Iceberg_ReferenceTable covers @ФТ-3 @ФТ-11 @ФТ-12 @ФТ-14:
+// TestIntegration_Iceberg_ReferenceTable verifies a full-featured CREATE TABLE migration:
 //   - Reference CREATE TABLE with namespace/columns/doc/partition/TBLPROPERTIES/COMMENT is applied.
-//   - Leading catalog segment stripped (ФТ-14).
-//   - Partition transform days(event_time) (ФТ-11).
-//   - TIMESTAMP → timestamptz (ФТ-12).
-//   - Column COMMENT preserved as doc (ФТ-3).
+//   - Leading catalog segment is stripped from qualified identifiers.
+//   - Partition transform days(event_time) is parsed and applied.
+//   - TIMESTAMP columns are mapped to timestamptz (with timezone, UTC).
+//   - Column COMMENT clauses are preserved as field doc strings.
 func TestIntegration_Iceberg_ReferenceTable(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
@@ -391,7 +391,7 @@ func TestIntegration_Iceberg_ReferenceTable(t *testing.T) {
 
 	ctx := context.Background()
 
-	// @ФТ-3/@ФТ-11/@ФТ-12/@ФТ-14: apply 2 migrations (namespace + reference CREATE TABLE).
+	// Apply 2 migrations (namespace + reference CREATE TABLE).
 	t.Run("apply_and_revert_reference_table", func(t *testing.T) {
 		cleanupIceberg(handlers, createCommand)
 		defer func() { cleanupIceberg(handlers, createCommand) }()
@@ -407,7 +407,7 @@ func TestIntegration_Iceberg_ReferenceTable(t *testing.T) {
 		assertIcebergMigrationsCount(t, ctx, repo, 1) // base only
 	})
 
-	// @ФТ-3 @ФТ-11 @ФТ-12: apply all fixtures (including ALTER ops, partition field).
+	// Apply all fixtures (including ALTER ops and partition field changes).
 	t.Run("apply_all_fixtures", func(t *testing.T) {
 		cleanupIceberg(handlers, createCommand)
 		defer func() { cleanupIceberg(handlers, createCommand) }()
@@ -425,7 +425,7 @@ func TestIntegration_Iceberg_ReferenceTable(t *testing.T) {
 	})
 }
 
-// TestIntegration_Iceberg_ReleaseRollback covers @ФТ-7: release and rollback commands.
+// TestIntegration_Iceberg_ReleaseRollback verifies the release and rollback commands.
 func TestIntegration_Iceberg_ReleaseRollback(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
@@ -451,7 +451,7 @@ func TestIntegration_Iceberg_ReleaseRollback(t *testing.T) {
 
 	ctx := context.Background()
 
-	// @ФТ-7: release applies all pending migrations with a shared apply_time.
+	// release applies all pending migrations with a shared apply_time.
 	t.Run("release_applies_all", func(t *testing.T) {
 		cleanupIceberg(handlers, createCommand)
 		defer func() { cleanupIceberg(handlers, createCommand) }()
@@ -461,7 +461,7 @@ func TestIntegration_Iceberg_ReleaseRollback(t *testing.T) {
 		assertIcebergMigrationsCount(t, ctx, repo, 3) // base + 2 release fixtures
 	})
 
-	// @ФТ-7: rollback reverts the latest batch (identified by max apply_time).
+	// rollback reverts the latest batch (identified by max apply_time).
 	t.Run("rollback_latest_release", func(t *testing.T) {
 		cleanupIceberg(handlers, createCommand)
 		defer func() { cleanupIceberg(handlers, createCommand) }()
@@ -475,7 +475,7 @@ func TestIntegration_Iceberg_ReleaseRollback(t *testing.T) {
 		assertIcebergMigrationsCount(t, ctx, repo, 1) // base only
 	})
 
-	// @ФТ-7: rollback on empty state is a no-op (no error).
+	// rollback on empty state is a no-op (no error).
 	t.Run("rollback_empty", func(t *testing.T) {
 		cleanupIceberg(handlers, createCommand)
 		defer func() { cleanupIceberg(handlers, createCommand) }()
@@ -485,7 +485,7 @@ func TestIntegration_Iceberg_ReleaseRollback(t *testing.T) {
 		assertIcebergMigrationsCount(t, ctx, repo, 1) // base only
 	})
 
-	// @ФТ-7: release → rollback → release cycle works correctly.
+	// release → rollback → release cycle works correctly.
 	t.Run("release_rollback_release", func(t *testing.T) {
 		cleanupIceberg(handlers, createCommand)
 		defer func() { cleanupIceberg(handlers, createCommand) }()
@@ -503,9 +503,8 @@ func TestIntegration_Iceberg_ReleaseRollback(t *testing.T) {
 	})
 }
 
-// TestIntegration_Iceberg_ReleaseBestEffortFail covers @ФТ-7 @negative:
-// A failure in the middle of release leaves the successfully applied migrations recorded
-// (best-effort, per-table atomicity).
+// TestIntegration_Iceberg_ReleaseBestEffortFail verifies that a mid-release failure leaves
+// the successfully applied migrations recorded (best-effort, per-table atomicity).
 func TestIntegration_Iceberg_ReleaseBestEffortFail(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
@@ -546,9 +545,8 @@ func TestIntegration_Iceberg_ReleaseBestEffortFail(t *testing.T) {
 	})
 }
 
-// TestIntegration_Iceberg_IrreversibleDown covers @ФТ-13 @negative:
-// down with a type-narrowing operation is rejected by the catalog.
-// The migration record must remain applied (not removed on error).
+// TestIntegration_Iceberg_IrreversibleDown verifies that a down migration containing a
+// type-narrowing operation is rejected by the catalog and the migration record remains applied.
 func TestIntegration_Iceberg_IrreversibleDown(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
@@ -587,18 +585,17 @@ func TestIntegration_Iceberg_IrreversibleDown(t *testing.T) {
 		// base + 2 applied = 3
 		assertIcebergMigrationsCount(t, ctx, repo, 3)
 
-		// @ФТ-13 @negative: down attempt must fail (long→int narrowing is rejected by catalog).
+		// down attempt must fail (long→int narrowing is rejected by the catalog).
 		err = handlers.Downgrade.Handle(createCommand("1"))
 		require.Error(t, err, "down with type narrowing must be rejected by the catalog")
 
-		// @ФТ-13: the migration record must remain (not removed on error) — still 3.
+		// The migration record must remain (not removed on error) — still 3.
 		assertIcebergMigrationsCount(t, ctx, repo, 3)
 	})
 }
 
-// TestIntegration_Iceberg_Negative_UnsupportedDDL covers @ФТ-4 @negative:
-// a migration containing TRUNCATE (unsupported DDL) must fail with a clear error
-// and must NOT be marked as applied.
+// TestIntegration_Iceberg_Negative_UnsupportedDDL verifies that a migration containing
+// TRUNCATE (unsupported DDL) fails with a clear error and is NOT marked as applied.
 func TestIntegration_Iceberg_Negative_UnsupportedDDL(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
@@ -668,8 +665,8 @@ func TestIntegration_Iceberg_Negative_UnsupportedDDL(t *testing.T) {
 	})
 }
 
-// TestIntegration_Iceberg_Negative_UnknownTransform covers @ФТ-11 @negative:
-// a migration with an unknown partition transform must fail with a clear error.
+// TestIntegration_Iceberg_Negative_UnknownTransform verifies that a migration with an
+// unknown partition transform fails with a clear error.
 func TestIntegration_Iceberg_Negative_UnknownTransform(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
@@ -736,8 +733,8 @@ func TestIntegration_Iceberg_Negative_UnknownTransform(t *testing.T) {
 	})
 }
 
-// TestIntegration_Iceberg_Negative_NoNamespace covers @ФТ-14 @negative:
-// a migration with a single-part table identifier (no namespace) must fail.
+// TestIntegration_Iceberg_Negative_NoNamespace verifies that a migration with a
+// single-part table identifier (no namespace) fails with a clear error.
 func TestIntegration_Iceberg_Negative_NoNamespace(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
@@ -794,16 +791,16 @@ func TestIntegration_Iceberg_Negative_NoNamespace(t *testing.T) {
 	})
 }
 
-// TestIntegration_Iceberg_Connection covers @ФТ-1:
-//   - successful ping with valid DSN
-//   - connection failure with unreachable host
+// TestIntegration_Iceberg_Connection verifies connectivity behaviour:
+//   - successful ping with a valid DSN
+//   - connection failure with an unreachable host
 func TestIntegration_Iceberg_Connection(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
 	}
 	loadIcebergEnv(t)
 
-	// @ФТ-1: valid DSN connects successfully.
+	// valid DSN connects successfully.
 	t.Run("valid_dsn_connects", func(t *testing.T) {
 		conn, err := connection.Try(icebergDSN(), 1)
 		require.NoError(t, err, "connection with valid Iceberg DSN must succeed")
@@ -811,7 +808,7 @@ func TestIntegration_Iceberg_Connection(t *testing.T) {
 		_ = conn.Close()
 	})
 
-	// @ФТ-1 @negative: unreachable host returns a connection error.
+	// unreachable host returns a connection error.
 	t.Run("unreachable_host_fails", func(t *testing.T) {
 		badDSN := "iceberg://127.0.0.1:19999/iceberg"
 		_, err := connection.Try(badDSN, 1)
@@ -819,8 +816,7 @@ func TestIntegration_Iceberg_Connection(t *testing.T) {
 	})
 }
 
-// TestIntegration_Iceberg_SecretMasking covers @ФТ-10:
-// s3.secret-access-key must not appear in log output.
+// TestIntegration_Iceberg_SecretMasking verifies that s3.secret-access-key is masked in log output.
 func TestIntegration_Iceberg_SecretMasking(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
@@ -859,7 +855,7 @@ func TestIntegration_Iceberg_SecretMasking(t *testing.T) {
 
 	logOutput := capture.String()
 
-	// @ФТ-10: the S3 secret access key must not appear in logs.
+	// The S3 secret access key must not appear in logs.
 	const secret = "minioadmin"
 	assert.NotContains(t, logOutput, secret,
 		"s3.secret-access-key must be masked in log output")
@@ -881,11 +877,9 @@ func (l *testCapturingLogger) Error(args ...any)                   { l.fn(fmt.Sp
 func (l *testCapturingLogger) Fatalf(format string, args ...any)   { l.fn(format, args...) }
 func (l *testCapturingLogger) Fatal(args ...any)                   { l.fn(fmt.Sprint(args...)) }
 
-// TestIntegration_Iceberg_CatalogPrefixStripped covers @ФТ-14:
-// When the leading segment of the table identifier equals the warehouse name,
-// it is stripped: "iceberg.raw.events" → namespace=[raw], table=events.
-// This is already exercised by TestIntegration_Iceberg_ReferenceTable (fixtures/iceberg/),
-// but here we make it an explicit named test for traceability.
+// TestIntegration_Iceberg_CatalogPrefixStripped verifies that when the leading segment of a
+// table identifier equals the warehouse name, it is stripped:
+// "iceberg.raw.events" → namespace=[raw], table=events.
 func TestIntegration_Iceberg_CatalogPrefixStripped(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
@@ -957,11 +951,10 @@ func TestIntegration_Iceberg_CatalogPrefixStripped(t *testing.T) {
 	})
 }
 
-// TestIntegration_Iceberg_MultiLevelNamespace covers @ФТ-14:
-// Multi-level namespace support. Note: the Polaris-compatible iceberg-rest used
-// in the test stack may not support multi-level namespaces via its REST API
-// (returns HTML error page). This test documents the current behaviour.
-// If multi-level namespaces are not supported, the test is marked as skipped.
+// TestIntegration_Iceberg_MultiLevelNamespace verifies multi-level namespace support.
+// Note: the iceberg-rest implementation in the test stack may not support multi-level
+// namespaces (returns an HTML error page). This test documents the current behaviour
+// and skips gracefully when multi-level namespaces are unsupported.
 func TestIntegration_Iceberg_MultiLevelNamespace(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping integration test")
@@ -1034,7 +1027,7 @@ func TestIntegration_Iceberg_MultiLevelNamespace(t *testing.T) {
 		if err != nil {
 			// Multi-level namespaces may not be supported by the test catalog implementation.
 			// Document the finding and skip rather than fail hard.
-			t.Logf("@ФТ-14 multi-level namespace: catalog returned error (may be unsupported by test stack): %v", err)
+			t.Logf("multi-level namespace: catalog returned error (may be unsupported by test stack): %v", err)
 			t.Skip("multi-level namespace not supported by this catalog implementation")
 		}
 

@@ -9,7 +9,7 @@
 // Package iceberg provides a thin SQLDB adapter for Apache Iceberg REST catalog.
 // Ping/Close are backed by the catalog client; SQL-level methods (QueryContext, ExecContext,
 // BeginTx) are not on the critical migration path and return ErrNotSupported.
-// Actual DDL execution is handled by the repository layer (task 04).
+// Actual DDL execution is handled by the repository layer.
 package iceberg
 
 import (

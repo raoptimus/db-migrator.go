@@ -143,7 +143,7 @@ func TestIceberg_InsertMigrationWithApplyTime_Successfully(t *testing.T) {
 	version := "210328_221600_create_users"
 	applyTime := int64(1616968560)
 	expectedUpdates := map[string]string{
-		"mig." + version: "1616968560",
+		"migrate." + version: "1616968560",
 	}
 
 	cat.EXPECT().
@@ -161,7 +161,7 @@ func TestIceberg_InsertMigrationWithApplyTime_Failure(t *testing.T) {
 
 	cat.EXPECT().
 		UpdateNamespaceProperties(ctx, historyNS, ([]string)(nil), map[string]string{
-			"mig.210328_221600_create_users": "1616968560",
+			"migrate.210328_221600_create_users": "1616968560",
 		}).
 		Return(errors.New("write error")).
 		Once()
@@ -186,7 +186,7 @@ func TestIceberg_InsertMigration_CallsCatalog(t *testing.T) {
 			ctx,
 			historyNS,
 			([]string)(nil),
-			mock.MatchedBy(matchUpdatesContainsKey("mig."+version)),
+			mock.MatchedBy(matchUpdatesContainsKey("migrate."+version)),
 		).
 		Return(nil).
 		Once()
@@ -202,7 +202,7 @@ func TestIceberg_RemoveMigration_Successfully(t *testing.T) {
 	repo, cat := newIcebergRepo(t)
 
 	version := "210328_221600_create_users"
-	expectedRemovals := []string{"mig." + version}
+	expectedRemovals := []string{"migrate." + version}
 
 	cat.EXPECT().
 		UpdateNamespaceProperties(ctx, historyNS, expectedRemovals, (map[string]string)(nil)).
@@ -219,7 +219,7 @@ func TestIceberg_RemoveMigration_Failure(t *testing.T) {
 
 	cat.EXPECT().
 		UpdateNamespaceProperties(ctx, historyNS,
-			[]string{"mig.210328_221600_create_users"},
+			[]string{"migrate.210328_221600_create_users"},
 			(map[string]string)(nil),
 		).
 		Return(errors.New("remove error")).
@@ -237,8 +237,8 @@ func TestIceberg_Migrations_Successfully(t *testing.T) {
 	repo, cat := newIcebergRepo(t)
 
 	props := map[string]string{
-		"mig.210328_221600_create_users": "1616968560",
-		"mig.210329_121500_add_index":    "1617020100",
+		"migrate.210328_221600_create_users": "1616968560",
+		"migrate.210329_121500_add_index":    "1617020100",
 		"other.key":                      "ignored",
 	}
 
@@ -261,9 +261,9 @@ func TestIceberg_Migrations_WithLimit(t *testing.T) {
 	repo, cat := newIcebergRepo(t)
 
 	props := map[string]string{
-		"mig.210328_221600_v1": "1616968560",
-		"mig.210329_120000_v2": "1617020100",
-		"mig.210330_090000_v3": "1617098400",
+		"migrate.210328_221600_v1": "1616968560",
+		"migrate.210329_120000_v2": "1617020100",
+		"migrate.210330_090000_v3": "1617098400",
 	}
 
 	cat.EXPECT().
@@ -300,7 +300,7 @@ func TestIceberg_Migrations_NonMigKeyIgnored(t *testing.T) {
 	props := map[string]string{
 		"location":                    "s3://bucket/path",
 		"owner":                       "admin",
-		"mig.210328_221600_my_table":  "1616968560",
+		"migrate.210328_221600_my_table":  "1616968560",
 	}
 
 	cat.EXPECT().
@@ -319,7 +319,7 @@ func TestIceberg_Migrations_InvalidApplyTime_Failure(t *testing.T) {
 	repo, cat := newIcebergRepo(t)
 
 	props := map[string]string{
-		"mig.210328_221600_broken": "not-a-number",
+		"migrate.210328_221600_broken": "not-a-number",
 	}
 
 	cat.EXPECT().
@@ -354,8 +354,8 @@ func TestIceberg_MigrationsCount_Successfully(t *testing.T) {
 	repo, cat := newIcebergRepo(t)
 
 	props := map[string]string{
-		"mig.210328_221600_v1": "1616968560",
-		"mig.210329_120000_v2": "1617020100",
+		"migrate.210328_221600_v1": "1616968560",
+		"migrate.210329_120000_v2": "1617020100",
 		"location":             "s3://bucket",
 	}
 
@@ -391,7 +391,7 @@ func TestIceberg_ExistsMigration_Exists(t *testing.T) {
 
 	version := "210328_221600_create_users"
 	props := map[string]string{
-		"mig." + version: "1616968560",
+		"migrate." + version: "1616968560",
 	}
 
 	cat.EXPECT().
@@ -439,9 +439,9 @@ func TestIceberg_MigrationsByMaxApplyTime_Successfully(t *testing.T) {
 	repo, cat := newIcebergRepo(t)
 
 	props := map[string]string{
-		"mig.210328_221600_create_users": "1616968560",
-		"mig.210329_121500_add_index":    "1617020100",
-		"mig.210330_090000_drop_column":  "1617020100", // same apply_time as previous (batch)
+		"migrate.210328_221600_create_users": "1616968560",
+		"migrate.210329_121500_add_index":    "1617020100",
+		"migrate.210330_090000_drop_column":  "1617020100", // same apply_time as previous (batch)
 	}
 
 	cat.EXPECT().
@@ -466,7 +466,7 @@ func TestIceberg_MigrationsByMaxApplyTime_SingleMigration(t *testing.T) {
 	repo, cat := newIcebergRepo(t)
 
 	props := map[string]string{
-		"mig.210328_221600_create_users": "1616968560",
+		"migrate.210328_221600_create_users": "1616968560",
 	}
 
 	cat.EXPECT().
@@ -500,9 +500,9 @@ func TestIceberg_MigrationsByMaxApplyTime_AllShareSameApplyTime(t *testing.T) {
 
 	const applyTime = "1617020100"
 	props := map[string]string{
-		"mig.210329_121500_v1": applyTime,
-		"mig.210329_121501_v2": applyTime,
-		"mig.210329_121502_v3": applyTime,
+		"migrate.210329_121500_v1": applyTime,
+		"migrate.210329_121501_v2": applyTime,
+		"migrate.210329_121502_v3": applyTime,
 	}
 
 	cat.EXPECT().

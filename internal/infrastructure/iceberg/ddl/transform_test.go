@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestParseTransform covers all 7 transforms from @ФТ-11 Примеры table.
+// TestParseTransform covers all 7 supported Iceberg partition transforms.
 func TestParseTransform(t *testing.T) {
 	t.Parallel()
 
@@ -44,14 +44,14 @@ func TestParseTransform(t *testing.T) {
 			wantSourceCol: "ts",
 		},
 		{
-			// BDD: bucket(16, id)
+			// bucket(16, id)
 			expr:          "bucket(16, id)",
 			wantTransform: Bucket,
 			wantParam:     16,
 			wantSourceCol: "id",
 		},
 		{
-			// BDD: truncate(8, name)
+			// truncate(8, name)
 			expr:          "truncate(8, name)",
 			wantTransform: Truncate,
 			wantParam:     8,
@@ -78,7 +78,7 @@ func TestParseTransform(t *testing.T) {
 func TestParseTransform_UnknownTransform(t *testing.T) {
 	t.Parallel()
 
-	// BDD @ФТ-11 @negative: weeks(ts) → ErrUnknownTransform
+	// weeks(ts) is not a supported Iceberg transform → ErrUnknownTransform
 	_, err := parseTransform("weeks(ts)")
 	require.Error(t, err)
 	assert.True(t, errors.Is(err, ErrUnknownTransform),
@@ -89,7 +89,7 @@ func TestParseTransform_UnknownTransform(t *testing.T) {
 func TestParse_Transforms_InCreateTable(t *testing.T) {
 	t.Parallel()
 
-	// BDD @ФТ-11: "CREATE TABLE raw.t (id long, ts timestamp, name string) USING iceberg PARTITIONED BY (<transform>)"
+	// "CREATE TABLE raw.t (id long, ts timestamp, name string) USING iceberg PARTITIONED BY (<transform>)"
 	tests := []struct {
 		transform     string
 		wantTransform TransformKind
@@ -127,7 +127,7 @@ func TestParse_Transforms_InCreateTable(t *testing.T) {
 func TestParse_UnknownTransform_InCreateTable(t *testing.T) {
 	t.Parallel()
 
-	// BDD @ФТ-11 @negative: weeks(ts)
+	// weeks(ts) is not supported — must propagate ErrUnknownTransform.
 	stmt := "CREATE TABLE raw.t (ts timestamp) USING iceberg PARTITIONED BY (weeks(ts))"
 	_, err := Parse("", stmt)
 	require.Error(t, err)

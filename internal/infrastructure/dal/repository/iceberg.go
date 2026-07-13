@@ -20,18 +20,15 @@ import (
 	"github.com/raoptimus/db-migrator.go/internal/infrastructure/iceberg/ddl"
 )
 
-// ErrNotImplemented is returned by Iceberg repository methods that are not yet
-// implemented. History-methods are implemented in task 02;
-// DDL execution (ExecQuery) is implemented in task 04.
+// ErrNotImplemented is returned by Iceberg repository methods that are not supported.
 var ErrNotImplemented = errors.New("iceberg repository: not implemented")
 
 // icebergHistoryKeyPrefix is the key prefix for migration history entries stored
-// as namespace properties. Full key format: "mig.<version>".
-const icebergHistoryKeyPrefix = "mig."
+// as namespace properties. Full key format: "migrate.<version>".
+const icebergHistoryKeyPrefix = "migrate."
 
 // Iceberg implements Repository for the Apache Iceberg REST catalog backend.
-// Migration history is stored as namespace properties (ARD Р3).
-// DDL execution is implemented in task 04 via the iceberg/ddl parser.
+// Migration history is stored as namespace properties in the history namespace.
 type Iceberg struct {
 	cat     IcebergCatalog
 	options *Options
@@ -48,13 +45,13 @@ func (i *Iceberg) TableNameWithSchema() string {
 }
 
 // SupportsDDLTransactions returns false: Iceberg REST catalog is per-table atomic
-// but does not support multi-table DDL transactions (ARD Р4).
+// but does not support multi-table DDL transactions.
 func (i *Iceberg) SupportsDDLTransactions() bool {
 	return false
 }
 
 // ExecQueryTransaction is a passthrough: Iceberg does not use SQL-level transactions
-// for DDL. The outer .safe mechanism becomes best-effort per-table (ARD Р4).
+// for DDL. The outer .safe mechanism becomes best-effort per-table atomicity.
 func (i *Iceberg) ExecQueryTransaction(ctx context.Context, fnTx func(ctx context.Context) error) error {
 	return fnTx(ctx)
 }
@@ -96,7 +93,7 @@ func (i *Iceberg) InsertMigration(ctx context.Context, version string) error {
 }
 
 // InsertMigrationWithApplyTime inserts a migration record with an explicit apply_time.
-// The record is stored as namespace property "mig.<version>" = "<apply_time>".
+// The record is stored as namespace property "migrate.<version>" = "<apply_time>".
 func (i *Iceberg) InsertMigrationWithApplyTime(ctx context.Context, version string, applyTime int64) error {
 	updates := map[string]string{
 		icebergHistoryKeyPrefix + version: strconv.FormatInt(applyTime, 10),
@@ -190,10 +187,10 @@ func (i *Iceberg) MigrationsByMaxApplyTime(ctx context.Context) (entity.Migratio
 // ExecQuery parses a Spark-SQL DDL statement and dispatches it to the catalog.
 // It implements the full translator: parse → operation kind → catalog method.
 // Parse errors (ErrUnsupportedDDL, ErrParse, …) are returned as-is (fail-fast).
-// down-migrations use the same path: the .down.sql file contains valid DDL that
+// Down-migrations use the same path: the .down.sql file contains valid DDL that
 // the catalog executes; an irreversible change (e.g. type narrowing) is rejected
 // by the catalog itself (allowIncompatibleChanges=false in UpdateSchema) and the
-// error is propagated without removing the migration record (Р8).
+// error is propagated without removing the migration record.
 func (i *Iceberg) ExecQuery(ctx context.Context, query string, _ ...any) error {
 	op, err := ddl.Parse(i.cat.Warehouse(), query)
 	if err != nil {
@@ -234,7 +231,7 @@ func (i *Iceberg) QueryScalar(_ context.Context, _ string, _ any) error {
 }
 
 // loadMigrations loads all migration properties from the history namespace and
-// parses them into entity.Migrations. Keys without the "mig." prefix are ignored.
+// parses them into entity.Migrations. Keys without the "migrate." prefix are ignored.
 // A property value that cannot be parsed as an integer results in an error.
 func (i *Iceberg) loadMigrations(ctx context.Context) (entity.Migrations, error) {
 	props, err := i.cat.LoadNamespaceProperties(ctx, i.historyNS())

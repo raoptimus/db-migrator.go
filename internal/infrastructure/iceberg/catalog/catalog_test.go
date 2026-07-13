@@ -19,7 +19,7 @@ import (
 
 // TestNew_DSNParsing verifies that New parses the DSN correctly and builds a Client
 // without panicking. It does NOT make network calls; actual connectivity is verified
-// in integration tests (task 06).
+// in integration tests.
 func TestNew_DSNParsing(t *testing.T) {
 	tests := []struct {
 		name      string

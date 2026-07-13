@@ -563,7 +563,7 @@ ALTER TABLE iceberg.raw_demo.orders ALTER COLUMN id TYPE int;
 For Iceberg, migration history is stored in **namespace properties** instead of a database table:
 
 - A dedicated namespace named by `MIGRATION_TABLE` (default: `migration`) is created automatically.
-- Each applied migration is stored as a property: key `mig.<version>` → value `<apply_time_unix>`.
+- Each applied migration is stored as a property: key `migrate.<version>` → value `<apply_time_unix>`.
 - `MAX(apply_time)` across all properties identifies the latest release batch for `rollback`.
 - Sorting and aggregation are performed in Go (REST Catalog does not guarantee property order).
 
@@ -574,7 +574,7 @@ approached the catalog returns a clear error.
 ### Example Migrations
 
 See `fixtures/iceberg/` for a full reversible migration chain and
-`fixtures/iceberg-irreversible/` for negative test cases (ФТ-13).
+`fixtures/iceberg-irreversible/` for a negative test case (irreversible type narrowing).
 
 ---
 
