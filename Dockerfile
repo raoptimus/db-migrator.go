@@ -15,7 +15,7 @@ RUN export BINDIR=/go/bin  \
 #RUN go install github.com/boumenot/gocover-cobertura@latest  \
 #    && go install github.com/jstemmer/go-junit-report@latest
 
-RUN wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v2.7.2
+RUN wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v2.12.2
 
 RUN go env -w GOFLAGS=-buildvcs=false && \
     go env -w CGO_ENABLED=0
