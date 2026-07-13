@@ -15,7 +15,9 @@ RUN export BINDIR=/go/bin  \
 #RUN go install github.com/boumenot/gocover-cobertura@latest  \
 #    && go install github.com/jstemmer/go-junit-report@latest
 
-RUN wget -O- -nv https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v2.12.2
+# Install golangci-lint via the Go module proxy (reliable + integrity-checked by GOSUMDB).
+# Avoids the flaky/rate-limited GitHub release binary download used by the install script.
+RUN go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.12.2
 
 RUN go env -w GOFLAGS=-buildvcs=false && \
     go env -w CGO_ENABLED=0
