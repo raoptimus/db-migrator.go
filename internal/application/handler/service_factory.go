@@ -61,12 +61,6 @@ func NewMigrationService(
 			ClusterName:        options.ClusterName,
 			Username:           parsed.Username,
 			Password:           parsed.Password,
-			// Extract Iceberg REST auth secrets so that sanitizeCredentials can mask them.
-			Token:      parsed.Options.Get("token"),
-			Credential: parsed.Options.Get("credential"),
-			// Extract S3/MinIO secrets so that sanitizeCredentials can mask them.
-			S3SecretAccessKey: parsed.Options.Get("s3.secret-access-key"),
-			S3SessionToken:    parsed.Options.Get("s3.session-token"),
 		},
 		logger,
 		iohelp.StdFile,

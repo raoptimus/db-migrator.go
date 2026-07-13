@@ -26,14 +26,4 @@ type Options struct {
 	Username string
 	// Password is the database password used for placeholder replacement in migration SQL.
 	Password string
-
-	// Token is a bearer token (e.g. for Iceberg REST catalog) that must be masked in logs.
-	Token string
-	// Credential is an OAuth2 client-credentials value that must be masked in logs.
-	Credential string
-
-	// S3SecretAccessKey is the S3/MinIO secret access key that must be masked in logs.
-	S3SecretAccessKey string
-	// S3SessionToken is the S3/MinIO session token that must be masked in logs.
-	S3SessionToken string
 }
