@@ -4,3 +4,4 @@
 *.md
 !README.md
 build.sh
+docs

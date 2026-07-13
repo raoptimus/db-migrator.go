@@ -13,3 +13,12 @@ services:
   tarantool:
     ports:
       - 13301:3301
+  iceberg-rest:
+    ports:
+      - 8181:8181
+  minio:
+    ports:
+      # S3 API: host port 9002 to avoid conflict with clickhouse1:9000
+      - 9002:9000
+      # MinIO console
+      - 9001:9001

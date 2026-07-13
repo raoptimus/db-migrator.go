@@ -477,21 +477,18 @@ func (m *Migration) scannerByFile(fileName string) (*sqlio.Scanner, error) {
 	return sqlio.NewScanner(f), nil
 }
 
-// sanitizeCredentials replaces credential values with masks in SQL output.
-// This prevents passwords and usernames from appearing in logs or console output.
+// sanitizeCredentials masks the username/password placeholder values in migration
+// SQL output before it is logged. These are the only secrets that can appear in the
+// SQL text — via the {username}/{password} placeholders substituted into migration DDL.
+// Connection-level secrets (DSN bearer token / OAuth2 credential / S3 keys) are never
+// substituted into SQL, so they are not handled here; they are redacted by dsn.Redact
+// wherever a DSN string itself is logged (e.g. connection errors).
 func (m *Migration) sanitizeCredentials(sql string) string {
-	if m.options.Username == "" && m.options.Password == "" {
-		return sql
-	}
-
 	sanitized := sql
 
-	// Replace password if present
 	if m.options.Password != "" {
 		sanitized = strings.ReplaceAll(sanitized, m.options.Password, credentialMask)
 	}
-
-	// Replace username if present
 	if m.options.Username != "" {
 		sanitized = strings.ReplaceAll(sanitized, m.options.Username, credentialMask)
 	}

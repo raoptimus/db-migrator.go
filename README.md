@@ -9,6 +9,7 @@ The db migration tool currently supports the following db drivers:
 - postgres
 - mysql
 - tarantool db
+- apache iceberg (via REST Catalog)
 
 ## Database Connection Examples
 
@@ -47,6 +48,48 @@ DSN="tarantool://username:password@localhost:3301/mydb" \
 MIGRATION_PATH=./migrations \
 db-migrator up
 ```
+
+### Apache Iceberg (REST Catalog)
+
+Iceberg uses a REST Catalog endpoint instead of a direct database connection.
+The DSN format is `iceberg://host:port/<warehouse>?<auth-params>[&<storage-params>]`.
+
+**Bearer token authentication:**
+```bash
+DSN="iceberg://localhost:8181/warehouse?token=my-bearer-token&s3.endpoint=http://localhost:9000&s3.access-key-id=admin&s3.secret-access-key=password&s3.region=us-east-1&s3.force-virtual-addressing=false" \
+MIGRATION_PATH=./migrations \
+db-migrator up
+```
+
+**OAuth2 client-credentials authentication:**
+```bash
+DSN="iceberg://localhost:8181/warehouse?credential=client-id:client-secret&oauth2_server_uri=https://auth.example.com/oauth/token&scope=catalog&s3.endpoint=http://localhost:9000&s3.access-key-id=admin&s3.secret-access-key=password&s3.region=us-east-1&s3.force-virtual-addressing=false" \
+MIGRATION_PATH=./migrations \
+db-migrator up
+```
+
+**DSN parameters:**
+
+| Parameter | Description |
+|-----------|-------------|
+| `token=<bearer>` | Bearer token auth (mutually exclusive with `credential`) |
+| `credential=<id:secret>` | OAuth2 client credentials (requires `oauth2_server_uri`) |
+| `oauth2_server_uri=<url>` | OAuth2 token endpoint URL |
+| `scope=<s>` | OAuth2 scope (optional, used with `credential`) |
+| `prefix=<p>` | Catalog path prefix (optional) |
+| `secure=true` or `sslmode=require` | Use HTTPS (default: HTTP) |
+| `s3.endpoint=<url>` | S3/MinIO endpoint URL |
+| `s3.access-key-id=<k>` | S3/MinIO access key |
+| `s3.secret-access-key=<sk>` | S3/MinIO secret key |
+| `s3.session-token=<t>` | S3/MinIO session token (optional) |
+| `s3.region=<r>` | S3/MinIO region |
+| `s3.force-virtual-addressing=false` | Use path-style URLs (required for MinIO) |
+
+> **Why S3 parameters are needed:** Iceberg schema-evolution commands (`ALTER TABLE`) require the
+> client to load the table's `metadata.json` directly from object storage. The REST server handles
+> `CREATE TABLE` and `DROP TABLE` on its own, but `ALTER` operations call `iceberg-go` which reads
+> S3/MinIO storage client-side. Without S3 credentials the driver returns an I/O error. Provide S3
+> parameters whenever you run `ALTER TABLE` migrations.
 
 ---
 
@@ -100,6 +143,11 @@ db-migrator release
 All migrations in a release share the same `apply_time`, allowing batch identification for later rollback.
 If any migration fails, the entire batch is rolled back automatically.
 
+> **Iceberg note:** `release` is **best-effort per-table** on Iceberg. The REST Catalog does not
+> support cross-table DDL transactions. Each migration is applied individually; if one fails, already
+> applied migrations remain in history and are not automatically reverted. The error message makes
+> the partial-apply state explicit.
+
 ### Rolling Back a Release
 To revert the latest release batch atomically, use the `rollback` command:
 ```bash
@@ -107,6 +155,8 @@ db-migrator rollback
 ```
 This identifies the latest batch by `MAX(apply_time)` and reverts all migrations in that batch within a single transaction.
 Before reverting, the command checks that all `.down.sql` files exist.
+
+> **Iceberg note:** `rollback` is also **best-effort per-table** on Iceberg for the same reason.
 
 ### Reverting Migrations
 To revert (undo) one or multiple migrations that have been applied before, you can run the following command:
@@ -294,6 +344,9 @@ This protection applies to:
 - Error messages
 - Debug logs
 
+For Iceberg DSN parameters, the following values are also masked: `token`, `credential`,
+`s3.secret-access-key`, and `s3.session-token`.
+
 ---
 
 ## Using as a Go Library
@@ -374,6 +427,154 @@ type Options struct {
 - `Downgrade(ctx, version, sql, safety)` - Revert a migration
 
 The `safety` parameter determines whether the migration runs within a transaction.
+
+---
+
+## Apache Iceberg-Specific Considerations
+
+### Migration Dialect: Spark SQL (Iceberg DDL)
+
+Iceberg migrations are written in **Spark SQL** with Iceberg extensions.
+The supported subset covers the most common schema-evolution DDL (v1):
+
+| Statement | Description |
+|-----------|-------------|
+| `CREATE NAMESPACE <ns>` | Create a namespace (maps to Iceberg namespace) |
+| `DROP NAMESPACE <ns>` | Drop a namespace |
+| `CREATE TABLE <id> (…) USING iceberg [PARTITIONED BY (…)] [COMMENT '…'] [TBLPROPERTIES (…)]` | Create an Iceberg table |
+| `DROP TABLE <id>` | Drop an Iceberg table |
+| `RENAME TABLE <from> TO <to>` | Rename an Iceberg table |
+| `ALTER TABLE <id> ADD COLUMN <name> <type> [COMMENT '…']` | Add a column |
+| `ALTER TABLE <id> DROP COLUMN <name>` | Drop a column |
+| `ALTER TABLE <id> RENAME COLUMN <old> TO <new>` | Rename a column |
+| `ALTER TABLE <id> ALTER COLUMN <name> TYPE <type>` | Change a column type (widening only) |
+| `ALTER TABLE <id> ADD PARTITION FIELD <transform>(<col>)` | Add a partition field |
+| `ALTER TABLE <id> DROP PARTITION FIELD <transform>(<col>)` | Drop a partition field |
+
+SQL comments (`--` and `/* */`) are supported inside migration files.
+
+**Supported column types:**
+
+| Spark SQL type | Iceberg type | Notes |
+|----------------|--------------|-------|
+| `STRING` | string | |
+| `INT` / `INTEGER` | int | |
+| `BIGINT` / `LONG` | long | |
+| `DOUBLE` | double | |
+| `DECIMAL(p,s)` | decimal(p,s) | |
+| `DATE` | date | |
+| `TIMESTAMP` | timestamptz | UTC, with timezone |
+| `TIMESTAMP_NTZ` | timestamp | without timezone |
+| `UUID` | uuid | |
+| `BINARY` | binary | |
+| `struct<f1:T1,…>` | struct | Nested struct |
+| `array<T>` | list | Nested list |
+| `map<K,V>` | map | Nested map |
+
+**Supported partition transforms:**
+`identity`, `years`, `months`, `days`, `hours`, `bucket(N)`, `truncate(N)`
+
+**Reference `CREATE TABLE` example** (from `fixtures/iceberg/`):
+
+```sql
+CREATE TABLE iceberg.analytics.events (
+  event_id   STRING    COMMENT 'unique event identifier',
+  user_id    STRING    COMMENT 'external user identifier',
+  event_type STRING    COMMENT 'event category',
+  event_time TIMESTAMP COMMENT 'canonical event time (UTC)',
+  created_at TIMESTAMP COMMENT 'record ingestion time',
+  source     STRING    COMMENT 'ingestion source label'
+)
+USING iceberg
+PARTITIONED BY (days(event_time))
+COMMENT 'analytics events (bronze layer)'
+TBLPROPERTIES (
+  'format-version' = '2',
+  'write.format.default' = 'parquet',
+  'write.parquet.compression-codec' = 'zstd'
+);
+```
+
+### Identifier Rules (Namespace Qualification)
+
+Iceberg tables live inside namespaces. The identifier format is:
+```
+[<catalog>.]<namespace…>.<table>
+```
+
+- The leading segment is compared to the DSN warehouse name; if they match it is stripped automatically.
+- The remaining segments (except the last) form the (possibly multi-level) namespace.
+- A bare single-segment identifier (no namespace) returns an error: `namespace required`.
+
+**Example:** DSN warehouse = `iceberg`, identifier = `iceberg.raw.events`
+→ catalog stripped → namespace = `[raw]`, table = `events`
+
+> **Known limitation (multi-level namespaces):** Single-level namespaces (e.g. `raw.events`) are
+> fully supported. Multi-level namespaces (e.g. `bronze.raw.events`) parse correctly and the namespace
+> itself can be created, but **table operations inside a multi-level namespace may fail against some
+> REST Catalog servers** (notably the `apache/iceberg-rest-fixture` used in tests, which mishandles the
+> `%2E`-encoded namespace separator produced by the `iceberg-go` client). This is an upstream
+> client/catalog interaction, not a limitation of the migration tool. Prefer single-level namespaces
+> until validated against your production catalog.
+
+### Atomicity Boundaries
+
+The REST Catalog provides **per-table optimistic concurrency**, not cross-table DDL transactions.
+
+| Command | Atomicity on Iceberg |
+|---------|----------------------|
+| `up` / `down` / `redo` / `to` | Per-statement: each DDL is committed individually |
+| `.safe` migrations | No-op wrapper; Iceberg has no intra-table DDL transactions |
+| `release` | **Best-effort**: all pending migrations applied in order; failure leaves history in partial-apply state |
+| `rollback` | **Best-effort**: each migration reverted individually; failure stops at the first error |
+
+When a `release` fails mid-batch, the history table reflects the migrations that were actually
+applied. The error message reports which migration failed.
+
+### Down Migrations and Irreversible Operations
+
+Each migration requires a paired `.down.sql` file written by the user (no automatic inversion).
+
+**Irreversible operations** — the Iceberg catalog rejects these in a `.down.sql`:
+- **Type narrowing** (e.g., `long → int`): rejected by catalog.
+- **`DROP COLUMN`**: the column's field-id is permanently retired; re-adding a column with the same
+  name gets a new field-id, which breaks readers expecting the old id.
+- **`RENAME COLUMN`**: similarly loses the original field-id association.
+
+When an irreversible operation fails, the tool returns a clear error and the migration record
+**remains marked as applied** in history (fail-fast). It is the user's responsibility to handle
+the incompatibility manually.
+
+**Example — irreversible `down`:**
+
+```sql
+-- up: widen id int -> long (valid Iceberg promotion)
+ALTER TABLE iceberg.raw_demo.orders ALTER COLUMN id TYPE long;
+```
+
+```sql
+-- down: attempting to narrow long -> int — Iceberg rejects this
+ALTER TABLE iceberg.raw_demo.orders ALTER COLUMN id TYPE int;
+-- error: incompatible type change; migration stays in history as applied
+```
+
+### Migration History Storage
+
+For Iceberg, migration history is stored in **namespace properties** instead of a database table:
+
+- A dedicated namespace named by `MIGRATION_TABLE` (default: `migration`) is created automatically.
+- Each applied migration is stored as a property: key `migrate.<version>` → value `<apply_time_unix>`.
+- `MAX(apply_time)` across all properties identifies the latest release batch for `rollback`.
+- Sorting and aggregation are performed in Go (REST Catalog does not guarantee property order).
+
+**Known limitation:** REST Catalog servers impose a size limit on namespace properties. For a
+realistic number of migrations (hundreds) this is well within limits, but if the limit is
+approached the catalog returns a clear error.
+
+### Example Migrations
+
+See `fixtures/iceberg/` for a full reversible migration chain and
+`fixtures/iceberg-irreversible/` for a negative test case (irreversible type narrowing).
 
 ---
 
