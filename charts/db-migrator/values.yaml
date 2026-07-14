@@ -4,7 +4,8 @@
 # the migration files (built FROM raoptimus/db-migrator with the migrations COPY'd in).
 image:
   repository: raoptimus/db-migrator
-  # tag "" falls back to .Chart.AppVersion.
+  # Empty tag falls back to "<appVersion>-alpine" (the tag scheme on Docker Hub).
+  # Set an explicit value to override (used verbatim, include the suffix yourself).
   tag: ""
   pullPolicy: IfNotPresent
 

@@ -61,10 +61,12 @@ Name of the service account to use.
 {{- end }}
 
 {{/*
-Fully qualified image reference. Tag falls back to the chart appVersion.
+Fully qualified image reference. An explicit .Values.image.tag wins; otherwise the
+tag falls back to "<appVersion>-alpine", matching the tags published to Docker Hub
+(the registry only carries "-alpine" tags, no bare version tags).
 */}}
 {{- define "db-migrator.image" -}}
-{{- $tag := default .Chart.AppVersion .Values.image.tag -}}
+{{- $tag := .Values.image.tag | default (printf "%s-alpine" .Chart.AppVersion) -}}
 {{- printf "%s:%s" .Values.image.repository $tag -}}
 {{- end }}
 
