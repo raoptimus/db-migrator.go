@@ -67,6 +67,54 @@ nfpms:
     # (the legacy Makefile deb installed to /opt/bin).
     bindir: /usr/bin
 
+# Multi-arch Docker images published to Docker Hub (raoptimus/db-migrator).
+# Replaces the manual `make build-docker-image`. Requires buildx + QEMU and a
+# Docker Hub login in the release workflow (DOCKERHUB_USERNAME / DOCKERHUB_TOKEN).
+# One image is built per architecture, then combined into a manifest below.
+dockers:
+  - id: db-migrator-amd64
+    goos: linux
+    goarch: amd64
+    dockerfile: .docker/goreleaser/Dockerfile
+    use: buildx
+    image_templates:
+      - "raoptimus/db-migrator:{{ .Version }}-alpine-amd64"
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.source=https://github.com/raoptimus/db-migrator.go"
+      - "--label=org.opencontainers.image.licenses=BSD-3-Clause"
+  - id: db-migrator-arm64
+    goos: linux
+    goarch: arm64
+    dockerfile: .docker/goreleaser/Dockerfile
+    use: buildx
+    image_templates:
+      - "raoptimus/db-migrator:{{ .Version }}-alpine-arm64"
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.source=https://github.com/raoptimus/db-migrator.go"
+      - "--label=org.opencontainers.image.licenses=BSD-3-Clause"
+
+docker_manifests:
+  # Versioned multi-arch tag, e.g. raoptimus/db-migrator:1.8.0-alpine
+  - name_template: "raoptimus/db-migrator:{{ .Version }}-alpine"
+    image_templates:
+      - "raoptimus/db-migrator:{{ .Version }}-alpine-amd64"
+      - "raoptimus/db-migrator:{{ .Version }}-alpine-arm64"
+  # `latest` points at the same arch images, but only for stable releases so a
+  # pre-release (e.g. v1.8.0-beta.1) never overwrites it.
+  - name_template: "raoptimus/db-migrator:latest"
+    skip_push: '{{ if .Prerelease }}true{{ else }}false{{ end }}'
+    image_templates:
+      - "raoptimus/db-migrator:{{ .Version }}-alpine-amd64"
+      - "raoptimus/db-migrator:{{ .Version }}-alpine-arm64"
+
 # Homebrew Cask published to the raoptimus/homebrew-tap repository on each release.
 # Requires:
 #   1. An existing repo github.com/raoptimus/homebrew-tap
