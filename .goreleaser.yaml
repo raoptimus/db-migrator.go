@@ -1,0 +1,131 @@
+# GoReleaser configuration.
+# Docs: https://goreleaser.com
+# Release is triggered by pushing a SemVer tag (vX.Y.Z); see .github/workflows/release.yml.
+version: 2
+
+project_name: db-migrator
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: db-migrator
+    main: ./cmd/db-migrator
+    binary: db-migrator
+    env:
+      # Static binary: required for reliable cross-compilation (arm64/windows)
+      # and matches the Makefile `build` target.
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    # Inject version into the same symbols the Makefile uses (main.Version / main.GitCommit),
+    # so `db-migrator version` reports vX.Y.Z.rev[shortsha] in released binaries too.
+    ldflags:
+      - -s -w
+      - -X main.Version={{ .Tag }}
+      - -X main.GitCommit={{ .ShortCommit }}
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    # Windows users expect .zip
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: "checksums.txt"
+
+# Linux packages: .deb / .rpm / .apk built from the same binary via nfpm.
+# Metadata mirrors scripts/debian/control and LICENSE.
+nfpms:
+  - id: packages
+    package_name: db-migrator
+    vendor: raoptimus
+    maintainer: Urvantsev Evgenii <resmus@gmail.com>
+    homepage: https://github.com/raoptimus/db-migrator.go
+    description: CLI tool for managing database migrations (ClickHouse, PostgreSQL, MySQL, Tarantool, Iceberg).
+    license: BSD-3-Clause
+    section: base
+    priority: optional
+    formats:
+      - deb
+      - rpm
+      - apk
+    # Install to /usr/bin so the binary is on PATH out of the box
+    # (the legacy Makefile deb installed to /opt/bin).
+    bindir: /usr/bin
+
+# Homebrew Cask published to the raoptimus/homebrew-tap repository on each release.
+# Requires:
+#   1. An existing repo github.com/raoptimus/homebrew-tap
+#   2. A GitHub PAT (Contents: read/write on that repo) stored as the
+#      HOMEBREW_TAP_GITHUB_TOKEN secret, since the default GITHUB_TOKEN cannot
+#      push to another repository.
+homebrew_casks:
+  - name: db-migrator
+    repository:
+      owner: raoptimus
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    homepage: https://github.com/raoptimus/db-migrator.go
+    description: CLI tool for managing database migrations (ClickHouse, PostgreSQL, MySQL, Tarantool, Iceberg).
+    # Skip the tap commit for pre-releases (e.g. v1.2.3-beta.1).
+    skip_upload: auto
+    commit_author:
+      name: goreleaser-bot
+      email: bot@raoptimus.dev
+    # Remove the macOS quarantine attribute so the unsigned binary runs without
+    # a Gatekeeper prompt after `brew install`.
+    hooks:
+      post:
+        install: |
+          if system_command("/usr/bin/xattr", args: ["-h"]).exit_status == 0
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/db-migrator"]
+          end
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  # Build release notes from Conventional Commits, matching the project's commit style.
+  use: github
+  sort: asc
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\(.+\))??!?:.+$'
+      order: 0
+    - title: Bug fixes
+      regexp: '^.*?fix(\(.+\))??!?:.+$'
+      order: 1
+    - title: Performance
+      regexp: '^.*?perf(\(.+\))??!?:.+$'
+      order: 2
+    - title: Others
+      order: 999
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^ci:'
+      - Merge pull request
+      - Merge branch
+
+release:
+  github:
+    owner: raoptimus
+    name: db-migrator.go
+  # Mark pre-release automatically for tags like v1.2.3-beta.1
+  prerelease: auto

@@ -1,6 +1,9 @@
 [![Test](https://github.com/raoptimus/db-migrator.go/workflows/Test/badge.svg)](https://github.com/raoptimus/db-migrator.go/actions)
 [![Coverage](https://github.com/raoptimus/db-migrator.go/wiki/coverage.svg)](https://raw.githack.com/wiki/raoptimus/db-migrator.go/coverage.html)
 [![GitHub Release](https://img.shields.io/github/release/raoptimus/db-migrator.go.svg)](https://github.com/raoptimus/db-migrator.go/releases)
+[![Go Reference](https://pkg.go.dev/badge/github.com/raoptimus/db-migrator.go.svg)](https://pkg.go.dev/github.com/raoptimus/db-migrator.go)
+[![Go Report Card](https://goreportcard.com/badge/github.com/raoptimus/db-migrator.go)](https://goreportcard.com/report/github.com/raoptimus/db-migrator.go)
+[![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)
 
 # db-migrator.go
 Database Migration tool in CLI on Golang that allows you to keep track of database changes in terms of database migrations which are version-controlled.
@@ -10,6 +13,43 @@ The db migration tool currently supports the following db drivers:
 - mysql
 - tarantool db
 - apache iceberg (via REST Catalog)
+
+## Installation
+
+### Homebrew (macOS / Linux)
+```bash
+brew install --cask raoptimus/tap/db-migrator
+```
+
+### Debian / Ubuntu (.deb)
+```bash
+# Replace VERSION and ARCH (amd64 or arm64) with the desired release
+curl -sLO https://github.com/raoptimus/db-migrator.go/releases/latest/download/db-migrator_VERSION_linux_amd64.deb
+sudo dpkg -i db-migrator_*.deb
+```
+
+### RHEL / Fedora (.rpm) and Alpine (.apk)
+Download the matching `.rpm` / `.apk` from the
+[latest release](https://github.com/raoptimus/db-migrator.go/releases/latest) and install with
+`rpm -i` / `apk add --allow-untrusted`.
+
+### Pre-built binaries
+Grab a `tar.gz` (or `.zip` for Windows) for your OS/arch from the
+[releases page](https://github.com/raoptimus/db-migrator.go/releases/latest), extract it, and put
+`db-migrator` on your `PATH`.
+
+### Go install
+```bash
+go install github.com/raoptimus/db-migrator.go/cmd/db-migrator@latest
+```
+
+### Docker
+```bash
+docker run --rm -e DSN -e MIGRATION_PATH -v "$PWD/migrations:/migrations" raoptimus/db-migrator:latest up
+```
+
+### Helm (Kubernetes)
+See the reusable chart in [`charts/db-migrator`](charts/db-migrator).
 
 ## Database Connection Examples
 
