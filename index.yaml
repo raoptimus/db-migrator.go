@@ -2,6 +2,34 @@ apiVersion: v1
 entries:
   db-migrator:
   - apiVersion: v2
+    appVersion: 1.8.0
+    created: "2026-07-14T07:23:42.425790092Z"
+    description: Reusable Helm chart that runs raoptimus/db-migrator as a Kubernetes
+      Job. Applies pending migrations via the `release` command (Helm hook) and reverts
+      the latest release batch via the `rollback` command (opt-in Job). Works both
+      standalone and as a subchart dependency, under plain Helm and werf.
+    digest: ed8fad513613859e2239800e3b7da5b4ef5ad79ec3ed0eb3c4872edf11df6645
+    home: https://github.com/raoptimus/db-migrator.go
+    keywords:
+    - migration
+    - database
+    - clickhouse
+    - postgres
+    - mysql
+    - tarantool
+    - iceberg
+    maintainers:
+    - name: raoptimus
+      url: https://github.com/raoptimus
+    name: db-migrator
+    sources:
+    - https://github.com/raoptimus/db-migrator.go
+    - https://hub.docker.com/r/raoptimus/db-migrator
+    type: application
+    urls:
+    - https://github.com/raoptimus/db-migrator.go/releases/download/db-migrator-0.1.1/db-migrator-0.1.1.tgz
+    version: 0.1.1
+  - apiVersion: v2
     appVersion: 1.7.0
     created: "2026-07-14T00:07:56.428026234Z"
     description: Reusable Helm chart that runs raoptimus/db-migrator as a Kubernetes
@@ -29,4 +57,4 @@ entries:
     urls:
     - https://github.com/raoptimus/db-migrator.go/releases/download/db-migrator-0.1.0/db-migrator-0.1.0.tgz
     version: 0.1.0
-generated: "2026-07-14T00:07:56.428031784Z"
+generated: "2026-07-14T07:23:42.425797713Z"
