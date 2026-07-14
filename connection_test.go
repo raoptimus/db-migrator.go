@@ -17,9 +17,9 @@ import (
 
 func TestNewConnection_InvalidDSN_ReturnsError(t *testing.T) {
 	tests := []struct {
-		name        string
-		dsn         string
-		wantErrMsg  string
+		name       string
+		dsn        string
+		wantErrMsg string
 	}{
 		{
 			name:       "empty dsn",

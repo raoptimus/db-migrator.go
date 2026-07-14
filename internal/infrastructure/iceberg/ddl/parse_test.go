@@ -256,12 +256,12 @@ func TestParse_IdentResolution(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name        string
-		catalog     string
-		stmt        string
-		wantNS      []string
-		wantTable   string
-		wantErrIs   error
+		name      string
+		catalog   string
+		stmt      string
+		wantNS    []string
+		wantTable string
+		wantErrIs error
 	}{
 		{
 			name:      "catalog stripped: iceberg.raw.events → ns[raw], table=events",
@@ -626,8 +626,8 @@ func TestParse_Comments(t *testing.T) {
 		},
 		{
 			// Multi-line block comment spanning the entire preceding line.
-			name: "multi-line block comment between clauses",
-			stmt: "CREATE TABLE raw.t (id long)\n/* configure storage */\nUSING iceberg",
+			name:     "multi-line block comment between clauses",
+			stmt:     "CREATE TABLE raw.t (id long)\n/* configure storage */\nUSING iceberg",
 			wantKind: CreateTable,
 			check: func(t *testing.T, op Operation) {
 				require.NotNil(t, op.Create)

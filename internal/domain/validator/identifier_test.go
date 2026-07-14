@@ -153,7 +153,7 @@ func TestIsValidIdentifierChar_ValidChars(t *testing.T) {
 		'a', 'b', 'z', // lowercase
 		'A', 'B', 'Z', // uppercase
 		'0', '5', '9', // digits
-		'_',           // underscore
+		'_', // underscore
 	}
 
 	for _, r := range validChars {

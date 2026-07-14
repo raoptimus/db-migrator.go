@@ -13,13 +13,13 @@ func TestParseType(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		input     string
-		wantKind  TypeKind
-		wantPrec  int
-		wantScale int
-		wantElem  *TypeKind
-		wantKey   *TypeKind
-		wantVal   *TypeKind
+		input      string
+		wantKind   TypeKind
+		wantPrec   int
+		wantScale  int
+		wantElem   *TypeKind
+		wantKey    *TypeKind
+		wantVal    *TypeKind
 		wantFields []Field // for struct
 	}{
 		{input: "boolean", wantKind: Boolean},
