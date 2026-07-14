@@ -2,7 +2,9 @@
 !.github
 !.docker
 !.helmignore
+!.goreleaser.yaml
 *.md
 !README.md
 build.sh
 docs
+dist
