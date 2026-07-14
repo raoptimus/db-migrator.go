@@ -90,7 +90,6 @@ func TestTarantool_ExecQueryTransaction_Failure(t *testing.T) {
 	assert.Equal(t, expectedErr, err)
 }
 
-
 func TestTarantool_CreateMigrationHistoryTable_Successfully(t *testing.T) {
 	ctx := context.Background()
 

@@ -1,8 +1,7 @@
 [![Test](https://github.com/raoptimus/db-migrator.go/workflows/Test/badge.svg)](https://github.com/raoptimus/db-migrator.go/actions)
 [![Coverage](https://github.com/raoptimus/db-migrator.go/wiki/coverage.svg)](https://raw.githack.com/wiki/raoptimus/db-migrator.go/coverage.html)
-[![GitHub Release](https://img.shields.io/github/release/raoptimus/db-migrator.go.svg)](https://github.com/raoptimus/db-migrator.go/releases)
+[![GitHub Release](https://img.shields.io/github/v/release/raoptimus/db-migrator.go?filter=v*&sort=semver)](https://github.com/raoptimus/db-migrator.go/releases)
 [![Go Reference](https://pkg.go.dev/badge/github.com/raoptimus/db-migrator.go.svg)](https://pkg.go.dev/github.com/raoptimus/db-migrator.go)
-[![Go Report Card](https://goreportcard.com/badge/github.com/raoptimus/db-migrator.go)](https://goreportcard.com/report/github.com/raoptimus/db-migrator.go)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](LICENSE)
 
 # db-migrator.go

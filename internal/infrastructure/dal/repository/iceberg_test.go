@@ -239,7 +239,7 @@ func TestIceberg_Migrations_Successfully(t *testing.T) {
 	props := map[string]string{
 		"migrate.210328_221600_create_users": "1616968560",
 		"migrate.210329_121500_add_index":    "1617020100",
-		"other.key":                      "ignored",
+		"other.key":                          "ignored",
 	}
 
 	cat.EXPECT().
@@ -298,9 +298,9 @@ func TestIceberg_Migrations_NonMigKeyIgnored(t *testing.T) {
 	repo, cat := newIcebergRepo(t)
 
 	props := map[string]string{
-		"location":                    "s3://bucket/path",
-		"owner":                       "admin",
-		"migrate.210328_221600_my_table":  "1616968560",
+		"location":                       "s3://bucket/path",
+		"owner":                          "admin",
+		"migrate.210328_221600_my_table": "1616968560",
 	}
 
 	cat.EXPECT().
@@ -356,7 +356,7 @@ func TestIceberg_MigrationsCount_Successfully(t *testing.T) {
 	props := map[string]string{
 		"migrate.210328_221600_v1": "1616968560",
 		"migrate.210329_120000_v2": "1617020100",
-		"location":             "s3://bucket",
+		"location":                 "s3://bucket",
 	}
 
 	cat.EXPECT().
