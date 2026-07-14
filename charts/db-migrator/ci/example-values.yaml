@@ -1,0 +1,15 @@
+# Values used to render the chart in CI (`helm lint` / `helm template`).
+# rollback is enabled here so both Jobs are exercised during linting.
+image:
+  repository: raoptimus/db-migrator
+  tag: "1.7.0"
+
+migrator:
+  dsn:
+    existingSecret: db-migrator-dsn
+    secretKey: dsn
+  path: /migrations
+  table: migration
+
+rollback:
+  enabled: true

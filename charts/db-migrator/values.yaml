@@ -1,0 +1,103 @@
+# Default values for db-migrator.
+
+# Container image. Override `repository`/`tag` with your own image that contains
+# the migration files (built FROM raoptimus/db-migrator with the migrations COPY'd in).
+image:
+  repository: raoptimus/db-migrator
+  # tag "" falls back to .Chart.AppVersion.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+# Secrets used to pull the image, e.g. [{name: my-registry}].
+imagePullSecrets: []
+
+# Overrides for generated resource names.
+nameOverride: ""
+fullnameOverride: ""
+
+# db-migrator configuration. Every field maps to an environment variable read by
+# the CLI (see cmd/db-migrator/main.go).
+migrator:
+  dsn:
+    # REQUIRED: name of an existing Secret holding the database DSN.
+    # The chart never stores the DSN itself; it references the Secret via secretKeyRef.
+    existingSecret: ""
+    # Key inside that Secret whose value is the DSN.
+    secretKey: dsn
+  # MIGRATION_PATH: directory with migration files inside the image/volume.
+  path: /migrations
+  # MIGRATION_TABLE: history table (or Iceberg namespace) name.
+  table: migration
+  # MIGRATION_CLUSTER_NAME: ClickHouse cluster name (empty disables ON CLUSTER).
+  clusterName: ""
+  # MIGRATION_REPLICATED: use replicated history table (ClickHouse).
+  replicated: false
+  # MAX_CONN_ATTEMPTS: connection retries (1-100).
+  maxConnAttempts: 1
+  # COMPACT: compact console output.
+  compact: false
+  # INTERACTIVE is always forced to "false" by the templates: a Job has no TTY and
+  # release/rollback would otherwise block on confirmation prompts.
+  # DRY_RUN: print SQL without executing it.
+  dryRun: false
+  # PLACEHOLDER_CUSTOM: value for the {placeholder_custom} migration placeholder.
+  placeholderCustom: ""
+  # Additional raw env entries appended as-is, e.g. [{name: FOO, value: "bar"}].
+  extraEnv: []
+  # Additional envFrom sources, e.g. [{secretRef: {name: extra}}].
+  extraEnvFrom: []
+
+# release: applies pending migrations. Rendered as a Helm hook so it runs on
+# install/upgrade BEFORE the application pods roll out.
+release:
+  enabled: true
+  # Command passed to db-migrator. Use "release" for atomic batch apply, or "up".
+  command: release
+  # Helm hook phases. pre-* ensures the schema is ready before new app pods start.
+  hookTypes:
+    - pre-install
+    - pre-upgrade
+  weight: "5"
+  deletePolicy: before-hook-creation
+  # Extra annotations merged onto the Job. werf-friendly default; ignored by plain Helm.
+  annotations:
+    werf.io/fail-mode: FailWholeDeployProcessImmediately
+
+# rollback: reverts the latest release batch. Opt-in only (disabled by default) and
+# rendered as a plain Job (NOT a lifecycle hook), so it never runs automatically.
+# Enable it explicitly to perform a rollback (e.g. --set rollback.enabled=true), which
+# works under both werf converge and plain Helm.
+rollback:
+  enabled: false
+  command: rollback
+  # Keep empty for a plain Job. Plain-Helm users may set [pre-rollback] to turn it into
+  # a hook that fires on `helm rollback` (does not fire under werf converge).
+  hookTypes: []
+  weight: "5"
+  deletePolicy: before-hook-creation
+  annotations: {}
+
+# Job / pod spec.
+backoffLimit: 0
+activeDeadlineSeconds: 3600
+ttlSecondsAfterFinished: 30
+restartPolicy: Never
+resources: {}
+podAnnotations: {}
+podLabels: {}
+podSecurityContext: {}
+securityContext: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+serviceAccount:
+  create: false
+  name: ""
+  annotations: {}
+
+# Migration delivery flexibility for non-image variants (ConfigMap/PVC/git-sync).
+# These pass through untouched into the pod spec.
+initContainers: []
+extraVolumes: []
+extraVolumeMounts: []

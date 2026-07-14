@@ -1,6 +1,7 @@
 .*
 !.github
 !.docker
+!.helmignore
 *.md
 !README.md
 build.sh

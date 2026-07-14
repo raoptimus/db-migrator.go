@@ -280,6 +280,49 @@ Migrated up successfully
 
 ---
 
+## Running in Kubernetes (Helm)
+
+A reusable Helm chart lives in [`charts/db-migrator`](charts/db-migrator). It runs the tool
+as a Kubernetes `Job`:
+
+- **`release`** — applies pending migrations. Rendered as a Helm hook
+  (`pre-install,pre-upgrade`), so the schema is ready before application pods roll out.
+- **`rollback`** — reverts the latest release batch. Opt-in plain `Job` (disabled by default),
+  triggered explicitly, so it works the same under plain Helm and [werf](https://werf.io).
+
+The DSN is referenced from an existing `Secret` (never stored in values), and `INTERACTIVE`
+is always forced to `false` because a Job has no TTY.
+
+```bash
+kubectl create secret generic db-migrator-dsn \
+  --from-literal=dsn='postgres://user:pass@postgres:5432/app?sslmode=disable'
+
+helm install my-migrations ./charts/db-migrator \
+  --set image.repository=myregistry/myapp-migrations \
+  --set image.tag=1.4.2 \
+  --set migrator.dsn.existingSecret=db-migrator-dsn
+```
+
+The base image ships no migrations — build your own image with them baked in:
+
+```dockerfile
+FROM raoptimus/db-migrator:1.7.0
+COPY ./migrations /migrations
+```
+
+To roll back the latest batch, enable the rollback Job explicitly:
+
+```bash
+helm upgrade --install my-migrations ./charts/db-migrator \
+  --reuse-values --set rollback.enabled=true
+```
+
+The chart can also be consumed as a subchart dependency. See
+[`charts/db-migrator/README.md`](charts/db-migrator/README.md) for the full values reference
+and usage examples. Local helpers: `make helm-lint`, `make helm-template`, `make helm-package`.
+
+---
+
 ## Placeholders in Migrations
 
 You can use placeholders in your migration SQL files that will be replaced at runtime:

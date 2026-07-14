@@ -1,0 +1,40 @@
+{{- if .Values.rollback.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  # Revision suffix keeps the name unique so a rollback can be re-run on a later deploy
+  # (Jobs are immutable once created).
+  name: {{ include "db-migrator.fullname" . }}-rollback-r{{ .Release.Revision }}
+  labels:
+    {{- include "db-migrator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rollback
+  {{- if or .Values.rollback.hookTypes .Values.rollback.annotations }}
+  annotations:
+    {{- if .Values.rollback.hookTypes }}
+    "helm.sh/hook": {{ join "," .Values.rollback.hookTypes | quote }}
+    "helm.sh/hook-weight": {{ .Values.rollback.weight | quote }}
+    "helm.sh/hook-delete-policy": {{ .Values.rollback.deletePolicy | quote }}
+    {{- end }}
+    {{- with .Values.rollback.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
+spec:
+  backoffLimit: {{ .Values.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.activeDeadlineSeconds }}
+  ttlSecondsAfterFinished: {{ .Values.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        {{- include "db-migrator.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: rollback
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- include "db-migrator.podSpec" (dict "root" . "command" .Values.rollback.command) | nindent 6 }}
+{{- end }}
