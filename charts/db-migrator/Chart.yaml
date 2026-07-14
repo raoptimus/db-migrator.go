@@ -7,9 +7,10 @@ description: >-
   standalone and as a subchart dependency, under plain Helm and werf.
 type: application
 # Chart version (SemVer). Bump on any chart change.
-version: 0.1.0
-# Version of the db-migrator tool this chart targets; used as the default image tag.
-appVersion: "1.7.0"
+version: 0.1.1
+# Version of the db-migrator tool this chart targets. The default image tag is
+# derived as "<appVersion>-alpine" (see the db-migrator.image helper).
+appVersion: "1.8.0"
 home: https://github.com/raoptimus/db-migrator.go
 sources:
   - https://github.com/raoptimus/db-migrator.go
