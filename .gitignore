@@ -5,6 +5,7 @@
 !.goreleaser.yaml
 *.md
 !README.md
+!CHANGELOG.md
 build.sh
 docs
 dist

@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	iceberg "github.com/apache/iceberg-go"
+	icebergcatalog "github.com/apache/iceberg-go/catalog"
 	"github.com/apache/iceberg-go/catalog/rest"
 	_ "github.com/apache/iceberg-go/io/gocloud" // register s3/gcs/azure schemes
 	"github.com/pkg/errors"
@@ -129,11 +130,18 @@ func (c *Client) DropNamespace(ctx context.Context, ns []string) error {
 
 // NamespaceExists checks whether the given namespace exists.
 func (c *Client) NamespaceExists(ctx context.Context, ns []string) (bool, error) {
-	exists, err := c.cat.CheckNamespaceExists(ctx, ns)
+	// Some Iceberg REST servers (older apache/iceberg-rest builds on JdbcCatalog) do not
+	// implement HEAD /v1/namespaces/{ns} and reject it with 400 for any namespace. Probe via
+	// GET (LoadNamespaceProperties) instead: 404 -> not found, success -> exists. GET is
+	// supported by all spec-compliant REST catalogs.
+	_, err := c.cat.LoadNamespaceProperties(ctx, ns)
 	if err != nil {
+		if errors.Is(err, icebergcatalog.ErrNoSuchNamespace) {
+			return false, nil
+		}
 		return false, errors.WithMessage(err, "check namespace exists")
 	}
-	return exists, nil
+	return true, nil
 }
 
 // LoadNamespaceProperties returns the properties of the given namespace.

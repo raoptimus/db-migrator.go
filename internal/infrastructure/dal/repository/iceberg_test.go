@@ -764,6 +764,51 @@ func TestIceberg_ExecQuery_Dispatch(t *testing.T) {
 	}
 }
 
+// TestIceberg_ExecQuery_CreateNamespaceIfNotExists verifies idempotent namespace creation:
+// CREATE NAMESPACE IF NOT EXISTS skips CreateNamespace when the namespace already exists (checked
+// via the GET-based NamespaceExists), and calls it exactly once when it does not.
+func TestIceberg_ExecQuery_CreateNamespaceIfNotExists(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("namespace exists → CreateNamespace skipped", func(t *testing.T) {
+		repo, cat := newIcebergRepo(t)
+		cat.EXPECT().Warehouse().Return("").Once()
+		cat.EXPECT().
+			NamespaceExists(ctx, []string{"analytics"}).
+			Return(true, nil).Once()
+		// No CreateNamespace expectation: the mock fails if it is called.
+
+		err := repo.ExecQuery(ctx, "CREATE NAMESPACE IF NOT EXISTS analytics")
+		require.NoError(t, err)
+	})
+
+	t.Run("namespace missing → CreateNamespace called once", func(t *testing.T) {
+		repo, cat := newIcebergRepo(t)
+		cat.EXPECT().Warehouse().Return("").Once()
+		cat.EXPECT().
+			NamespaceExists(ctx, []string{"analytics"}).
+			Return(false, nil).Once()
+		cat.EXPECT().
+			CreateNamespace(ctx, []string{"analytics"}, (map[string]string)(nil)).
+			Return(nil).Once()
+
+		err := repo.ExecQuery(ctx, "CREATE NAMESPACE IF NOT EXISTS analytics")
+		require.NoError(t, err)
+	})
+
+	t.Run("NamespaceExists error is propagated", func(t *testing.T) {
+		repo, cat := newIcebergRepo(t)
+		cat.EXPECT().Warehouse().Return("").Once()
+		cat.EXPECT().
+			NamespaceExists(ctx, []string{"analytics"}).
+			Return(false, errors.New("catalog unreachable")).Once()
+
+		err := repo.ExecQuery(ctx, "CREATE NAMESPACE IF NOT EXISTS analytics")
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "catalog unreachable")
+	})
+}
+
 // TestIceberg_ExecQuery_ParseError verifies that a parse error is propagated directly.
 func TestIceberg_ExecQuery_ParseError(t *testing.T) {
 	ctx := context.Background()

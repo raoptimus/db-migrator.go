@@ -199,6 +199,15 @@ func (i *Iceberg) ExecQuery(ctx context.Context, query string, _ ...any) error {
 
 	switch op.Kind {
 	case ddl.CreateNamespace:
+		if op.IfNotExists {
+			exists, err := i.cat.NamespaceExists(ctx, op.Table.Namespace)
+			if err != nil {
+				return err
+			}
+			if exists {
+				return nil
+			}
+		}
 		return i.cat.CreateNamespace(ctx, op.Table.Namespace, op.Props)
 	case ddl.DropNamespace:
 		return i.cat.DropNamespace(ctx, op.Table.Namespace)
