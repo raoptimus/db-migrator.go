@@ -176,6 +176,18 @@ func (p *parser) consumeIfNotExists() (bool, error) {
 	return true, nil
 }
 
+// consumeIfExists consumes an optional "IF EXISTS" clause and reports whether it was present.
+func (p *parser) consumeIfExists() (bool, error) {
+	if !p.peekUpperIs("IF") {
+		return false, nil
+	}
+	p.consume()
+	if err := p.expectConsume("EXISTS"); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func (p *parser) parseCreateNamespace() (Operation, error) {
 	p.mustConsume(kwNAMESPACE)
 	ifNotExists, err := p.consumeIfNotExists()
@@ -197,7 +209,8 @@ func (p *parser) parseCreateNamespace() (Operation, error) {
 
 func (p *parser) parseCreateTable() (Operation, error) {
 	p.mustConsume(kwTABLE)
-	if _, err := p.consumeIfNotExists(); err != nil {
+	ifNotExists, err := p.consumeIfNotExists()
+	if err != nil {
 		return Operation{}, err
 	}
 	id, err := p.parseIdent()
@@ -263,9 +276,10 @@ func (p *parser) parseCreateTable() (Operation, error) {
 	}
 done:
 	return Operation{
-		Kind:   CreateTable,
-		Table:  id,
-		Create: spec,
+		Kind:        CreateTable,
+		Table:       id,
+		Create:      spec,
+		IfNotExists: ifNotExists,
 	}, nil
 }
 
@@ -461,30 +475,32 @@ func (p *parser) parseDrop() (Operation, error) {
 
 func (p *parser) parseDropNamespace() (Operation, error) {
 	p.mustConsume(kwNAMESPACE)
+	ifExists, err := p.consumeIfExists()
+	if err != nil {
+		return Operation{}, err
+	}
 	ns, err := p.parseNamespaceIdent()
 	if err != nil {
 		return Operation{}, err
 	}
 	return Operation{
-		Kind:  DropNamespace,
-		Table: Ident{Namespace: ns},
+		Kind:     DropNamespace,
+		Table:    Ident{Namespace: ns},
+		IfExists: ifExists,
 	}, nil
 }
 
 func (p *parser) parseDropTable() (Operation, error) {
 	p.mustConsume(kwTABLE)
-	// Optional IF EXISTS
-	if p.peekUpperIs("IF") {
-		p.consume()
-		if err := p.expectConsume("EXISTS"); err != nil {
-			return Operation{}, err
-		}
+	ifExists, err := p.consumeIfExists()
+	if err != nil {
+		return Operation{}, err
 	}
 	id, err := p.parseIdent()
 	if err != nil {
 		return Operation{}, err
 	}
-	return Operation{Kind: DropTable, Table: id}, nil
+	return Operation{Kind: DropTable, Table: id, IfExists: ifExists}, nil
 }
 
 // ─── RENAME ────────────────────────────────────────────────────────────────────
@@ -544,9 +560,134 @@ func (p *parser) parseAlter() (Operation, error) {
 		return p.parseAlterRename(id)
 	case kwALTER:
 		return p.parseAlterColumn(id)
+	case "WRITE":
+		return p.parseAlterWrite(id)
 	default:
 		return Operation{}, errors.Wrapf(ErrUnsupportedDDL, "ALTER TABLE … %s is not supported: %s", sub, p.stmt)
 	}
+}
+
+// parseAlterWrite handles WRITE ORDERED BY … and WRITE UNORDERED (table write sort order).
+func (p *parser) parseAlterWrite(id Ident) (Operation, error) {
+	p.mustConsume("WRITE")
+	next, ok := p.peek()
+	if !ok {
+		return Operation{}, errors.Wrapf(ErrParse, "ALTER TABLE … WRITE: unexpected end: %s", p.stmt)
+	}
+	switch strings.ToUpper(next) {
+	case "UNORDERED":
+		p.consume()
+		return Operation{Kind: SetSortOrder, Table: id, Sort: &SortSpec{Unordered: true}}, nil
+	case "ORDERED":
+		p.consume()
+		if err := p.expectConsume("BY"); err != nil {
+			return Operation{}, err
+		}
+		fields, err := p.parseSortFieldList()
+		if err != nil {
+			return Operation{}, err
+		}
+		return Operation{Kind: SetSortOrder, Table: id, Sort: &SortSpec{Fields: fields}}, nil
+	default:
+		return Operation{}, errors.Wrapf(ErrUnsupportedDDL, "ALTER TABLE … WRITE %s is not supported: %s", next, p.stmt)
+	}
+}
+
+// parseSortFieldList parses a comma-separated list of sort columns following WRITE ORDERED BY.
+// Spark writes the list without surrounding parentheses (WRITE ORDERED BY a, b DESC), but an
+// optional wrapping "(...)" is also accepted for forgiveness.
+func (p *parser) parseSortFieldList() ([]SortField, error) {
+	wrapped := false
+	if p.peekIs("(") {
+		p.consume()
+		wrapped = true
+	}
+
+	fields := make([]SortField, 0, 1)
+	for {
+		sf, err := p.parseSortField()
+		if err != nil {
+			return nil, err
+		}
+		fields = append(fields, sf)
+		if p.peekIs(",") {
+			p.consume()
+			continue
+		}
+		break
+	}
+
+	if wrapped {
+		if err := p.expectConsume(")"); err != nil {
+			return nil, err
+		}
+	}
+	if len(fields) == 0 {
+		return nil, errors.Wrapf(ErrParse, "WRITE ORDERED BY: expected at least one sort column: %s", p.stmt)
+	}
+	return fields, nil
+}
+
+// parseSortField parses a single sort column: "<col-or-transform> [ASC|DESC] [NULLS FIRST|LAST]".
+// A bare identifier maps to an Identity transform; "func(args)" reuses the partition transform parser.
+// Defaults follow Iceberg: direction ASC, and null ordering NULLS FIRST for ASC / NULLS LAST for DESC.
+func (p *parser) parseSortField() (SortField, error) {
+	first, ok := p.peek()
+	if !ok {
+		return SortField{}, errors.Wrapf(ErrParse, "WRITE ORDERED BY: expected sort column: %s", p.stmt)
+	}
+
+	var pf PartitionField
+	// A transform is "<name>(...)": detect it by a '(' immediately following the first token.
+	if p.pos+1 < len(p.tokens) && p.tokens[p.pos+1] == "(" {
+		expr, err := p.collectTransformExprFull()
+		if err != nil {
+			return SortField{}, err
+		}
+		pf, err = parseTransform(expr)
+		if err != nil {
+			return SortField{}, err
+		}
+	} else {
+		p.consume() // plain column
+		pf = PartitionField{Transform: Identity, SourceCol: first}
+	}
+
+	direction := SortAsc
+	switch {
+	case p.peekUpperIs("ASC"):
+		p.consume()
+	case p.peekUpperIs("DESC"):
+		p.consume()
+		direction = SortDesc
+	}
+
+	// Iceberg default null ordering depends on the direction.
+	nullOrder := NullsFirst
+	if direction == SortDesc {
+		nullOrder = NullsLast
+	}
+	if p.peekUpperIs("NULLS") {
+		p.consume()
+		switch {
+		case p.peekUpperIs("FIRST"):
+			p.consume()
+			nullOrder = NullsFirst
+		case p.peekUpperIs("LAST"):
+			p.consume()
+			nullOrder = NullsLast
+		default:
+			return SortField{}, errors.Wrapf(ErrParse, "WRITE ORDERED BY: expected FIRST or LAST after NULLS: %s", p.stmt)
+		}
+	}
+
+	return SortField{
+		Transform: pf.Transform,
+		Param:     pf.Param,
+		SourceCol: pf.SourceCol,
+		Direction: direction,
+		NullOrder: nullOrder,
+	}, nil
 }
 
 // parseAlterAdd handles ADD COLUMN … and ADD PARTITION FIELD …

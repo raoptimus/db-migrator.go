@@ -14,6 +14,7 @@ import (
 
 	iceberg "github.com/apache/iceberg-go"
 	icebergcatalog "github.com/apache/iceberg-go/catalog"
+	"github.com/apache/iceberg-go/catalog/rest"
 	"github.com/apache/iceberg-go/table"
 	"github.com/pkg/errors"
 	"github.com/raoptimus/db-migrator.go/internal/infrastructure/iceberg/ddl"
@@ -68,6 +69,42 @@ func (c *Client) CreateTable(ctx context.Context, id ddl.Ident, spec ddl.CreateT
 		return errors.WithMessage(err, "create table")
 	}
 	return nil
+}
+
+// TableExists reports whether the given table exists in the catalog.
+//
+// It prefers a single lightweight HEAD probe (CheckTableExists), which touches neither
+// S3 nor table metadata. Older REST servers (JdbcCatalog builds) do not implement HEAD
+// and reject it with 400; on that definitive signal we permanently switch to the
+// GET-based ListTables path for the rest of the process (same reasoning as the namespace
+// GET-over-HEAD fix). Transient HEAD errors trigger a one-off fallback without disabling
+// HEAD for later probes.
+func (c *Client) TableExists(ctx context.Context, id ddl.Ident) (bool, error) {
+	if !c.headUnsupported {
+		exists, err := c.cat.CheckTableExists(ctx, ident(id))
+		if err == nil {
+			return exists, nil
+		}
+		if errors.Is(err, rest.ErrBadRequest) {
+			// HEAD unsupported by this server — stop probing with HEAD for the rest of the run.
+			c.headUnsupported = true
+		}
+		// Fall through to the GET-based path for this call regardless of error kind.
+	}
+
+	// GET fallback: list tables in the namespace (no S3, no metadata read) and match by name.
+	// SetPageSize(0) suppresses the unconditional pageSize query param that trips a
+	// NumberFormatException on the reference REST server (see Ping).
+	ctx = c.cat.SetPageSize(ctx, 0)
+	for tbl, err := range c.cat.ListTables(ctx, id.Namespace) {
+		if err != nil {
+			return false, errors.WithMessage(err, "check table exists")
+		}
+		if len(tbl) > 0 && tbl[len(tbl)-1] == id.Table {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // DropTable drops an Iceberg table.
@@ -203,6 +240,81 @@ func (c *Client) ApplySpecChange(ctx context.Context, op ddl.Operation) error {
 		return errors.WithMessage(err, "persist spec change")
 	}
 	return nil
+}
+
+// ApplySortOrderChange sets (or clears) a table's write sort order.
+//
+// iceberg-go v0.6.0 has no high-level sort-order transaction builder (unlike UpdateSpec /
+// UpdateSchema), so the change is applied through the exported catalog-level CommitTable with
+// AddSortOrder + SetDefaultSortOrder updates, guarded by an AssertTableUUID requirement for
+// optimistic concurrency. WRITE UNORDERED resets the default to the always-present unsorted
+// order (id 0).
+//
+//nolint:gocritic // hugeParam: op is passed by value to match the IcebergCatalog interface contract
+func (c *Client) ApplySortOrderChange(ctx context.Context, op ddl.Operation) error {
+	if op.Sort == nil {
+		return errors.New("SetSortOrder: sort spec is nil")
+	}
+	tbl, err := c.cat.LoadTable(ctx, ident(op.Table))
+	if err != nil {
+		return errors.WithMessage(err, "load table for sort order change")
+	}
+
+	var updates []table.Update
+	if op.Sort.Unordered {
+		updates = []table.Update{table.NewSetDefaultSortOrderUpdate(table.UnsortedSortOrderID)}
+	} else {
+		schema := tbl.Schema()
+		fields := make([]table.SortField, 0, len(op.Sort.Fields))
+		for _, sf := range op.Sort.Fields {
+			col, ok := schema.FindFieldByName(sf.SourceCol)
+			if !ok {
+				return errors.Errorf("sort column %q not found in table schema", sf.SourceCol)
+			}
+			transform, err := toIcebergTransform(sf.Transform, sf.Param)
+			if err != nil {
+				return errors.WithMessagef(err, "map transform for sort column %s", sf.SourceCol)
+			}
+			fields = append(fields, table.SortField{
+				SourceIDs: []int{col.ID},
+				Transform: transform,
+				Direction: toIcebergSortDirection(sf.Direction),
+				NullOrder: toIcebergNullOrder(sf.NullOrder),
+			})
+		}
+		so, err := table.NewSortOrder(table.InitialSortOrderID, fields)
+		if err != nil {
+			return errors.WithMessage(err, "build sort order")
+		}
+		// SetDefaultSortOrder(-1) points the default at the just-added order (its final id is
+		// assigned server-side / by the metadata builder).
+		updates = []table.Update{
+			table.NewAddSortOrderUpdate(&so),
+			table.NewSetDefaultSortOrderUpdate(-1),
+		}
+	}
+
+	reqs := []table.Requirement{table.AssertTableUUID(tbl.Metadata().TableUUID())}
+	if _, _, err := c.cat.CommitTable(ctx, ident(op.Table), reqs, updates); err != nil {
+		return errors.WithMessage(err, "commit sort order")
+	}
+	return nil
+}
+
+// toIcebergSortDirection maps a ddl.SortDirection to iceberg-go's table.SortDirection.
+func toIcebergSortDirection(d ddl.SortDirection) table.SortDirection {
+	if d == ddl.SortDesc {
+		return table.SortDESC
+	}
+	return table.SortASC
+}
+
+// toIcebergNullOrder maps a ddl.NullOrder to iceberg-go's table.NullOrder.
+func toIcebergNullOrder(n ddl.NullOrder) table.NullOrder {
+	if n == ddl.NullsLast {
+		return table.NullsLast
+	}
+	return table.NullsFirst
 }
 
 // ─── schema building ────────────────────────────────────────────────────────
