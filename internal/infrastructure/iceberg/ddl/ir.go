@@ -27,14 +27,15 @@ type Ident struct {
 
 // Operation is the IR produced by the parser for a single Spark-SQL DDL statement.
 type Operation struct {
-	Kind      OpKind
-	Table     Ident
-	RenameTo  *Ident            // RenameTable: destination identifier
-	Column    *Field            // AddColumn / DropColumn / AlterColumnType / RenameColumn (source column)
-	NewName   string            // RenameColumn: new column name
-	Partition *PartitionField   // AddPartitionField / DropPartitionField
-	Create    *CreateTableSpec  // CreateTable: full table specification
-	Props     map[string]string // CreateNamespace: optional properties
+	Kind        OpKind
+	Table       Ident
+	RenameTo    *Ident            // RenameTable: destination identifier
+	Column      *Field            // AddColumn / DropColumn / AlterColumnType / RenameColumn (source column)
+	NewName     string            // RenameColumn: new column name
+	Partition   *PartitionField   // AddPartitionField / DropPartitionField
+	Create      *CreateTableSpec  // CreateTable: full table specification
+	Props       map[string]string // CreateNamespace: optional properties
+	IfNotExists bool              // CreateNamespace: skip if the namespace already exists
 }
 
 // CreateTableSpec holds the full specification of a CREATE TABLE statement.

@@ -161,15 +161,35 @@ func (p *parser) parseCreate() (Operation, error) {
 	}
 }
 
+// consumeIfNotExists consumes an optional "IF NOT EXISTS" clause and reports whether it was present.
+func (p *parser) consumeIfNotExists() (bool, error) {
+	if !p.peekUpperIs("IF") {
+		return false, nil
+	}
+	p.consume()
+	if err := p.expectConsume("NOT"); err != nil {
+		return false, err
+	}
+	if err := p.expectConsume("EXISTS"); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func (p *parser) parseCreateNamespace() (Operation, error) {
 	p.mustConsume(kwNAMESPACE)
+	ifNotExists, err := p.consumeIfNotExists()
+	if err != nil {
+		return Operation{}, err
+	}
 	ns, err := p.parseNamespaceIdent()
 	if err != nil {
 		return Operation{}, err
 	}
 	op := Operation{
-		Kind:  CreateNamespace,
-		Table: Ident{Namespace: ns},
+		Kind:        CreateNamespace,
+		Table:       Ident{Namespace: ns},
+		IfNotExists: ifNotExists,
 	}
 	// Remaining tokens may be PROPERTIES (ignore for now, not in subset v1).
 	return op, nil
@@ -177,15 +197,8 @@ func (p *parser) parseCreateNamespace() (Operation, error) {
 
 func (p *parser) parseCreateTable() (Operation, error) {
 	p.mustConsume(kwTABLE)
-	// Optional IF NOT EXISTS
-	if p.peekUpperIs("IF") {
-		p.consume()
-		if err := p.expectConsume("NOT"); err != nil {
-			return Operation{}, err
-		}
-		if err := p.expectConsume("EXISTS"); err != nil {
-			return Operation{}, err
-		}
+	if _, err := p.consumeIfNotExists(); err != nil {
+		return Operation{}, err
 	}
 	id, err := p.parseIdent()
 	if err != nil {

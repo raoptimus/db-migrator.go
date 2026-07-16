@@ -554,6 +554,30 @@ func TestParse_CreateNamespace_WithCatalog(t *testing.T) {
 	})
 }
 
+// TestParse_CreateNamespace_IfNotExists verifies that the optional IF NOT EXISTS clause is
+// parsed and recorded in the IR, enabling idempotent namespace creation.
+func TestParse_CreateNamespace_IfNotExists(t *testing.T) {
+	t.Parallel()
+
+	t.Run("with IF NOT EXISTS", func(t *testing.T) {
+		t.Parallel()
+		op, err := Parse("iceberg", "CREATE NAMESPACE IF NOT EXISTS iceberg.raw")
+		require.NoError(t, err)
+		assert.Equal(t, CreateNamespace, op.Kind)
+		assert.Equal(t, []string{"raw"}, op.Table.Namespace)
+		assert.True(t, op.IfNotExists)
+	})
+
+	t.Run("without IF NOT EXISTS", func(t *testing.T) {
+		t.Parallel()
+		op, err := Parse("", "CREATE NAMESPACE analytics")
+		require.NoError(t, err)
+		assert.Equal(t, CreateNamespace, op.Kind)
+		assert.Equal(t, []string{"analytics"}, op.Table.Namespace)
+		assert.False(t, op.IfNotExists)
+	})
+}
+
 // TestParse_NotNull_OutsideSubset verifies that NOT NULL (outside subset v1) returns ErrParse
 // and does not panic. Field.Required is not supported in subset v1.
 func TestParse_NotNull_OutsideSubset(t *testing.T) {
