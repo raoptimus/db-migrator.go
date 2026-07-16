@@ -210,13 +210,40 @@ func (i *Iceberg) ExecQuery(ctx context.Context, query string, _ ...any) error {
 		}
 		return i.cat.CreateNamespace(ctx, op.Table.Namespace, op.Props)
 	case ddl.DropNamespace:
+		if op.IfExists {
+			exists, err := i.cat.NamespaceExists(ctx, op.Table.Namespace)
+			if err != nil {
+				return err
+			}
+			if !exists {
+				return nil
+			}
+		}
 		return i.cat.DropNamespace(ctx, op.Table.Namespace)
 	case ddl.CreateTable:
 		if op.Create == nil {
 			return errors.New("iceberg: CreateTable IR has nil Create spec")
 		}
+		if op.IfNotExists {
+			exists, err := i.cat.TableExists(ctx, op.Table)
+			if err != nil {
+				return err
+			}
+			if exists {
+				return nil
+			}
+		}
 		return i.cat.CreateTable(ctx, op.Table, *op.Create)
 	case ddl.DropTable:
+		if op.IfExists {
+			exists, err := i.cat.TableExists(ctx, op.Table)
+			if err != nil {
+				return err
+			}
+			if !exists {
+				return nil
+			}
+		}
 		return i.cat.DropTable(ctx, op.Table)
 	case ddl.RenameTable:
 		if op.RenameTo == nil {
@@ -227,6 +254,8 @@ func (i *Iceberg) ExecQuery(ctx context.Context, query string, _ ...any) error {
 		return i.cat.ApplySchemaChange(ctx, op)
 	case ddl.AddPartitionField, ddl.DropPartitionField:
 		return i.cat.ApplySpecChange(ctx, op)
+	case ddl.SetSortOrder:
+		return i.cat.ApplySortOrderChange(ctx, op)
 	default:
 		return errors.WithStack(ddl.ErrUnsupportedDDL)
 	}

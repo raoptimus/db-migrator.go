@@ -15,6 +15,7 @@ const (
 	AlterColumnType                  // ALTER TABLE … ALTER COLUMN … TYPE
 	AddPartitionField                // ALTER TABLE … ADD PARTITION FIELD
 	DropPartitionField               // ALTER TABLE … DROP PARTITION FIELD
+	SetSortOrder                     // ALTER TABLE … WRITE ORDERED BY … / WRITE UNORDERED
 )
 
 // Ident is a fully-qualified table or namespace identifier with the catalog prefix already stripped.
@@ -35,7 +36,9 @@ type Operation struct {
 	Partition   *PartitionField   // AddPartitionField / DropPartitionField
 	Create      *CreateTableSpec  // CreateTable: full table specification
 	Props       map[string]string // CreateNamespace: optional properties
-	IfNotExists bool              // CreateNamespace: skip if the namespace already exists
+	IfNotExists bool              // CreateNamespace / CreateTable: skip creation if the object already exists
+	IfExists    bool              // DropNamespace / DropTable: skip drop if the object does not exist
+	Sort        *SortSpec         // SetSortOrder: sort order specification (WRITE ORDERED BY / WRITE UNORDERED)
 }
 
 // CreateTableSpec holds the full specification of a CREATE TABLE statement.
@@ -104,4 +107,39 @@ type PartitionField struct {
 	Param     int    // Bucket / Truncate: N
 	SourceCol string // source column name
 	Name      string // optional explicit partition field name
+}
+
+// SortDirection is the ordering direction of a sort field.
+type SortDirection int
+
+const (
+	SortAsc  SortDirection = iota // ASC (default)
+	SortDesc                      // DESC
+)
+
+// NullOrder is the placement of NULL values within a sort field.
+type NullOrder int
+
+const (
+	NullsFirst NullOrder = iota // NULLS FIRST
+	NullsLast                   // NULLS LAST
+)
+
+// SortField describes a single column of a table write sort order, including its transform,
+// direction, and null ordering. The transform reuses the partition TransformKind vocabulary
+// (Identity for a plain column, plus bucket/truncate/years/months/days/hours).
+type SortField struct {
+	Transform TransformKind
+	Param     int    // Bucket / Truncate: N
+	SourceCol string // source column name
+	Direction SortDirection
+	NullOrder NullOrder
+}
+
+// SortSpec holds the target write sort order for a SetSortOrder operation.
+// Unordered is true for WRITE UNORDERED (clear the sort order); otherwise Fields holds the
+// ordered list of sort columns from WRITE ORDERED BY.
+type SortSpec struct {
+	Unordered bool
+	Fields    []SortField
 }

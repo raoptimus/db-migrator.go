@@ -532,8 +532,15 @@ The supported subset covers the most common schema-evolution DDL (v1):
 | `ALTER TABLE <id> ALTER COLUMN <name> TYPE <type>` | Change a column type (widening only) |
 | `ALTER TABLE <id> ADD PARTITION FIELD <transform>(<col>)` | Add a partition field |
 | `ALTER TABLE <id> DROP PARTITION FIELD <transform>(<col>)` | Drop a partition field |
+| `ALTER TABLE <id> WRITE ORDERED BY <col> [ASC\|DESC] [NULLS FIRST\|LAST], …` | Set the table write sort order |
+| `ALTER TABLE <id> WRITE UNORDERED` | Clear the table write sort order |
 
 SQL comments (`--` and `/* */`) are supported inside migration files.
+
+`WRITE ORDERED BY` accepts plain columns or partition-style transforms (e.g. `bucket(8, id)`,
+`days(ts)`). Direction defaults to `ASC`; null ordering defaults to `NULLS FIRST` for `ASC` and
+`NULLS LAST` for `DESC` (Iceberg convention). Setting a sort order is not automatically
+reversible — a `.down.sql` should restore the previous order explicitly or use `WRITE UNORDERED`.
 
 **Supported column types:**
 

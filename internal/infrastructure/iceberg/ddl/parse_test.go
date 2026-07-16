@@ -578,6 +578,165 @@ func TestParse_CreateNamespace_IfNotExists(t *testing.T) {
 	})
 }
 
+// TestParse_CreateTable_IfNotExists verifies that the optional IF NOT EXISTS clause is parsed and
+// recorded in the IR, enabling idempotent table creation (regression: the clause was previously
+// consumed but discarded, so CREATE TABLE IF NOT EXISTS still failed with AlreadyExistsException).
+func TestParse_CreateTable_IfNotExists(t *testing.T) {
+	t.Parallel()
+
+	t.Run("with IF NOT EXISTS", func(t *testing.T) {
+		t.Parallel()
+		op, err := Parse("iceberg", "CREATE TABLE IF NOT EXISTS iceberg.analytics.events (id long)")
+		require.NoError(t, err)
+		assert.Equal(t, CreateTable, op.Kind)
+		assert.Equal(t, []string{"analytics"}, op.Table.Namespace)
+		assert.Equal(t, "events", op.Table.Table)
+		assert.True(t, op.IfNotExists)
+	})
+
+	t.Run("without IF NOT EXISTS", func(t *testing.T) {
+		t.Parallel()
+		op, err := Parse("iceberg", "CREATE TABLE iceberg.analytics.events (id long)")
+		require.NoError(t, err)
+		assert.Equal(t, CreateTable, op.Kind)
+		assert.False(t, op.IfNotExists)
+	})
+}
+
+// TestParse_DropTable_IfExists verifies that the optional IF EXISTS clause is parsed and recorded
+// in the IR, enabling idempotent DROP TABLE (regression: the clause was previously consumed but
+// discarded).
+func TestParse_DropTable_IfExists(t *testing.T) {
+	t.Parallel()
+
+	t.Run("with IF EXISTS", func(t *testing.T) {
+		t.Parallel()
+		op, err := Parse("iceberg", "DROP TABLE IF EXISTS iceberg.analytics.events")
+		require.NoError(t, err)
+		assert.Equal(t, DropTable, op.Kind)
+		assert.Equal(t, []string{"analytics"}, op.Table.Namespace)
+		assert.Equal(t, "events", op.Table.Table)
+		assert.True(t, op.IfExists)
+	})
+
+	t.Run("without IF EXISTS", func(t *testing.T) {
+		t.Parallel()
+		op, err := Parse("iceberg", "DROP TABLE iceberg.analytics.events")
+		require.NoError(t, err)
+		assert.Equal(t, DropTable, op.Kind)
+		assert.False(t, op.IfExists)
+	})
+}
+
+// TestParse_DropNamespace_IfExists verifies that the optional IF EXISTS clause is parsed and
+// recorded in the IR, enabling idempotent DROP NAMESPACE (regression: the parser did not understand
+// IF EXISTS for namespaces at all).
+func TestParse_DropNamespace_IfExists(t *testing.T) {
+	t.Parallel()
+
+	t.Run("with IF EXISTS", func(t *testing.T) {
+		t.Parallel()
+		op, err := Parse("iceberg", "DROP NAMESPACE IF EXISTS iceberg.raw")
+		require.NoError(t, err)
+		assert.Equal(t, DropNamespace, op.Kind)
+		assert.Equal(t, []string{"raw"}, op.Table.Namespace)
+		assert.True(t, op.IfExists)
+	})
+
+	t.Run("without IF EXISTS", func(t *testing.T) {
+		t.Parallel()
+		op, err := Parse("", "DROP NAMESPACE analytics")
+		require.NoError(t, err)
+		assert.Equal(t, DropNamespace, op.Kind)
+		assert.Equal(t, []string{"analytics"}, op.Table.Namespace)
+		assert.False(t, op.IfExists)
+	})
+}
+
+// TestParse_WriteOrderedBy verifies parsing of ALTER TABLE … WRITE ORDERED BY, including
+// direction, null ordering, transforms, defaults, and the WRITE UNORDERED reset form.
+func TestParse_WriteOrderedBy(t *testing.T) {
+	t.Parallel()
+
+	t.Run("plain columns with direction and defaults", func(t *testing.T) {
+		t.Parallel()
+		op, err := Parse("iceberg", "ALTER TABLE iceberg.analytics.events WRITE ORDERED BY event_time DESC, user_id")
+		require.NoError(t, err)
+		assert.Equal(t, SetSortOrder, op.Kind)
+		assert.Equal(t, "events", op.Table.Table)
+		require.NotNil(t, op.Sort)
+		assert.False(t, op.Sort.Unordered)
+		require.Len(t, op.Sort.Fields, 2)
+
+		// event_time DESC → direction DESC, default null order NULLS LAST.
+		assert.Equal(t, Identity, op.Sort.Fields[0].Transform)
+		assert.Equal(t, "event_time", op.Sort.Fields[0].SourceCol)
+		assert.Equal(t, SortDesc, op.Sort.Fields[0].Direction)
+		assert.Equal(t, NullsLast, op.Sort.Fields[0].NullOrder)
+
+		// user_id (no direction) → default ASC, default null order NULLS FIRST.
+		assert.Equal(t, "user_id", op.Sort.Fields[1].SourceCol)
+		assert.Equal(t, SortAsc, op.Sort.Fields[1].Direction)
+		assert.Equal(t, NullsFirst, op.Sort.Fields[1].NullOrder)
+	})
+
+	t.Run("explicit NULLS FIRST/LAST overrides default", func(t *testing.T) {
+		t.Parallel()
+		op, err := Parse("", "ALTER TABLE analytics.events WRITE ORDERED BY a ASC NULLS LAST, b DESC NULLS FIRST")
+		require.NoError(t, err)
+		require.NotNil(t, op.Sort)
+		require.Len(t, op.Sort.Fields, 2)
+		assert.Equal(t, SortAsc, op.Sort.Fields[0].Direction)
+		assert.Equal(t, NullsLast, op.Sort.Fields[0].NullOrder)
+		assert.Equal(t, SortDesc, op.Sort.Fields[1].Direction)
+		assert.Equal(t, NullsFirst, op.Sort.Fields[1].NullOrder)
+	})
+
+	t.Run("transform sort column", func(t *testing.T) {
+		t.Parallel()
+		op, err := Parse("", "ALTER TABLE analytics.events WRITE ORDERED BY bucket(16, user_id) DESC, days(event_time)")
+		require.NoError(t, err)
+		require.NotNil(t, op.Sort)
+		require.Len(t, op.Sort.Fields, 2)
+		assert.Equal(t, Bucket, op.Sort.Fields[0].Transform)
+		assert.Equal(t, 16, op.Sort.Fields[0].Param)
+		assert.Equal(t, "user_id", op.Sort.Fields[0].SourceCol)
+		assert.Equal(t, SortDesc, op.Sort.Fields[0].Direction)
+		assert.Equal(t, Days, op.Sort.Fields[1].Transform)
+		assert.Equal(t, "event_time", op.Sort.Fields[1].SourceCol)
+	})
+
+	t.Run("optional surrounding parentheses accepted", func(t *testing.T) {
+		t.Parallel()
+		op, err := Parse("", "ALTER TABLE analytics.events WRITE ORDERED BY (a, b DESC)")
+		require.NoError(t, err)
+		require.NotNil(t, op.Sort)
+		require.Len(t, op.Sort.Fields, 2)
+	})
+
+	t.Run("WRITE UNORDERED clears sort order", func(t *testing.T) {
+		t.Parallel()
+		op, err := Parse("", "ALTER TABLE analytics.events WRITE UNORDERED")
+		require.NoError(t, err)
+		assert.Equal(t, SetSortOrder, op.Kind)
+		require.NotNil(t, op.Sort)
+		assert.True(t, op.Sort.Unordered)
+		assert.Empty(t, op.Sort.Fields)
+	})
+
+	t.Run("unsupported WRITE variant returns error", func(t *testing.T) {
+		t.Parallel()
+		_, err := Parse("", "ALTER TABLE analytics.events WRITE DISTRIBUTED BY PARTITION")
+		require.Error(t, err)
+	})
+
+	t.Run("NULLS without FIRST/LAST is a parse error", func(t *testing.T) {
+		t.Parallel()
+		_, err := Parse("", "ALTER TABLE analytics.events WRITE ORDERED BY a NULLS")
+		require.Error(t, err)
+	})
+}
+
 // TestParse_NotNull_OutsideSubset verifies that NOT NULL (outside subset v1) returns ErrParse
 // and does not panic. Field.Required is not supported in subset v1.
 func TestParse_NotNull_OutsideSubset(t *testing.T) {

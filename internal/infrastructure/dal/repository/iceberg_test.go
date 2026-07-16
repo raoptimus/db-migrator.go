@@ -752,6 +752,26 @@ func TestIceberg_ExecQuery_Dispatch(t *testing.T) {
 					Return(nil).Once()
 			},
 		},
+		{
+			name:  "WRITE ORDERED BY → ApplySortOrderChange",
+			query: "ALTER TABLE analytics.events WRITE ORDERED BY event_time DESC, user_id",
+			setup: func(cat *MockIcebergCatalog) {
+				cat.EXPECT().Warehouse().Return("").Once()
+				cat.EXPECT().
+					ApplySortOrderChange(ctx, mock.AnythingOfType("ddl.Operation")).
+					Return(nil).Once()
+			},
+		},
+		{
+			name:  "WRITE UNORDERED → ApplySortOrderChange",
+			query: "ALTER TABLE analytics.events WRITE UNORDERED",
+			setup: func(cat *MockIcebergCatalog) {
+				cat.EXPECT().Warehouse().Return("").Once()
+				cat.EXPECT().
+					ApplySortOrderChange(ctx, mock.AnythingOfType("ddl.Operation")).
+					Return(nil).Once()
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -806,6 +826,109 @@ func TestIceberg_ExecQuery_CreateNamespaceIfNotExists(t *testing.T) {
 		err := repo.ExecQuery(ctx, "CREATE NAMESPACE IF NOT EXISTS analytics")
 		require.Error(t, err)
 		assert.ErrorContains(t, err, "catalog unreachable")
+	})
+}
+
+// TestIceberg_ExecQuery_CreateTableIfNotExists verifies idempotent table creation:
+// CREATE TABLE IF NOT EXISTS skips CreateTable when the table already exists (checked via
+// TableExists), calls CreateTable exactly once when it does not, and propagates a TableExists error.
+// A plain CREATE TABLE (without the flag) must NOT probe existence.
+func TestIceberg_ExecQuery_CreateTableIfNotExists(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("table exists → CreateTable skipped", func(t *testing.T) {
+		repo, cat := newIcebergRepo(t)
+		cat.EXPECT().Warehouse().Return("").Once()
+		cat.EXPECT().
+			TableExists(ctx, mock.AnythingOfType("ddl.Ident")).
+			Return(true, nil).Once()
+		// No CreateTable expectation: the mock fails if it is called.
+
+		err := repo.ExecQuery(ctx, "CREATE TABLE IF NOT EXISTS analytics.events (id long)")
+		require.NoError(t, err)
+	})
+
+	t.Run("table missing → CreateTable called once", func(t *testing.T) {
+		repo, cat := newIcebergRepo(t)
+		cat.EXPECT().Warehouse().Return("").Once()
+		cat.EXPECT().
+			TableExists(ctx, mock.AnythingOfType("ddl.Ident")).
+			Return(false, nil).Once()
+		cat.EXPECT().
+			CreateTable(ctx, mock.AnythingOfType("ddl.Ident"), mock.AnythingOfType("ddl.CreateTableSpec")).
+			Return(nil).Once()
+
+		err := repo.ExecQuery(ctx, "CREATE TABLE IF NOT EXISTS analytics.events (id long)")
+		require.NoError(t, err)
+	})
+
+	t.Run("TableExists error is propagated", func(t *testing.T) {
+		repo, cat := newIcebergRepo(t)
+		cat.EXPECT().Warehouse().Return("").Once()
+		cat.EXPECT().
+			TableExists(ctx, mock.AnythingOfType("ddl.Ident")).
+			Return(false, errors.New("catalog unreachable")).Once()
+
+		err := repo.ExecQuery(ctx, "CREATE TABLE IF NOT EXISTS analytics.events (id long)")
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "catalog unreachable")
+	})
+
+	t.Run("plain CREATE TABLE does not probe existence", func(t *testing.T) {
+		repo, cat := newIcebergRepo(t)
+		cat.EXPECT().Warehouse().Return("").Once()
+		// No TableExists expectation: the mock fails if existence is probed.
+		cat.EXPECT().
+			CreateTable(ctx, mock.AnythingOfType("ddl.Ident"), mock.AnythingOfType("ddl.CreateTableSpec")).
+			Return(nil).Once()
+
+		err := repo.ExecQuery(ctx, "CREATE TABLE analytics.events (id long)")
+		require.NoError(t, err)
+	})
+}
+
+// TestIceberg_ExecQuery_DropIfExists verifies idempotent drops:
+// DROP TABLE IF EXISTS and DROP NAMESPACE IF EXISTS skip the drop when the object is absent, and
+// perform it when present. Plain drops (without the flag) must NOT probe existence.
+func TestIceberg_ExecQuery_DropIfExists(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("DROP TABLE IF EXISTS, table missing → DropTable skipped", func(t *testing.T) {
+		repo, cat := newIcebergRepo(t)
+		cat.EXPECT().Warehouse().Return("").Once()
+		cat.EXPECT().
+			TableExists(ctx, mock.AnythingOfType("ddl.Ident")).
+			Return(false, nil).Once()
+		// No DropTable expectation: the mock fails if it is called.
+
+		err := repo.ExecQuery(ctx, "DROP TABLE IF EXISTS analytics.events")
+		require.NoError(t, err)
+	})
+
+	t.Run("DROP TABLE IF EXISTS, table present → DropTable called once", func(t *testing.T) {
+		repo, cat := newIcebergRepo(t)
+		cat.EXPECT().Warehouse().Return("").Once()
+		cat.EXPECT().
+			TableExists(ctx, mock.AnythingOfType("ddl.Ident")).
+			Return(true, nil).Once()
+		cat.EXPECT().
+			DropTable(ctx, mock.AnythingOfType("ddl.Ident")).
+			Return(nil).Once()
+
+		err := repo.ExecQuery(ctx, "DROP TABLE IF EXISTS analytics.events")
+		require.NoError(t, err)
+	})
+
+	t.Run("DROP NAMESPACE IF EXISTS, namespace missing → DropNamespace skipped", func(t *testing.T) {
+		repo, cat := newIcebergRepo(t)
+		cat.EXPECT().Warehouse().Return("").Once()
+		cat.EXPECT().
+			NamespaceExists(ctx, []string{"analytics"}).
+			Return(false, nil).Once()
+		// No DropNamespace expectation: the mock fails if it is called.
+
+		err := repo.ExecQuery(ctx, "DROP NAMESPACE IF EXISTS analytics")
+		require.NoError(t, err)
 	})
 }
 

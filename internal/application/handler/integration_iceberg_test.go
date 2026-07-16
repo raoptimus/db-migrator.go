@@ -1040,6 +1040,146 @@ func TestIntegration_Iceberg_MultiLevelNamespace(t *testing.T) {
 	})
 }
 
+// TestIntegration_Iceberg_IfNotExistsIdempotent reproduces the reported bug where
+// `release` with a duplicate `CREATE TABLE IF NOT EXISTS` failed with AlreadyExistsException,
+// and verifies the whole IF [NOT] EXISTS family is now idempotent end-to-end against the catalog:
+//   - CREATE TABLE IF NOT EXISTS on an existing table is skipped (not an error);
+//   - DROP TABLE IF EXISTS on an already-dropped table is skipped;
+//   - DROP NAMESPACE IF EXISTS drops the namespace.
+func TestIntegration_Iceberg_IfNotExistsIdempotent(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+	loadIcebergEnv(t)
+
+	tmpDir := t.TempDir()
+	write := func(name, content string) {
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, name), []byte(content), 0o600))
+	}
+
+	// Namespace (bare name, like the reference fixtures).
+	write("260301_100000_ns.up.sql", "CREATE NAMESPACE IF NOT EXISTS idemp;\n")
+	write("260301_100000_ns.down.sql", "DROP NAMESPACE IF EXISTS idemp;\n")
+	// First table creation. DSN warehouse = iceberg, so the leading segment is stripped:
+	// iceberg.idemp.widgets => namespace=[idemp], table=widgets.
+	write("260301_100100_tbl.up.sql", "CREATE TABLE IF NOT EXISTS iceberg.idemp.widgets (id long);\n")
+	write("260301_100100_tbl.down.sql", "DROP TABLE IF EXISTS iceberg.idemp.widgets;\n")
+	// Duplicate creation of the SAME table: must be skipped idempotently, not fail.
+	write("260301_100200_tbl_dup.up.sql", "CREATE TABLE IF NOT EXISTS iceberg.idemp.widgets (id long);\n")
+	// Its down drops the table; the previous migration's down then hits DROP TABLE IF EXISTS
+	// on an already-dropped table, exercising the idempotent-drop path.
+	write("260301_100200_tbl_dup.down.sql", "DROP TABLE IF EXISTS iceberg.idemp.widgets;\n")
+
+	opts := &Options{
+		DSN:         icebergDSN(),
+		Directory:   tmpDir,
+		TableName:   "mig_ifnotexists",
+		Compact:     true,
+		Interactive: false,
+	}
+	handlers := NewHandlers(opts, &infralog.NopLogger{})
+
+	createCommand := func(arg string) *Command {
+		args := NewMockArgs(t)
+		args.EXPECT().First().Return(arg).Maybe()
+		args.EXPECT().Present().Return(true).Maybe()
+		return &Command{Args: args}
+	}
+
+	conn, err := connection.Try(opts.DSN, 1)
+	require.NoError(t, err)
+	defer conn.Close()
+
+	repo, err := repository.New(conn, &repository.Options{TableName: opts.TableName})
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	t.Run("release_with_duplicate_create_table_is_idempotent", func(t *testing.T) {
+		cleanupIceberg(handlers, createCommand)
+		defer func() { cleanupIceberg(handlers, createCommand) }()
+
+		// release applies all three migrations in one batch. The duplicate
+		// CREATE TABLE IF NOT EXISTS must be skipped, not raise AlreadyExistsException.
+		err = handlers.Release.Handle(createCommand(""))
+		require.NoError(t, err, "duplicate CREATE TABLE IF NOT EXISTS must be skipped, not fail")
+		assertIcebergMigrationsCount(t, ctx, repo, 4) // base + 3
+
+		// down all reverts in reverse order; the second DROP TABLE IF EXISTS lands on an
+		// already-dropped table (idempotent skip), then DROP NAMESPACE IF EXISTS removes it.
+		err = handlers.Downgrade.Handle(createCommand("all"))
+		require.NoError(t, err)
+		assertIcebergMigrationsCount(t, ctx, repo, 1) // base only
+	})
+}
+
+// TestIntegration_Iceberg_WriteOrderedBy verifies the ALTER TABLE … WRITE ORDERED BY / WRITE
+// UNORDERED sort-order operations end-to-end against the real catalog: a sort order with a plain
+// column and a transform is committed via CommitTable, and the down migration resets it with
+// WRITE UNORDERED.
+func TestIntegration_Iceberg_WriteOrderedBy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test")
+	}
+	loadIcebergEnv(t)
+
+	tmpDir := t.TempDir()
+	write := func(name, content string) {
+		require.NoError(t, os.WriteFile(filepath.Join(tmpDir, name), []byte(content), 0o600))
+	}
+
+	write("260401_100000_ns.up.sql", "CREATE NAMESPACE IF NOT EXISTS sortns;\n")
+	write("260401_100000_ns.down.sql", "DROP NAMESPACE IF EXISTS sortns;\n")
+	write("260401_100100_tbl.up.sql",
+		"CREATE TABLE iceberg.sortns.orders (id long, amount long, created_at timestamp);\n")
+	write("260401_100100_tbl.down.sql", "DROP TABLE IF EXISTS iceberg.sortns.orders;\n")
+	// Sort order over a plain column (with explicit null ordering) and a bucket transform.
+	write("260401_100200_sort.up.sql",
+		"ALTER TABLE iceberg.sortns.orders WRITE ORDERED BY created_at DESC NULLS LAST, bucket(8, id);\n")
+	// Reverting a sort order is not automatic — reset to unsorted.
+	write("260401_100200_sort.down.sql", "ALTER TABLE iceberg.sortns.orders WRITE UNORDERED;\n")
+
+	opts := &Options{
+		DSN:         icebergDSN(),
+		Directory:   tmpDir,
+		TableName:   "mig_sortorder",
+		Compact:     true,
+		Interactive: false,
+	}
+	handlers := NewHandlers(opts, &infralog.NopLogger{})
+
+	createCommand := func(arg string) *Command {
+		args := NewMockArgs(t)
+		args.EXPECT().First().Return(arg).Maybe()
+		args.EXPECT().Present().Return(true).Maybe()
+		return &Command{Args: args}
+	}
+
+	conn, err := connection.Try(opts.DSN, 1)
+	require.NoError(t, err)
+	defer conn.Close()
+
+	repo, err := repository.New(conn, &repository.Options{TableName: opts.TableName})
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	t.Run("apply_sort_order_and_reset", func(t *testing.T) {
+		cleanupIceberg(handlers, createCommand)
+		defer func() { cleanupIceberg(handlers, createCommand) }()
+
+		// up applies namespace + table + WRITE ORDERED BY (commits sort order via CommitTable).
+		err = handlers.Upgrade.Handle(createCommand(""))
+		require.NoError(t, err, "WRITE ORDERED BY must commit the sort order successfully")
+		assertIcebergMigrationsCount(t, ctx, repo, 4) // base + 3
+
+		// down all reverts: WRITE UNORDERED (reset), DROP TABLE, DROP NAMESPACE.
+		err = handlers.Downgrade.Handle(createCommand("all"))
+		require.NoError(t, err)
+		assertIcebergMigrationsCount(t, ctx, repo, 1) // base only
+	})
+}
+
 // Compile-time verification that *testCapturingLogger satisfies Logger.
 // Uses the Logger type alias defined in dependency.go (= log.Logger interface).
 var _ Logger = (*testCapturingLogger)(nil)

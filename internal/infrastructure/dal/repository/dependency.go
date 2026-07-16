@@ -33,6 +33,8 @@ type IcebergCatalog interface {
 
 	// CreateTable creates an Iceberg table from the given IR specification.
 	CreateTable(ctx context.Context, ident ddl.Ident, spec ddl.CreateTableSpec) error
+	// TableExists checks whether the given table exists in the catalog.
+	TableExists(ctx context.Context, ident ddl.Ident) (bool, error)
 	// DropTable drops an Iceberg table identified by ident.
 	DropTable(ctx context.Context, ident ddl.Ident) error
 	// RenameTable renames an Iceberg table from from to to.
@@ -43,6 +45,9 @@ type IcebergCatalog interface {
 	// ApplySpecChange applies a partition-spec DDL operation (AddPartitionField,
 	// DropPartitionField) via an Iceberg spec update transaction.
 	ApplySpecChange(ctx context.Context, op ddl.Operation) error
+	// ApplySortOrderChange sets or clears the table write sort order (WRITE ORDERED BY /
+	// WRITE UNORDERED) via a catalog CommitTable call.
+	ApplySortOrderChange(ctx context.Context, op ddl.Operation) error
 }
 
 //go:generate mockery

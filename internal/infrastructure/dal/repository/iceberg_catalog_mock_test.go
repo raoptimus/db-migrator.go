@@ -69,6 +69,53 @@ func (_c *MockIcebergCatalog_ApplySchemaChange_Call) RunAndReturn(run func(conte
 	return _c
 }
 
+// ApplySortOrderChange provides a mock function with given fields: ctx, op
+func (_m *MockIcebergCatalog) ApplySortOrderChange(ctx context.Context, op ddl.Operation) error {
+	ret := _m.Called(ctx, op)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ApplySortOrderChange")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, ddl.Operation) error); ok {
+		r0 = rf(ctx, op)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockIcebergCatalog_ApplySortOrderChange_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ApplySortOrderChange'
+type MockIcebergCatalog_ApplySortOrderChange_Call struct {
+	*mock.Call
+}
+
+// ApplySortOrderChange is a helper method to define mock.On call
+//   - ctx context.Context
+//   - op ddl.Operation
+func (_e *MockIcebergCatalog_Expecter) ApplySortOrderChange(ctx interface{}, op interface{}) *MockIcebergCatalog_ApplySortOrderChange_Call {
+	return &MockIcebergCatalog_ApplySortOrderChange_Call{Call: _e.mock.On("ApplySortOrderChange", ctx, op)}
+}
+
+func (_c *MockIcebergCatalog_ApplySortOrderChange_Call) Run(run func(ctx context.Context, op ddl.Operation)) *MockIcebergCatalog_ApplySortOrderChange_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(ddl.Operation))
+	})
+	return _c
+}
+
+func (_c *MockIcebergCatalog_ApplySortOrderChange_Call) Return(_a0 error) *MockIcebergCatalog_ApplySortOrderChange_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockIcebergCatalog_ApplySortOrderChange_Call) RunAndReturn(run func(context.Context, ddl.Operation) error) *MockIcebergCatalog_ApplySortOrderChange_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ApplySpecChange provides a mock function with given fields: ctx, op
 func (_m *MockIcebergCatalog) ApplySpecChange(ctx context.Context, op ddl.Operation) error {
 	ret := _m.Called(ctx, op)
@@ -557,6 +604,63 @@ func (_c *MockIcebergCatalog_RenameTable_Call) Return(_a0 error) *MockIcebergCat
 }
 
 func (_c *MockIcebergCatalog_RenameTable_Call) RunAndReturn(run func(context.Context, ddl.Ident, ddl.Ident) error) *MockIcebergCatalog_RenameTable_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// TableExists provides a mock function with given fields: ctx, ident
+func (_m *MockIcebergCatalog) TableExists(ctx context.Context, ident ddl.Ident) (bool, error) {
+	ret := _m.Called(ctx, ident)
+
+	if len(ret) == 0 {
+		panic("no return value specified for TableExists")
+	}
+
+	var r0 bool
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, ddl.Ident) (bool, error)); ok {
+		return rf(ctx, ident)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, ddl.Ident) bool); ok {
+		r0 = rf(ctx, ident)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, ddl.Ident) error); ok {
+		r1 = rf(ctx, ident)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockIcebergCatalog_TableExists_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'TableExists'
+type MockIcebergCatalog_TableExists_Call struct {
+	*mock.Call
+}
+
+// TableExists is a helper method to define mock.On call
+//   - ctx context.Context
+//   - ident ddl.Ident
+func (_e *MockIcebergCatalog_Expecter) TableExists(ctx interface{}, ident interface{}) *MockIcebergCatalog_TableExists_Call {
+	return &MockIcebergCatalog_TableExists_Call{Call: _e.mock.On("TableExists", ctx, ident)}
+}
+
+func (_c *MockIcebergCatalog_TableExists_Call) Run(run func(ctx context.Context, ident ddl.Ident)) *MockIcebergCatalog_TableExists_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(ddl.Ident))
+	})
+	return _c
+}
+
+func (_c *MockIcebergCatalog_TableExists_Call) Return(_a0 bool, _a1 error) *MockIcebergCatalog_TableExists_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockIcebergCatalog_TableExists_Call) RunAndReturn(run func(context.Context, ddl.Ident) (bool, error)) *MockIcebergCatalog_TableExists_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -37,6 +37,13 @@ import (
 type Client struct {
 	cat       *rest.Catalog
 	warehouse string // warehouse name extracted from DSN path (used for catalog-prefix stripping)
+
+	// headUnsupported is set to true once the REST server is observed to reject a HEAD
+	// existence probe with a definitive "bad request" (older JdbcCatalog builds do not
+	// implement HEAD; see the namespace GET-over-HEAD fix). After that, TableExists falls
+	// back to the GET-based ListTables path for the rest of the process. Migrations run
+	// sequentially, so a plain bool without synchronization is sufficient.
+	headUnsupported bool
 }
 
 // New constructs a REST catalog client from a parsed DSN.
