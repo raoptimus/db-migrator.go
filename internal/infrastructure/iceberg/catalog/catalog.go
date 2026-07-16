@@ -95,6 +95,10 @@ func (c *Client) Warehouse() string {
 
 // Ping verifies connectivity to the REST catalog by listing top-level namespaces.
 func (c *Client) Ping(ctx context.Context) error {
+	// Disable pagination: the reference Iceberg REST server (iceberg-rest-fixture) throws
+	// NumberFormatException on listNamespaces when a pageSize is sent without a pageToken.
+	// iceberg-go sends pageSize=20 unconditionally, so suppress it to avoid the server bug.
+	ctx = c.cat.SetPageSize(ctx, 0)
 	_, err := c.cat.ListNamespaces(ctx, nil)
 	if err != nil {
 		return errors.WithMessage(err, "ping iceberg catalog")
